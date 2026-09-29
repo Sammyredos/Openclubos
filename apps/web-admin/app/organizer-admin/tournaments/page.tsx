@@ -51,11 +51,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input, SearchableSelect } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { cn, formatThousandsInput, formatWithCommas, formatTitleCase, formatTournamentFee } from "@/lib/utils";
+import { cn, formatThousandsInput, formatWithCommas, formatTitleCase, formatTournamentFee, formatCurrency } from "@/lib/utils";
 import { Pagination } from "@/components/ui/pagination";
 import { Label } from "@/components/ui/label";
 import { Modal } from "@/components/ui/modal";
 import { cancelTournament, deleteTournament, getTournaments, updateTournament } from "@/lib/api/tournaments";
+import { getClubWallet, type ClubWalletSummary } from "@/lib/api/withdrawals";
 import { getAdminUsers } from "@/lib/api/members";
 import {
   addRegistrationStrokes,
@@ -69,15 +70,6 @@ import { toast } from "sonner";
 import { DatePicker } from "@/components/ui/date-picker";
 import { FloatingMenu } from "@/components/ui/floating-menu";
 import dynamic from "next/dynamic";
-import { WizardSkeleton } from "@/components/ui/wizard-skeleton";
-
-const CreateTournamentWizard = dynamic(
-  () => import("@/components/tournaments/CreateTournamentWizard").then(mod => mod.CreateTournamentWizard),
-  {
-    ssr: false,
-    loading: () => <WizardSkeleton steps={8} />
-  }
-);
 
 const WaitlistModal = dynamic(
   () => import("@/components/tournaments/WaitlistModal").then(mod => mod.WaitlistModal),
@@ -249,8 +241,6 @@ export default function TournamentsPage() {
   const [exportAnchorEl, setExportAnchorEl] = useState<HTMLElement | null>(null);
   const [mutating, setMutating] = useState(false);
 
-  const [isWizardOpen, setIsWizardOpen] = useState(false);
-  const [wizardTournamentId, setWizardTournamentId] = useState<string | null>(null);
   const [isWaitlistModalOpen, setIsWaitlistModalOpen] = useState(false);
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -319,13 +309,18 @@ export default function TournamentsPage() {
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+  const [wallet, setWallet] = useState<ClubWalletSummary | null>(null);
 
   async function reloadTournaments() {
     setLoading(true);
     setError(null);
     try {
-      const data = (await getTournaments({ clubId: user?.clubId })) as ApiTournament[];
+      const [data, walletData] = await Promise.all([
+        getTournaments({ clubId: user?.clubId }) as Promise<ApiTournament[]>,
+        getClubWallet().catch(() => null),
+      ]);
       setTournaments(Array.isArray(data) ? data : []);
+      if (walletData) setWallet(walletData);
     } catch (e: unknown) {
       setError(getErrorMessage(e) || "Failed to fetch tournaments");
       setTournaments([]);
@@ -340,9 +335,13 @@ export default function TournamentsPage() {
       try {
         setLoading(true);
         setError(null);
-        const data = (await getTournaments({ clubId: user?.clubId })) as ApiTournament[];
+        const [data, walletData] = await Promise.all([
+          getTournaments({ clubId: user?.clubId }) as Promise<ApiTournament[]>,
+          getClubWallet().catch(() => null),
+        ]);
         if (cancelled) return;
         setTournaments(Array.isArray(data) ? data : []);
+        if (walletData) setWallet(walletData);
       } catch (e: unknown) {
         if (cancelled) return;
         setError(getErrorMessage(e) || "Failed to fetch tournaments");
@@ -356,7 +355,7 @@ export default function TournamentsPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [user?.clubId]);
 
   const rows = tournaments.map((t) => {
     const clubName = t.club?.name || "—";
@@ -990,7 +989,7 @@ export default function TournamentsPage() {
       {loading ? (
         <div className="w-full bg-white rounded-lg shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] overflow-x-auto">
           <div className="flex items-center justify-between p-8 min-w-max gap-12 font-sans">
-            {[1, 2, 3, 4, 5].map((i, idx) => (
+            {[1, 2, 3, 4, 5, 6].map((i, idx) => (
               <div key={i} className="flex items-center gap-12 flex-1">
                 <div className="flex flex-col justify-start items-start gap-3.5 w-full">
                   <div className="flex justify-start items-center gap-3.5">
@@ -1000,7 +999,7 @@ export default function TournamentsPage() {
                   <Skeleton className="h-9 w-16" />
                   <Skeleton className="h-5 w-24" />
                 </div>
-                {idx < 4 && <div className="w-px h-16 bg-slate-200 shrink-0" />}
+                {idx < 5 && <div className="w-px h-16 bg-slate-200 shrink-0" />}
               </div>
             ))}
           </div>
@@ -1064,6 +1063,17 @@ export default function TournamentsPage() {
               </div>
               <div className="text-[#15803D] text-3xl font-bold">{formatNaira(totalEntryFeesThisMonth)}</div>
               <div className="text-zinc-500 text-sm font-normal">This Month</div>
+            </div>
+
+            <div className="w-px h-16 bg-slate-200" />
+
+            {/* Stat 6: Organizer Wallet Balance */}
+            <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
+              <div className="flex justify-start items-center gap-3.5">
+                <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Wallet Balance</div>
+              </div>
+              <div className="text-[#15803D] text-3xl font-bold">{formatCurrency(wallet?.availableBalance ?? wallet?.balance ?? 0)}</div>
+              <div className="text-zinc-500 text-sm font-normal">Available Balance</div>
             </div>
 
           </div>
@@ -1804,16 +1814,6 @@ export default function TournamentsPage() {
           </p>
         </div>
       </Modal>
-
-      <CreateTournamentWizard
-        isOpen={isWizardOpen}
-        tournamentId={wizardTournamentId}
-        onClose={() => {
-          setIsWizardOpen(false);
-          setWizardTournamentId(null);
-        }}
-        onSuccess={() => reloadTournaments()}
-      />
     </div>
   );
 }

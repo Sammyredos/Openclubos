@@ -191,8 +191,7 @@ function validateStep(step: number, f: FormData, isMultiDay = false, originalSta
     }
   }
   if (step === 5) {
-    if (f.requiresPayment && !f.entryFee) return "Entry fee is required when payment is enabled.";
-    if (f.requiresPayment && Number(f.entryFee) <= 0) return "Entry fee must be greater than zero.";
+    if (f.entryFee && Number(f.entryFee) < 0) return "Entry fee cannot be negative.";
   }
   if (step === 6) {
     if (f.autoGrouping) {
@@ -508,8 +507,8 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                 cutAfterRound: t.cutAfterRound != null ? String(t.cutAfterRound) : "",
                 cutFormat: (t.cutLine && t.cutLine < 0) ? "PERCENTAGE" : "NUMBER",
                 cutLine: t.cutLine != null ? String(Math.abs(t.cutLine)) : "",
-                requiresPayment: t.requiresPayment ?? false,
-                entryFee: t.entryFee != null ? String(t.entryFee) : "",
+                requiresPayment: Boolean(t.entryFee && Number(t.entryFee) > 0),
+                entryFee: t.entryFee != null && Number(t.entryFee) > 0 ? String(t.entryFee) : "",
                 currency: t.currency || "NGN",
                 paymentDeadline: t.paymentDeadline ? t.paymentDeadline.slice(0, 10) : "",
                 isRefundable: t.isRefundable ?? false,
@@ -653,11 +652,11 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
         enableCut: f.enableCut,
         cutAfterRound: f.enableCut && f.cutAfterRound !== "" ? Number(f.cutAfterRound) : null,
         cutLine: f.enableCut && f.cutLine !== "" ? (f.cutFormat === "PERCENTAGE" ? -Number(f.cutLine) : Number(f.cutLine)) : null,
-        requiresPayment: f.requiresPayment,
-        entryFee: f.requiresPayment && f.entryFee !== "" ? Number(f.entryFee) : null,
+        requiresPayment: Boolean(f.entryFee && Number(f.entryFee) > 0),
+        entryFee: f.entryFee && Number(f.entryFee) > 0 ? Number(f.entryFee) : null,
         currency: f.currency ? f.currency.toUpperCase() : "NGN",
-        paymentDeadline: f.requiresPayment && f.paymentDeadline ? new Date(f.paymentDeadline).toISOString() : null,
-        isRefundable: f.requiresPayment ? f.isRefundable : false,
+        paymentDeadline: f.entryFee && Number(f.entryFee) > 0 && f.paymentDeadline ? new Date(f.paymentDeadline).toISOString() : null,
+        isRefundable: f.entryFee && Number(f.entryFee) > 0 ? f.isRefundable : false,
       };
 
       basePayload.autoGrouping = f.autoGrouping ?? true;
@@ -755,129 +754,134 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                 </div>
               </div>
 
-              <div className="p-5 space-y-6">
-                {/* ── General Information Card ── */}
-                <div className="bg-background rounded-xl border border-[#e1efe5] p-5 space-y-4">
-                  <div>
-                    <h4 className="text-[14px] font-medium text-gray-900">General Information</h4>
-                    <p className="text-[12px] text-gray-500">Provide the official tournament name and title.</p>
-                  </div>
-                  <Field label="Tournament Name" required error={nameError || undefined}>
-                    <div className="relative">
-                      <Trophy className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                      <Input
-                        value={formData.name}
-                        onChange={(e) => {
-                          set("name", e.target.value);
-                          if (nameError) setNameError(null);
-                        }}
-                        onBlur={(e) => {
-                          if (e.target.value.trim()) {
-                            set("name", formatTitleCase(e.target.value.trim()));
-                          }
-                        }}
-                        placeholder="e.g. Sunshine Tour 2026"
-                        className={cn("pl-11 bg-white", nameError ? "!border-red-500 !focus:border-red-500" : req(formData.name))}
-                      />
+              <div className="p-5">
+                <div className="bg-background rounded-xl border border-[#e1efe5] p-5 space-y-6">
+                  {/* ── General Information ── */}
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="text-[14px] font-medium text-gray-900">General Information</h4>
+                      <p className="text-[12px] text-gray-500">Provide the official tournament name and title.</p>
                     </div>
-                    {!nameError && (
-                      <p className="text-[11px] text-gray-400 mt-1">
-                        Include the year so recurring tournaments stay unique — e.g. Lagos Open 2026.
-                      </p>
+                    <Field label="Tournament Name" required error={nameError || undefined}>
+                      <div className="relative">
+                        <Trophy className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <Input
+                          value={formData.name}
+                          onChange={(e) => {
+                            set("name", e.target.value);
+                            if (nameError) setNameError(null);
+                          }}
+                          onBlur={(e) => {
+                            if (e.target.value.trim()) {
+                              set("name", formatTitleCase(e.target.value.trim()));
+                            }
+                          }}
+                          placeholder="e.g. Sunshine Tour 2026"
+                          className={cn("pl-11 bg-white", nameError ? "!border-red-500 !focus:border-red-500" : req(formData.name))}
+                        />
+                      </div>
+                      {!nameError && (
+                        <p className="text-[11px] text-gray-400 mt-1">
+                          Include the year so recurring tournaments stay unique — e.g. Lagos Open 2026.
+                        </p>
+                      )}
+                    </Field>
+                  </div>
+
+                  <hr className="border-t border-[#e1efe5]" />
+
+                  {/* ── Location & Host Venue ── */}
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="text-[14px] font-medium text-gray-900">Location & Host Venue</h4>
+                      <p className="text-[12px] text-gray-500">Select the country, host golf course, and organizer.</p>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <Field label="Country" required>
+                        <SearchableSelect
+                          value={formData.venue}
+                          onValueChange={(v) => {
+                            set("venue", v);
+                            set("courseId", "");
+                            set("location", "");
+                            const detectedCurrency = Country.getCountryByCode(v)?.currency;
+                            if (detectedCurrency) {
+                              set("currency", detectedCurrency.toUpperCase());
+                            }
+                          }}
+                          options={countryOptions}
+                          placeholder="Select country..."
+                          disabled={isLocationLocked}
+                          triggerClassName={cn("bg-white", req(formData.venue), isLocationLocked && "bg-gray-50/70 border-gray-200 text-gray-500 cursor-not-allowed")}
+                        />
+                      </Field>
+                      <Field label="Golf Course" required>
+                        <SearchableSelect
+                          value={formData.courseId}
+                          onValueChange={handleCourseChange}
+                          options={filteredCourses.map((c) => ({
+                            value: c.id,
+                            label: c.name,
+                            image: c.coverImage || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(c.name)}&backgroundColor=10b981`,
+                          }))}
+                          placeholder="Select course..."
+                          disabled={isLocationLocked || !formData.venue}
+                          triggerClassName={cn("bg-white", req(formData.courseId), isLocationLocked && "bg-gray-50/70 border-gray-200 text-gray-500 cursor-not-allowed")}
+                        />
+                      </Field>
+                    </div>
+
+                    {isLocationLocked ? (
+                      <div className="bg-amber-50/70 border border-amber-200/80 rounded-xl p-3.5 flex items-start gap-3">
+                        <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                        <div className="space-y-0.5">
+                          <p className="text-[12px] font-medium text-amber-900">
+                            Location and Host Venue Locked
+                          </p>
+                          <p className="text-[12px] font-normal text-amber-800 leading-relaxed">
+                            Location and host venue can only be modified by a Super Administrator on an already created tournament. Contact your platform administrator if this tournament needs to be relocated.
+                          </p>
+                        </div>
+                      </div>
+                    ) : tournamentId && isSuperAdmin ? (
+                      <div className="bg-emerald-50/60 border border-emerald-200/80 rounded-xl p-3.5 flex items-start gap-3">
+                        <Shield className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                        <div className="space-y-0.5">
+                          <p className="text-[12px] font-medium text-emerald-900">
+                            Super Administrator Access
+                          </p>
+                          <p className="text-[12px] font-normal text-emerald-800 leading-relaxed">
+                            You have elevated administrative permissions to reassign the host venue, country, or course for this tournament.
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="bg-white border border-[#e1efe5] rounded-xl p-3 flex items-center gap-3">
+                        <Info className="w-4 h-4 text-openclub-700 shrink-0" />
+                        <p className="text-[12px] font-normal text-emerald-800">
+                          Note: You will only see golf courses available in the selected country.
+                        </p>
+                      </div>
                     )}
-                  </Field>
-                </div>
 
-                {/* ── Location & Host Venue Card ── */}
-                <div className="bg-background rounded-xl border border-[#e1efe5] p-5 space-y-4">
-                  <div>
-                    <h4 className="text-[14px] font-medium text-gray-900">Location & Host Venue</h4>
-                    <p className="text-[12px] text-gray-500">Select the country, host golf course, and organizer.</p>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Field label="Country" required>
-                      <SearchableSelect
-                        value={formData.venue}
-                        onValueChange={(v) => {
-                          set("venue", v);
-                          set("courseId", "");
-                          set("location", "");
-                          const detectedCurrency = Country.getCountryByCode(v)?.currency;
-                          if (detectedCurrency) {
-                            set("currency", detectedCurrency.toUpperCase());
-                          }
-                        }}
-                        options={countryOptions}
-                        placeholder="Select country..."
-                        disabled={isLocationLocked}
-                        triggerClassName={cn("bg-white", req(formData.venue), isLocationLocked && "bg-gray-50/70 border-gray-200 text-gray-500 cursor-not-allowed")}
-                      />
-                    </Field>
-                    <Field label="Golf Course" required>
-                      <SearchableSelect
-                        value={formData.courseId}
-                        onValueChange={handleCourseChange}
-                        options={filteredCourses.map((c) => ({
-                          value: c.id,
-                          label: c.name,
-                          image: c.coverImage || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(c.name)}&backgroundColor=10b981`,
-                        }))}
-                        placeholder="Select course..."
-                        disabled={isLocationLocked || !formData.venue}
-                        triggerClassName={cn("bg-white", req(formData.courseId), isLocationLocked && "bg-gray-50/70 border-gray-200 text-gray-500 cursor-not-allowed")}
-                      />
-                    </Field>
+                    {user?.role === "SUPER_ADMIN" && (
+                      <Field label="Organizer" required>
+                        <SearchableSelect
+                          value={formData.clubId}
+                          onValueChange={handleClubChange}
+                          options={organizers.map((o) => ({ value: o.id, label: o.name, image: o.logo || undefined }))}
+                          placeholder="Select organizer..."
+                          triggerClassName={cn("bg-white", req(formData.clubId))}
+                          disabled={!!tournamentId}
+                        />
+                      </Field>
+                    )}
                   </div>
 
-                  {isLocationLocked ? (
-                    <div className="bg-amber-50/70 border border-amber-200/80 rounded-xl p-3.5 flex items-start gap-3">
-                      <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                      <div className="space-y-0.5">
-                        <p className="text-[12px] font-medium text-amber-900">
-                          Location and Host Venue Locked
-                        </p>
-                        <p className="text-[12px] font-normal text-amber-800 leading-relaxed">
-                          Location and host venue can only be modified by a Super Administrator on an already created tournament. Contact your platform administrator if this tournament needs to be relocated.
-                        </p>
-                      </div>
-                    </div>
-                  ) : tournamentId && isSuperAdmin ? (
-                    <div className="bg-emerald-50/60 border border-emerald-200/80 rounded-xl p-3.5 flex items-start gap-3">
-                      <Shield className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                      <div className="space-y-0.5">
-                        <p className="text-[12px] font-medium text-emerald-900">
-                          Super Administrator Access
-                        </p>
-                        <p className="text-[12px] font-normal text-emerald-800 leading-relaxed">
-                          You have elevated administrative permissions to reassign the host venue, country, or course for this tournament.
-                        </p>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="bg-white border border-[#e1efe5] rounded-xl p-3 flex items-center gap-3">
-                      <Info className="w-4 h-4 text-openclub-700 shrink-0" />
-                      <p className="text-[12px] font-normal text-emerald-800">
-                        Note: You will only see golf courses available in the selected country.
-                      </p>
-                    </div>
-                  )}
+                  <hr className="border-t border-[#e1efe5]" />
 
-                  {user?.role === "SUPER_ADMIN" && (
-                    <Field label="Organizer" required>
-                      <SearchableSelect
-                        value={formData.clubId}
-                        onValueChange={handleClubChange}
-                        options={organizers.map((o) => ({ value: o.id, label: o.name, image: o.logo || undefined }))}
-                        placeholder="Select organizer..."
-                        triggerClassName={cn("bg-white", req(formData.clubId))}
-                        disabled={!!tournamentId}
-                      />
-                    </Field>
-                  )}
-                </div>
-
-                  {/* ── Tournament Description Card ── */}
-                  <div className="bg-background rounded-xl border border-[#e1efe5] p-5 space-y-4">
+                  {/* ── Tournament Description ── */}
+                  <div className="space-y-4">
                     <div>
                       <h4 className="text-[14px] font-medium text-gray-900">Tournament Description</h4>
                       <p className="text-[12px] text-gray-500">Provide an overview of the event, prizes, schedule highlights, and general details.</p>
@@ -918,6 +922,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                       </div>
                     </Field>
                   </div>
+                </div>
               </div>
             </div>
           </div>
@@ -936,112 +941,116 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                 </div>
               </div>
 
-              <div className="p-5 space-y-6">
-                {/* ── Tournament Duration & Dates Card ── */}
-                <div className="bg-background rounded-xl border border-[#e1efe5] p-5 space-y-4">
-                  <div>
-                    <h4 className="text-[14px] font-medium text-gray-900">Tournament Duration & Dates</h4>
-                    <p className="text-[12px] text-gray-500">Specify if this tournament spans a single day or multiple days, and select tournament play dates.</p>
-                  </div>
-                  <div className="flex rounded-xl border border-[#e1efe5] divide-x divide-[#e1efe5] overflow-hidden">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsMultiDay(false);
-                        set("endDate", "");
-                      }}
-                      className={cn(
-                        "flex-1 flex flex-col items-center justify-center py-2.5 text-[13px] font-normal transition-all",
-                        !isMultiDay ? "bg-openclub-700 text-white" : "bg-white text-gray-600 hover:bg-gray-50"
-                      )}
-                    >
-                      One Day
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setIsMultiDay(true)}
-                      className={cn(
-                        "flex-1 flex flex-col items-center justify-center py-2.5 text-[13px] font-normal transition-all",
-                        isMultiDay ? "bg-openclub-700 text-white" : "bg-white text-gray-600 hover:bg-gray-50"
-                      )}
-                    >
-                      Multi-Day
-                    </button>
-                  </div>
-
-                  <div className={cn("grid gap-4 pt-1", isMultiDay ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1")}>
-                    <Field label={isMultiDay ? "Tournament Start Date" : "Tournament Date"} required>
-                      <DatePicker
-                        value={formData.startDate}
-                        onValueChange={(v) => {
-                          set("startDate", v);
-                          if (formData.endDate && formData.endDate <= v) set("endDate", "");
-                          if (formData.registrationOpenAt && formData.registrationOpenAt >= v)
-                            set("registrationOpenAt", "");
-                          if (formData.registrationCloseAt && formData.registrationCloseAt >= v)
-                            set("registrationCloseAt", "");
+              <div className="p-5">
+                <div className="bg-background rounded-xl border border-[#e1efe5] p-5 space-y-6">
+                  {/* ── Tournament Duration & Dates ── */}
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="text-[14px] font-medium text-gray-900">Tournament Duration & Dates</h4>
+                      <p className="text-[12px] text-gray-500">Specify if this tournament spans a single day or multiple days, and select tournament play dates.</p>
+                    </div>
+                    <div className="flex rounded-xl border border-[#e1efe5] divide-x divide-[#e1efe5] overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsMultiDay(false);
+                          set("endDate", "");
                         }}
-                        buttonClassName={req(formData.startDate)}
-                        rangeStart={formData.startDate}
-                        rangeEnd={formData.endDate}
-                      />
-                    </Field>
-                    {isMultiDay && (
-                      <Field label="Tournament End Date" required>
+                        className={cn(
+                          "flex-1 flex flex-col items-center justify-center py-2.5 text-[13px] font-normal transition-all",
+                          !isMultiDay ? "bg-openclub-700 text-white" : "bg-white text-gray-600 hover:bg-gray-50"
+                        )}
+                      >
+                        One Day
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsMultiDay(true)}
+                        className={cn(
+                          "flex-1 flex flex-col items-center justify-center py-2.5 text-[13px] font-normal transition-all",
+                          isMultiDay ? "bg-openclub-700 text-white" : "bg-white text-gray-600 hover:bg-gray-50"
+                        )}
+                      >
+                        Multi-Day
+                      </button>
+                    </div>
+
+                    <div className={cn("grid gap-4 pt-1", isMultiDay ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1")}>
+                      <Field label={isMultiDay ? "Tournament Start Date" : "Tournament Date"} required>
                         <DatePicker
-                          value={formData.endDate}
-                          onValueChange={(v) => set("endDate", v)}
-                          minDate={formData.startDate ? shiftDate(formData.startDate, 1) : undefined}
-                          buttonClassName={req(formData.endDate)}
-                          disabled={!formData.startDate}
+                          value={formData.startDate}
+                          onValueChange={(v) => {
+                            set("startDate", v);
+                            if (formData.endDate && formData.endDate <= v) set("endDate", "");
+                            if (formData.registrationOpenAt && formData.registrationOpenAt >= v)
+                              set("registrationOpenAt", "");
+                            if (formData.registrationCloseAt && formData.registrationCloseAt >= v)
+                              set("registrationCloseAt", "");
+                          }}
+                          buttonClassName={req(formData.startDate)}
                           rangeStart={formData.startDate}
                           rangeEnd={formData.endDate}
                         />
                       </Field>
-                    )}
+                      {isMultiDay && (
+                        <Field label="Tournament End Date" required>
+                          <DatePicker
+                            value={formData.endDate}
+                            onValueChange={(v) => set("endDate", v)}
+                            minDate={formData.startDate ? shiftDate(formData.startDate, 1) : undefined}
+                            buttonClassName={req(formData.endDate)}
+                            disabled={!formData.startDate}
+                            rangeStart={formData.startDate}
+                            rangeEnd={formData.endDate}
+                          />
+                        </Field>
+                      )}
+                    </div>
                   </div>
-                </div>
 
-                {/* ── Registration Window Card ── */}
-                <div className="bg-background rounded-xl border border-[#e1efe5] p-5 space-y-4">
-                  <div>
-                    <h4 className="text-[14px] font-medium text-gray-900">Registration Window</h4>
-                    <p className="text-[12px] text-gray-500">Define the date range during which players are permitted to sign up.</p>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Field label="Registration Opens" required>
-                      <DatePicker
-                        value={formData.registrationOpenAt}
-                        onValueChange={(v) => {
-                          set("registrationOpenAt", v);
-                          const minCloseDate = v ? shiftDate(v, 1) : "";
-                          if (formData.registrationCloseAt && (!minCloseDate || formData.registrationCloseAt < minCloseDate)) {
-                            set("registrationCloseAt", "");
-                          }
-                        }}
-                        maxDate={formData.startDate ? shiftDate(formData.startDate, -1) : undefined}
-                        buttonClassName={req(formData.registrationOpenAt)}
-                        disabled={!formData.startDate}
-                        rangeStart={formData.registrationOpenAt}
-                        rangeEnd={formData.registrationCloseAt}
-                      />
-                      <p className="text-[11px] text-gray-400 mt-1">The date players can start signing up.</p>
-                    </Field>
-                    <Field label="Registration Closes" required>
-                      <DatePicker
-                        value={formData.registrationCloseAt}
-                        onValueChange={(v) => set("registrationCloseAt", v)}
-                        minDate={formData.registrationOpenAt ? shiftDate(formData.registrationOpenAt, 1) : undefined}
-                        maxDate={formData.startDate ? shiftDate(formData.startDate, -1) : undefined}
-                        buttonClassName={req(formData.registrationCloseAt)}
-                        disabled={!formData.registrationOpenAt}
-                        rangeStart={formData.registrationOpenAt}
-                        rangeEnd={formData.registrationCloseAt}
-                      />
-                      <p className="text-[11px] text-gray-400 mt-1">
-                        Deadline for players to register — must be before the tournament starts.
-                      </p>
-                    </Field>
+                  <hr className="border-t border-[#e1efe5]" />
+
+                  {/* ── Registration Window ── */}
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="text-[14px] font-medium text-gray-900">Registration Window</h4>
+                      <p className="text-[12px] text-gray-500">Define the date range during which players are permitted to sign up.</p>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <Field label="Registration Opens" required>
+                        <DatePicker
+                          value={formData.registrationOpenAt}
+                          onValueChange={(v) => {
+                            set("registrationOpenAt", v);
+                            const minCloseDate = v ? shiftDate(v, 1) : "";
+                            if (formData.registrationCloseAt && (!minCloseDate || formData.registrationCloseAt < minCloseDate)) {
+                              set("registrationCloseAt", "");
+                            }
+                          }}
+                          maxDate={formData.startDate ? shiftDate(formData.startDate, -1) : undefined}
+                          buttonClassName={req(formData.registrationOpenAt)}
+                          disabled={!formData.startDate}
+                          rangeStart={formData.registrationOpenAt}
+                          rangeEnd={formData.registrationCloseAt}
+                        />
+                        <p className="text-[11px] text-gray-400 mt-1">The date players can start signing up.</p>
+                      </Field>
+                      <Field label="Registration Closes" required>
+                        <DatePicker
+                          value={formData.registrationCloseAt}
+                          onValueChange={(v) => set("registrationCloseAt", v)}
+                          minDate={formData.registrationOpenAt ? shiftDate(formData.registrationOpenAt, 1) : undefined}
+                          maxDate={formData.startDate ? shiftDate(formData.startDate, -1) : undefined}
+                          buttonClassName={req(formData.registrationCloseAt)}
+                          disabled={!formData.registrationOpenAt}
+                          rangeStart={formData.registrationOpenAt}
+                          rangeEnd={formData.registrationCloseAt}
+                        />
+                        <p className="text-[11px] text-gray-400 mt-1">
+                          Deadline for players to register — must be before the tournament starts.
+                        </p>
+                      </Field>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1062,200 +1071,206 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                 </div>
               </div>
 
-              <div className="p-5 space-y-6">
-                {/* ── Tournament Format Card ── */}
-                <div className="bg-background rounded-xl border border-[#e1efe5] p-5 space-y-3">
-                  <div>
-                    <h4 className="text-[14px] font-medium text-gray-900">
-                      Tournament Format <span className="text-red-500">*</span>
-                    </h4>
-                    <p className="text-[12px] text-gray-500">Select the competitive playing format for this event.</p>
-                  </div>
-                  <div className="grid grid-cols-1 gap-2.5">
-                    {[
-                      {
-                        value: "STROKE_PLAY",
-                        label: "Stroke Play",
-                        desc: "Each player counts every stroke over the full round. Lowest total wins. The standard format used in most professional and amateur tournaments.",
-                      },
-                      {
-                        value: "MATCH_PLAY",
-                        label: "Match Play",
-                        desc: "Two players (or teams) compete hole-by-hole. Whoever wins the most holes wins the match.",
-                      },
-                    ].map(({ value, label, desc }) => {
-                      const active = formData.format === value;
-                      return (
-                        <button
-                          key={value}
-                          type="button"
-                          onClick={() => set("format", value)}
-                          disabled={!!tournamentId}
-                          className={cn(
-                            "w-full text-left rounded-xl border-2 px-4 py-3 flex items-start gap-3 transition-all",
-                            active
-                              ? "border-openclub-700 bg-emerald-50/60"
-                              : "border-[#e1efe5] bg-white hover:border-gray-300 hover:bg-gray-50",
-                            !!tournamentId && "opacity-60 cursor-not-allowed pointer-events-none"
-                          )}
-                        >
-                          <div
+              <div className="p-5">
+                <div className="bg-background rounded-xl border border-[#e1efe5] p-5 space-y-6">
+                  {/* ── Tournament Format ── */}
+                  <div className="space-y-3">
+                    <div>
+                      <h4 className="text-[14px] font-medium text-gray-900">
+                        Tournament Format <span className="text-red-500">*</span>
+                      </h4>
+                      <p className="text-[12px] text-gray-500">Select the competitive playing format for this event.</p>
+                    </div>
+                    <div className="grid grid-cols-1 gap-2.5">
+                      {[
+                        {
+                          value: "STROKE_PLAY",
+                          label: "Stroke Play",
+                          desc: "Each player counts every stroke over the full round. Lowest total wins. The standard format used in most professional and amateur tournaments.",
+                        },
+                        {
+                          value: "MATCH_PLAY",
+                          label: "Match Play",
+                          desc: "Two players (or teams) compete hole-by-hole. Whoever wins the most holes wins the match.",
+                        },
+                      ].map(({ value, label, desc }) => {
+                        const active = formData.format === value;
+                        return (
+                          <button
+                            key={value}
+                            type="button"
+                            onClick={() => set("format", value)}
+                            disabled={!!tournamentId}
                             className={cn(
-                              "w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors",
-                              active ? "border-openclub-700 bg-openclub-700" : "border-gray-300 bg-white"
+                              "w-full text-left rounded-xl border-2 px-4 py-3 flex items-start gap-3 transition-all",
+                              active
+                                ? "border-openclub-700 bg-emerald-50/60"
+                                : "border-[#e1efe5] bg-white hover:border-gray-300 hover:bg-gray-50",
+                              !!tournamentId && "opacity-60 cursor-not-allowed pointer-events-none"
                             )}
                           >
-                            {active && <div className="w-2 h-2 rounded-full bg-white" />}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className={cn("text-[14px] font-normal", active ? "text-emerald-700" : "text-gray-850")}>
-                                {label}
-                              </span>
-                            </div>
-                            <p className="text-[12px] text-gray-500 mt-1 leading-snug">{desc}</p>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* ── Scoring & Holes Card ── */}
-                <div className="bg-background rounded-xl border border-[#e1efe5] p-5 space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <p className="text-[13px] font-medium text-gray-700">
-                        Scoring Type <span className="text-red-500">*</span>
-                      </p>
-                      <div className="flex rounded-xl border border-[#e1efe5] divide-x divide-[#e1efe5] overflow-hidden">
-                        {[
-                          { value: "BOTH", label: "Both", desc: "Gross & Net" },
-                          { value: "GROSS", label: "Gross", desc: "Actual strokes" },
-                          { value: "NET", label: "Net", desc: "After handicap" },
-                        ].map(({ value, label, desc }) => {
-                          const active = formData.scoringType === value;
-                          return (
-                            <button
-                              key={value}
-                              type="button"
-                              onClick={() => set("scoringType", value)}
-                              disabled={!!tournamentId}
+                            <div
                               className={cn(
-                                "flex-1 flex flex-col items-center justify-center py-3 gap-0.5 text-[13px] font-normal transition-all",
-                                active ? "bg-[#15803D] text-white" : "bg-white text-gray-500 hover:bg-gray-50",
-                                !!tournamentId && "opacity-60 cursor-not-allowed pointer-events-none"
+                                "w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors",
+                                active ? "border-openclub-700 bg-openclub-700" : "border-gray-300 bg-white"
                               )}
                             >
-                              {label}
-                              <span className={cn("text-[10px] font-normal", active ? "text-emerald-100" : "text-gray-400")}>
-                                {desc}
-                              </span>
-                            </button>
-                          );
-                        })}
-                      </div>
+                              {active && <div className="w-2 h-2 rounded-full bg-white" />}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className={cn("text-[14px] font-normal", active ? "text-emerald-700" : "text-gray-850")}>
+                                  {label}
+                                </span>
+                              </div>
+                              <p className="text-[12px] text-gray-500 mt-1 leading-snug">{desc}</p>
+                            </div>
+                          </button>
+                        );
+                      })}
                     </div>
+                  </div>
 
-                    <Field label="Holes Per Round (Daily)" required>
+                  <hr className="border-t border-[#e1efe5]" />
+
+                  {/* ── Scoring & Holes ── */}
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <p className="text-[13px] font-medium text-gray-700">
+                          Scoring Type <span className="text-red-500">*</span>
+                        </p>
+                        <div className="flex rounded-xl border border-[#e1efe5] divide-x divide-[#e1efe5] overflow-hidden">
+                          {[
+                            { value: "BOTH", label: "Both", desc: "Gross & Net" },
+                            { value: "GROSS", label: "Gross", desc: "Actual strokes" },
+                            { value: "NET", label: "Net", desc: "After handicap" },
+                          ].map(({ value, label, desc }) => {
+                            const active = formData.scoringType === value;
+                            return (
+                              <button
+                                key={value}
+                                type="button"
+                                onClick={() => set("scoringType", value)}
+                                disabled={!!tournamentId}
+                                className={cn(
+                                  "flex-1 flex flex-col items-center justify-center py-3 gap-0.5 text-[13px] font-normal transition-all",
+                                  active ? "bg-[#15803D] text-white" : "bg-white text-gray-500 hover:bg-gray-50",
+                                  !!tournamentId && "opacity-60 cursor-not-allowed pointer-events-none"
+                                )}
+                              >
+                                {label}
+                                <span className={cn("text-[10px] font-normal", active ? "text-emerald-100" : "text-gray-400")}>
+                                  {desc}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      <Field label="Holes Per Round (Daily)" required>
+                        <Input
+                          type="number"
+                          value={formData.holes}
+                          min={1}
+                          max={18}
+                          onChange={(e) => set("holes", Number(e.target.value))}
+                        />
+                        <p className="text-[11px] text-gray-400 mt-1.5 leading-tight">
+                          For multi-day events, this is the played holes per day.
+                        </p>
+                      </Field>
+                    </div>
+                  </div>
+
+                  <hr className="border-t border-[#e1efe5]" />
+
+                  {/* ── Divisions ── */}
+                  <div className="space-y-3">
+                    <div>
+                      <h4 className="text-[14px] font-medium text-gray-900">
+                        Divisions <span className="text-red-500">*</span>
+                      </h4>
+                      <p className="text-[12px] text-gray-500">Select common divisions or type a custom one.</p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {["Men", "Ladies", "Juniors", "Seniors", "Professionals", "Amateurs", "Mixed"].map((preset) => {
+                        const selected = formData.divisions.includes(preset);
+                        return (
+                          <button
+                            key={preset}
+                            type="button"
+                            onClick={() => {
+                              if (selected) {
+                                set("divisions", formData.divisions.filter((d) => d !== preset));
+                              } else {
+                                set("divisions", [...formData.divisions, preset]);
+                              }
+                            }}
+                            className={cn(
+                              "px-3 py-1.5 rounded-full text-[12px] font-normal border-2 transition-all",
+                              selected
+                                ? "bg-openclub-700 text-white border-openclub-700"
+                                : "bg-white text-gray-600 border-[#e1efe5] hover:border-emerald-300"
+                            )}
+                          >
+                            {selected ? "✓ " : ""}
+                            {preset}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <div className="flex gap-2 pt-1">
                       <Input
-                        type="number"
-                        value={formData.holes}
-                        min={1}
-                        max={18}
-                        onChange={(e) => set("holes", Number(e.target.value))}
-                      />
-                      <p className="text-[11px] text-gray-400 mt-1.5 leading-tight">
-                        For multi-day events, this is the played holes per day.
-                      </p>
-                    </Field>
-                  </div>
-                </div>
-
-                {/* ── Divisions Card ── */}
-                <div className="bg-background rounded-xl border border-[#e1efe5] p-5 space-y-3">
-                  <div>
-                    <h4 className="text-[14px] font-medium text-gray-900">
-                      Divisions <span className="text-red-500">*</span>
-                    </h4>
-                    <p className="text-[12px] text-gray-500">Select common divisions or type a custom one.</p>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {["Men", "Ladies", "Juniors", "Seniors", "Professionals", "Amateurs", "Mixed"].map((preset) => {
-                      const selected = formData.divisions.includes(preset);
-                      return (
-                        <button
-                          key={preset}
-                          type="button"
-                          onClick={() => {
-                            if (selected) {
-                              set("divisions", formData.divisions.filter((d) => d !== preset));
-                            } else {
-                              set("divisions", [...formData.divisions, preset]);
+                        placeholder="Add custom division..."
+                        className="flex-1"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            const val = (e.target as HTMLInputElement).value.trim();
+                            if (val && !formData.divisions.includes(val)) {
+                              set("divisions", [...formData.divisions, val]);
                             }
-                          }}
-                          className={cn(
-                            "px-3 py-1.5 rounded-full text-[12px] font-normal border-2 transition-all",
-                            selected
-                              ? "bg-openclub-700 text-white border-openclub-700"
-                              : "bg-white text-gray-600 border-[#e1efe5] hover:border-emerald-300"
-                          )}
-                        >
-                          {selected ? "✓ " : ""}
-                          {preset}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <div className="flex gap-2 pt-1">
-                    <Input
-                      placeholder="Add custom division..."
-                      className="flex-1"
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          const val = (e.target as HTMLInputElement).value.trim();
+                            (e.target as HTMLInputElement).value = "";
+                          }
+                        }}
+                      />
+                      <button
+                        type="button"
+                        className="px-4 h-11 bg-white hover:bg-gray-50 border border-[#e1efe5] text-gray-700 text-[13px] font-normal rounded-lg transition-colors whitespace-nowrap shadow-sm"
+                        onClick={(e) => {
+                          const input = e.currentTarget.previousElementSibling as HTMLInputElement;
+                          const val = input.value.trim();
                           if (val && !formData.divisions.includes(val)) {
                             set("divisions", [...formData.divisions, val]);
+                            input.value = "";
                           }
-                          (e.target as HTMLInputElement).value = "";
-                        }
-                      }}
-                    />
-                    <button
-                      type="button"
-                      className="px-4 h-11 bg-white hover:bg-gray-50 border border-[#e1efe5] text-gray-700 text-[13px] font-normal rounded-lg transition-colors whitespace-nowrap shadow-sm"
-                      onClick={(e) => {
-                        const input = e.currentTarget.previousElementSibling as HTMLInputElement;
-                        const val = input.value.trim();
-                        if (val && !formData.divisions.includes(val)) {
-                          set("divisions", [...formData.divisions, val]);
-                          input.value = "";
-                        }
-                      }}
-                    >
-                      Add
-                    </button>
-                  </div>
-                  {formData.divisions.length > 0 && (
-                    <div className="flex flex-wrap gap-2 pt-1">
-                      {formData.divisions.map((d) => (
-                        <span
-                          key={d}
-                          className="flex items-center gap-1.5 text-[12px] font-normal bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full border border-emerald-200"
-                        >
-                          {d}
-                          <button
-                            type="button"
-                            onClick={() => set("divisions", formData.divisions.filter((x) => x !== d))}
-                            className="w-3.5 h-3.5 rounded-full bg-emerald-200 hover:bg-emerald-300 flex items-center justify-center text-emerald-700 transition-colors leading-none"
-                          >
-                            ×
-                          </button>
-                        </span>
-                      ))}
+                        }}
+                      >
+                        Add
+                      </button>
                     </div>
-                  )}
+                    {formData.divisions.length > 0 && (
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        {formData.divisions.map((d) => (
+                          <span
+                            key={d}
+                            className="flex items-center gap-1.5 text-[12px] font-normal bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full border border-emerald-200"
+                          >
+                            {d}
+                            <button
+                              type="button"
+                              onClick={() => set("divisions", formData.divisions.filter((x) => x !== d))}
+                              className="w-3.5 h-3.5 rounded-full bg-emerald-200 hover:bg-emerald-300 flex items-center justify-center text-emerald-700 transition-colors leading-none"
+                            >
+                              ×
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -1275,59 +1290,61 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                 </div>
               </div>
 
-              <div className="p-5 space-y-6">
-                {/* ── Player Capacity & Waitlist Card ── */}
-                <div className="bg-background rounded-xl border border-[#e1efe5] p-5 space-y-4">
-                  <div>
-                    <h4 className="text-[14px] font-medium text-gray-900">Player Capacity</h4>
-                    <p className="text-[12px] text-gray-500">Set maximum player limits and configure queue overflow.</p>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Field label="Max Total Players">
-                      <Input
-                        type="number"
-                        value={formData.maxPlayers}
-                        placeholder="e.g. 144"
-                        onChange={(e) => set("maxPlayers", e.target.value)}
-                      />
-                      <p className="text-[11px] text-openclub-800 font-normal mt-2 flex items-center gap-1.5 leading-tight">
-                        <Info className="w-3.5 h-3.5" />
-                        Leave empty for unlimited players.
-                      </p>
-                    </Field>
-                  </div>
-
-                  <div
-                    className={cn(
-                      "rounded-xl border p-4 cursor-pointer transition-all bg-white",
-                      formData.enableWaitlist
-                        ? "border-openclub-700 bg-emerald-50/50"
-                        : "border-[#e1efe5] hover:bg-gray-50"
-                    )}
-                    onClick={() => set("enableWaitlist", !formData.enableWaitlist)}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={cn(
-                          "w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors",
-                          formData.enableWaitlist ? "border-openclub-700 bg-openclub-700" : "border-gray-300 bg-white"
-                        )}
-                      >
-                        {formData.enableWaitlist && <div className="w-2 h-2 rounded-full bg-white" />}
-                      </div>
-                      <div>
-                        <p className="text-[13px] font-medium text-gray-900">Enable Waitlist</p>
-                        <p className="text-[11px] text-gray-500 leading-snug mt-0.5">
-                          Allow players to join a queue if the tournament reaches max capacity.
+              <div className="p-5">
+                <div className="bg-background rounded-xl border border-[#e1efe5] p-5 space-y-6">
+                  {/* ── Player Capacity & Waitlist ── */}
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="text-[14px] font-medium text-gray-900">Player Capacity</h4>
+                      <p className="text-[12px] text-gray-500">Set maximum player limits and configure queue overflow.</p>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <Field label="Max Total Players">
+                        <Input
+                          type="number"
+                          value={formData.maxPlayers}
+                          placeholder="e.g. 144"
+                          onChange={(e) => set("maxPlayers", e.target.value)}
+                        />
+                        <p className="text-[11px] text-openclub-800 font-normal mt-2 flex items-center gap-1.5 leading-tight">
+                          <Info className="w-3.5 h-3.5" />
+                          Leave empty for unlimited players.
                         </p>
+                      </Field>
+                    </div>
+
+                    <div
+                      className={cn(
+                        "rounded-xl border p-4 cursor-pointer transition-all bg-white",
+                        formData.enableWaitlist
+                          ? "border-openclub-700 bg-emerald-50/50"
+                          : "border-[#e1efe5] hover:bg-gray-50"
+                      )}
+                      onClick={() => set("enableWaitlist", !formData.enableWaitlist)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={cn(
+                            "w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors",
+                            formData.enableWaitlist ? "border-openclub-700 bg-openclub-700" : "border-gray-300 bg-white"
+                          )}
+                        >
+                          {formData.enableWaitlist && <div className="w-2 h-2 rounded-full bg-white" />}
+                        </div>
+                        <div>
+                          <p className="text-[13px] font-medium text-gray-900">Enable Waitlist</p>
+                          <p className="text-[11px] text-gray-500 leading-snug mt-0.5">
+                            Allow players to join a queue if the tournament reaches max capacity.
+                          </p>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="space-y-4">
+                  <hr className="border-t border-[#e1efe5]" />
+
                   {/* ── Gender Restrictions ── */}
-                  <div className="bg-background rounded-xl border border-[#e1efe5] p-4 space-y-4">
+                  <div className="space-y-4">
                     <div>
                       <h4 className="text-[14px] font-medium text-gray-900">Gender Restriction</h4>
                       <p className="text-[12px] text-gray-500">Specify if this tournament is restricted to a specific gender.</p>
@@ -1356,14 +1373,15 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                     </div>
                   </div>
 
+                  <hr className="border-t border-[#e1efe5]" />
+
                   {/* Handicap Restrictions Section */}
-                  <div className="bg-background rounded-xl border border-[#e1efe5] p-4 space-y-6">
+                  <div className="space-y-6">
                     <div
                       className="flex items-center justify-between cursor-pointer"
                       onClick={() => set("hasHandicapRestriction", !formData.hasHandicapRestriction)}
                     >
                       <div className="flex items-center gap-3">
-
                         <div>
                           <h4 className="text-[14px] font-medium text-gray-900">Handicap Restrictions</h4>
                           <p className="text-[12px] text-gray-500">Restrict entry based on player skill level</p>
@@ -1414,8 +1432,10 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                     )}
                   </div>
 
+                  <hr className="border-t border-[#e1efe5]" />
+
                   {/* Cut Rules */}
-                  <div className="bg-background rounded-xl border border-[#e1efe5] p-4 space-y-6">
+                  <div className="space-y-6">
                     <div
                       className="flex items-center justify-between cursor-pointer"
                       onClick={() => {
@@ -1535,69 +1555,57 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                 </div>
               </div>
 
-              <div className="p-5 space-y-6">
-                {/* Requires Payment Section */}
-                <div className="bg-background rounded-xl border border-[#e1efe5] p-4 space-y-6">
-                  <div
-                    className="flex items-center justify-between cursor-pointer"
-                    onClick={() => set("requiresPayment", !formData.requiresPayment)}
-                  >
-                    <div>
-                      <h4 className="text-[14px] font-medium text-gray-900">Requires Payment</h4>
-                      <p className="text-[12px] text-gray-500">Require players to pay an entry fee to register</p>
-                    </div>
-                    <div
-                      className={cn(
-                        "relative w-11 h-6 rounded-full transition-colors flex-shrink-0",
-                        formData.requiresPayment ? "bg-openclub-700" : "bg-gray-200"
-                      )}
-                    >
-                      <div
-                        className={cn(
-                          "absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all",
-                          formData.requiresPayment ? "left-6" : "left-1"
-                        )}
-                      />
-                    </div>
+              <div className="p-5">
+                <div className="bg-background rounded-xl border border-[#e1efe5] p-5 space-y-5">
+                  <div>
+                    <h4 className="text-[14px] font-medium text-gray-900">Registration Entry Fee</h4>
+                    <p className="text-[12px] text-gray-500">
+                      Set the required entry fee for players registering for this tournament.
+                    </p>
                   </div>
 
-                  {formData.requiresPayment && (
-                    <div className="pt-4 border-t border-[#e1efe5] space-y-4 animate-in slide-in-from-top-2 fade-in duration-200">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Field label="Entry Fee" required>
-                          <div className="relative flex rounded-md">
-                            <div className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-input bg-gray-50 text-gray-600 text-sm font-medium select-none">
-                              {getCurrencySymbol(formData.currency)}
-                            </div>
-                            <Input
-                              type="text"
-                              value={formData.entryFee ? Number(formData.entryFee).toLocaleString("en-US") : ""}
-                              onChange={(e) => {
-                                const rawValue = e.target.value.replace(/\D/g, "");
-                                set("entryFee", rawValue);
-                              }}
-                              placeholder="5,000"
-                              className={cn("rounded-l-none", req(formData.entryFee))}
-                            />
-                          </div>
-                        </Field>
-                        <Field label="Currency" required>
-                          <SearchableSelect
-                            value={formData.currency}
-                            onValueChange={(v) => set("currency", v.toUpperCase())}
-                            options={currencyOptions}
-                            placeholder="Select currency..."
-                            triggerClassName="bg-white"
-                          />
-                        </Field>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Field label="Entry Fee">
+                      <div className="relative flex rounded-md">
+                        <div className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-input bg-gray-50 text-gray-600 text-sm font-medium select-none">
+                          {getCurrencySymbol(formData.currency)}
+                        </div>
+                        <Input
+                          type="text"
+                          value={formData.entryFee ? Number(formData.entryFee).toLocaleString("en-US") : ""}
+                          onChange={(e) => {
+                            const rawValue = e.target.value.replace(/\D/g, "");
+                            set("entryFee", rawValue);
+                            set("requiresPayment", Boolean(rawValue && Number(rawValue) > 0));
+                          }}
+                          placeholder="- Free -"
+                          className="rounded-l-none bg-white"
+                        />
                       </div>
+                      <p className="text-[11px] text-gray-400 mt-1">
+                        Leave blank or enter 0 for a free tournament.
+                      </p>
+                    </Field>
+                    <Field label="Currency" required>
+                      <SearchableSelect
+                        value={formData.currency}
+                        onValueChange={(v) => set("currency", v.toUpperCase())}
+                        options={currencyOptions}
+                        placeholder="Select currency..."
+                        triggerClassName="bg-white"
+                      />
+                    </Field>
+                  </div>
+
+                  {Boolean(formData.entryFee && Number(formData.entryFee) > 0) && (
+                    <div className="pt-2 space-y-3 animate-in slide-in-from-top-2 fade-in duration-200">
                       <Toggle
                         label="Refundable Entry Fee?"
                         checked={formData.isRefundable}
                         onChange={(v) => set("isRefundable", v)}
                       />
-                      <p className="text-[11px] text-openclub-800 font-normal mt-3 flex items-center gap-1.5">
-                        <Info className="w-3.5 h-3.5" />
+                      <p className="text-[11px] text-openclub-800 font-normal flex items-center gap-1.5">
+                        <Info className="w-3.5 h-3.5 shrink-0" />
                         Players must complete payment during registration to secure their spot.
                       </p>
                     </div>
@@ -1625,70 +1633,72 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                 </div>
               </div>
 
-              <div className="p-5 animate-in slide-in-from-top-2 fade-in duration-200">
-                {/* ── Start Type & Tee Off Configuration Card ── */}
+              <div className="p-5">
                 <div className="bg-background rounded-xl border border-[#e1efe5] p-5 space-y-4">
-                  <div>
-                    <h4 className="text-[14px] font-medium text-gray-900">Start Type</h4>
-                    <p className="text-[12px] text-gray-500">Specify if this tournament uses sequential tee times or a shotgun start.</p>
-                  </div>
-                  <div className="flex rounded-xl border border-[#e1efe5] divide-x divide-[#e1efe5] overflow-hidden">
-                    <button
-                      type="button"
-                      onClick={() => set("startType", "TEE_TIMES")}
-                      className={cn(
-                        "flex-1 flex flex-col items-center justify-center py-2.5 text-[13px] font-normal transition-all",
-                        formData.startType === "TEE_TIMES" ? "bg-openclub-700 text-white" : "bg-white text-gray-600 hover:bg-gray-50"
-                      )}
-                    >
-                      Sequential Tee Start
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => set("startType", "SHOTGUN")}
-                      className={cn(
-                        "flex-1 flex flex-col items-center justify-center py-2.5 text-[13px] font-normal transition-all",
-                        formData.startType === "SHOTGUN" ? "bg-openclub-700 text-white" : "bg-white text-gray-600 hover:bg-gray-50"
-                      )}
-                    >
-                      Shotgun Tee Start
-                    </button>
-                  </div>
+                  {/* ── Start Type & Tee Off Configuration ── */}
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="text-[14px] font-medium text-gray-900">Start Type</h4>
+                      <p className="text-[12px] text-gray-500">Specify if this tournament uses sequential tee times or a shotgun start.</p>
+                    </div>
+                    <div className="flex rounded-xl border border-[#e1efe5] divide-x divide-[#e1efe5] overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => set("startType", "TEE_TIMES")}
+                        className={cn(
+                          "flex-1 flex flex-col items-center justify-center py-2.5 text-[13px] font-normal transition-all",
+                          formData.startType === "TEE_TIMES" ? "bg-openclub-700 text-white" : "bg-white text-gray-600 hover:bg-gray-50"
+                        )}
+                      >
+                        Sequential Tee Start
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => set("startType", "SHOTGUN")}
+                        className={cn(
+                          "flex-1 flex flex-col items-center justify-center py-2.5 text-[13px] font-normal transition-all",
+                          formData.startType === "SHOTGUN" ? "bg-openclub-700 text-white" : "bg-white text-gray-600 hover:bg-gray-50"
+                        )}
+                      >
+                        Shotgun Tee Start
+                      </button>
+                    </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                    <Field label="Players Per Tee Flight" required>
-                      <Input
-                        type="number"
-                        value={formData.maxPlayersPerGroup}
-                        min={1}
-                        onChange={(e) => set("maxPlayersPerGroup", e.target.value === "" ? "" : Number(e.target.value))}
-                      />
-                    </Field>
-                    {formData.startType === "TEE_TIMES" && (
-                      <Field label="Tee Interval (min)" required>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                      <Field label="Players Per Tee Flight" required>
                         <Input
                           type="number"
-                          value={formData.teeIntervalMinutes}
+                          value={formData.maxPlayersPerGroup}
                           min={1}
-                          onChange={(e) => set("teeIntervalMinutes", e.target.value === "" ? "" : Number(e.target.value))}
+                          onChange={(e) => set("maxPlayersPerGroup", e.target.value === "" ? "" : Number(e.target.value))}
                         />
                       </Field>
-                    )}
-                    <Field label="Tee Off Start Time" required>
-                      <TimePicker
-                        value={formData.teeStartTime}
-                        onValueChange={(v) => set("teeStartTime", v)}
-                        placeholder="Select start time..."
-                      />
-                    </Field>
-                  </div>
+                      {formData.startType === "TEE_TIMES" && (
+                        <Field label="Tee Interval (min)" required>
+                          <Input
+                            type="number"
+                            value={formData.teeIntervalMinutes}
+                            min={1}
+                            onChange={(e) => set("teeIntervalMinutes", e.target.value === "" ? "" : Number(e.target.value))}
+                          />
+                        </Field>
+                      )}
+                      <Field label="Tee Off Start Time" required>
+                        <TimePicker
+                          value={formData.teeStartTime}
+                          onValueChange={(v) => set("teeStartTime", v)}
+                          placeholder="Select start time..."
+                        />
+                      </Field>
+                    </div>
 
-                  <p className="text-[11px] text-openclub-800 font-normal pt-1 flex items-center gap-1.5">
-                    <Info className="w-3.5 h-3.5 flex-shrink-0" />
-                    {formData.startType === "TEE_TIMES"
-                      ? "Players will be assigned sequential tee times based on these settings."
-                      : "All flights will be assigned the Tee Off Start Time and placed on different holes."}
-                  </p>
+                    <p className="text-[11px] text-openclub-800 font-normal pt-1 flex items-center gap-1.5">
+                      <Info className="w-3.5 h-3.5 flex-shrink-0" />
+                      {formData.startType === "TEE_TIMES"
+                        ? "Players will be assigned sequential tee times based on these settings."
+                        : "All flights will be assigned the Tee Off Start Time and placed on different holes."}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1708,141 +1718,152 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                 </div>
               </div>
 
-              <div className="p-5 space-y-6">
-                {/* ── Visibility Status Card ── */}
-                <div className="bg-background rounded-xl border border-[#e1efe5] p-5 space-y-3">
-                  <div>
-                    <h4 className="text-[14px] font-medium text-gray-900">Visibility Setting</h4>
-                    <p className="text-[12px] text-gray-500">Control who can see and discover this tournament on the platform.</p>
-                  </div>
+              <div className="p-5">
+                <div className="bg-background rounded-xl border border-[#e1efe5] p-5 space-y-6">
+                  {/* ── Visibility Status ── */}
+                  <div className="space-y-3">
+                    <div>
+                      <h4 className="text-[14px] font-medium text-gray-900">Visibility Setting</h4>
+                      <p className="text-[12px] text-gray-500">Control who can see and discover this tournament on the platform.</p>
+                    </div>
 
-                  <div className="space-y-2.5">
-                    {[
-                      {
-                        value: "PUBLIC",
-                        label: "Public",
-                        desc: "Visible to everyone on the platform. Anyone can search for this tournament.",
-                      },
-                      {
-                        value: "PRIVATE",
-                        label: "Private",
-                        desc: "Hidden from search. Only accessible via direct URL link.",
-                      },
-                      {
-                        value: "INVITE_ONLY",
-                        label: "Invite Only / Closed Tournament",
-                        desc: "Strictly restricted. Only invited players can register.",
-                      },
-                    ].map(({ value, label, desc }) => {
-                      const active = formData.visibility === value;
-                      return (
-                        <button
-                          key={value}
-                          type="button"
-                          onClick={() => set("visibility", value)}
-                          className={cn(
-                            "w-full text-left rounded-xl border-2 px-4 py-3 flex items-start gap-3 transition-all",
-                            active
-                              ? "border-openclub-700 bg-emerald-50/60"
-                              : "border-[#e1efe5] bg-white hover:border-gray-300 hover:bg-gray-50"
-                          )}
-                        >
-                          <div
+                    <div className="space-y-2.5">
+                      {[
+                        {
+                          value: "PUBLIC",
+                          label: "Public",
+                          desc: "Visible to everyone on the platform. Anyone can search for this tournament.",
+                        },
+                        {
+                          value: "PRIVATE",
+                          label: "Private",
+                          desc: "Hidden from search. Only accessible via direct URL link.",
+                        },
+                        {
+                          value: "INVITE_ONLY",
+                          label: "Invite Only / Closed Tournament",
+                          desc: "Strictly restricted. Only invited players can register.",
+                        },
+                      ].map(({ value, label, desc }) => {
+                        const active = formData.visibility === value;
+                        return (
+                          <button
+                            key={value}
+                            type="button"
+                            onClick={() => set("visibility", value)}
                             className={cn(
-                              "w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors",
-                              active ? "border-openclub-700 bg-openclub-700" : "border-gray-300 bg-white"
+                              "w-full text-left rounded-xl border-2 px-4 py-3 flex items-start gap-3 transition-all",
+                              active
+                                ? "border-openclub-700 bg-emerald-50/60"
+                                : "border-[#e1efe5] bg-white hover:border-gray-300 hover:bg-gray-50"
                             )}
                           >
-                            {active && <div className="w-2 h-2 rounded-full bg-white" />}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <span className={cn("text-[14px] font-medium", active ? "text-emerald-700" : "text-gray-800")}>
-                              {label}
-                            </span>
-                            <p className="text-[12px] text-gray-500 mt-0.5 leading-snug">{desc}</p>
-                          </div>
-                        </button>
-                      );
-                    })}
+                            <div
+                              className={cn(
+                                "w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors",
+                                active ? "border-openclub-700 bg-openclub-700" : "border-gray-300 bg-white"
+                              )}
+                            >
+                              {active && <div className="w-2 h-2 rounded-full bg-white" />}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <span className={cn("text-[14px] font-medium", active ? "text-emerald-700" : "text-gray-800")}>
+                                {label}
+                              </span>
+                              <p className="text-[12px] text-gray-500 mt-0.5 leading-snug">{desc}</p>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
 
-                {/* ── Featured Tournament Ad Card ── */}
-                <div className="bg-background rounded-xl border border-[#e1efe5] p-5 space-y-3">
-                  <div
-                    className="flex items-center justify-between cursor-pointer select-none"
-                    onClick={() => set("isFeatured", !formData.isFeatured)}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={cn("w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-colors", formData.isFeatured ? "bg-amber-100 text-amber-700" : "bg-gray-100 text-gray-500")}>
-                        <Sparkles className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h4 className="text-[14px] font-medium text-gray-900">Featured Tournament Ad</h4>
-                          <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200/60">
-                            Mobile App Spotlight
-                          </span>
+                  <hr className="border-t border-[#e1efe5]" />
+
+                  {/* ── Featured Tournament Ad ── */}
+                  <div className="space-y-3">
+                    <div
+                      className="flex items-center justify-between cursor-pointer select-none"
+                      onClick={() => set("isFeatured", !formData.isFeatured)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={cn("w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-colors", formData.isFeatured ? "bg-amber-100 text-amber-700" : "bg-gray-100 text-gray-500")}>
+                          <Sparkles className="w-4 h-4" />
                         </div>
-                        <p className="text-[12px] text-gray-500">
-                          Promote this tournament as a featured ad in the mobile app home screen spotlight carousel
-                        </p>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h4 className="text-[14px] font-medium text-gray-900">Featured Tournament Ad</h4>
+                            <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200/60">
+                              Mobile App Spotlight
+                            </span>
+                          </div>
+                          <p className="text-[12px] text-gray-500">
+                            Promote this tournament as a featured ad in the mobile app home screen spotlight carousel
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className={cn("relative w-11 h-6 rounded-full transition-colors flex-shrink-0", formData.isFeatured ? "bg-openclub-700" : "bg-gray-200")}>
-                        <div className={cn("absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all", formData.isFeatured ? "left-6" : "left-1")} />
+                      <div className="flex items-center gap-2">
+                        <div className={cn("relative w-11 h-6 rounded-full transition-colors flex-shrink-0", formData.isFeatured ? "bg-openclub-700" : "bg-gray-200")}>
+                          <div className={cn("absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all", formData.isFeatured ? "left-6" : "left-1")} />
+                        </div>
                       </div>
                     </div>
                   </div>
+
+                  {(!originalStatus || originalStatus === "DRAFT") && (
+                    <>
+                      <hr className="border-t border-[#e1efe5]" />
+
+                      {/* ── Publish Immediately ── */}
+                      <div className="space-y-4">
+                        <div
+                          className="flex items-center justify-between cursor-pointer"
+                          onClick={() => {
+                            if (originalStatus && originalStatus !== "DRAFT") return;
+                            set("publishImmediately", !formData.publishImmediately);
+                          }}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-openclub-800 shrink-0">
+                              <Send className="w-4 h-4" />
+                            </div>
+                            <div>
+                              <h4 className="text-[14px] font-medium text-gray-900">Publish Immediately</h4>
+                              <p className="text-[12px] text-gray-500">Make the tournament active and open for registration</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div
+                              className={cn(
+                                "relative w-11 h-6 rounded-full transition-colors flex-shrink-0",
+                                formData.publishImmediately ? "bg-openclub-700" : "bg-gray-200"
+                              )}
+                            >
+                              <div
+                                className={cn(
+                                  "absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all",
+                                  formData.publishImmediately ? "left-6" : "left-1"
+                                )}
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {!formData.publishImmediately && (
+                          <div className="mt-4 p-4 bg-emerald-50/40 border border-emerald-100 rounded-xl">
+                            <p className="text-[11px] text-emerald-700 font-normal text-center leading-relaxed">
+                              This tournament will be saved as an unpublished <strong>DRAFT</strong>.
+                              <br />
+                              Players cannot see or register for it until you manually publish it.
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
-
-            {(!originalStatus || originalStatus === "DRAFT") && (
-              <div className="bg-background rounded-xl border border-[#e1efe5] p-5 mx-5 mb-5">
-                <div
-                  className="flex items-center justify-between cursor-pointer"
-                  onClick={() => {
-                    if (originalStatus && originalStatus !== "DRAFT") return;
-                    set("publishImmediately", !formData.publishImmediately);
-                  }}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-openclub-800 shrink-0">
-                      <Send className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <h4 className="text-[14px] font-medium text-gray-900">Publish Immediately</h4>
-                      <p className="text-[12px] text-gray-500">Make the tournament active and open for registration</p>
-                    </div>
-                  </div>
-                  <div
-                    className={cn(
-                      "relative w-11 h-6 rounded-full transition-colors flex-shrink-0",
-                      formData.publishImmediately ? "bg-openclub-700" : "bg-gray-200"
-                    )}
-                  >
-                    <div
-                      className={cn(
-                        "absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all",
-                        formData.publishImmediately ? "left-6" : "left-1"
-                      )}
-                    />
-                  </div>
-                </div>
-
-                {!formData.publishImmediately && (
-                  <div className="mt-4 p-4 bg-emerald-50/40 border border-emerald-100 rounded-xl">
-                    <p className="text-[11px] text-emerald-700 font-normal text-center leading-relaxed">
-                      This tournament will be saved as an unpublished <strong>DRAFT</strong>.
-                      <br />
-                      Players cannot see or register for it until you manually publish it.
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
           </div>
         );
       default:

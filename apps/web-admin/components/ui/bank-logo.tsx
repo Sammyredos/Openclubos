@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { getBankLogoUrl } from "@/lib/bank-logos";
+import { getBankLogoUrl, getBankLogoFallbackUrl } from "@/lib/bank-logos";
 
 interface BankLogoProps {
   bankName?: string | null;
@@ -18,12 +18,28 @@ export function BankLogo({
   className,
   size = "md",
 }: BankLogoProps) {
+  const primaryUrl = getBankLogoUrl(bankCode || bankName);
+  const fallbackUrl = getBankLogoFallbackUrl(bankCode || bankName);
+
+  const [currentSrc, setCurrentSrc] = useState<string | undefined>(primaryUrl);
+  const [triedFallback, setTriedFallback] = useState(false);
   const [hasError, setHasError] = useState(false);
-  const logoUrl = getBankLogoUrl(bankCode || bankName);
 
   React.useEffect(() => {
+    const nextPrimary = getBankLogoUrl(bankCode || bankName);
+    setCurrentSrc(nextPrimary);
+    setTriedFallback(false);
     setHasError(false);
   }, [bankName, bankCode]);
+
+  const handleImageError = () => {
+    if (!triedFallback && fallbackUrl && fallbackUrl !== currentSrc) {
+      setTriedFallback(true);
+      setCurrentSrc(fallbackUrl);
+    } else {
+      setHasError(true);
+    }
+  };
 
   const sizeClasses = {
     xs: "w-6 h-6 rounded-lg",
@@ -39,7 +55,7 @@ export function BankLogo({
     lg: "w-6 h-6",
   };
 
-  if (!logoUrl || hasError) {
+  if (!currentSrc || hasError) {
     return (
       <div
         className={cn(
@@ -62,9 +78,11 @@ export function BankLogo({
       )}
     >
       <img
-        src={logoUrl}
+        src={currentSrc}
         alt={bankName || "Bank Logo"}
-        onError={() => setHasError(true)}
+        onError={handleImageError}
+        crossOrigin="anonymous"
+        referrerPolicy="no-referrer"
         className="w-full h-full object-contain filter drop-shadow-2xs transition-transform duration-200"
         loading="lazy"
       />

@@ -52,7 +52,50 @@ In earlier iterations, scanning another golfer's QR code on the course operated 
 
 ---
 
-## 4. Verification Summary
-- **NestJS Backend**: Compiled cleanly with Prisma schema generation and zero TypeScript diagnostics.
-- **Web Admin Preview**: Passed strict TypeScript compilation (`tsc --noEmit`) with zero errors.
-- **Mobile Ecosystem**: Structural and behavioral parity achieved across the Web Admin Mobile Preview Simulator and native Flutter application screens.
+## 5. Tournament Stats Bar Financial Parity & Organizer Wallet Integration
+
+### The Problem
+Previously, both the Super Admin and Organizer Admin tournament management screens displayed a 5-metric dashboard overview (Total Tournaments, Active Tournaments, Completed This Month, Total Participants, and Entry Fees). While entry fees reflected gross volume, organizers had zero immediate visibility into their actual available liquid balance directly from the tournament hub. Furthermore, the Super Admin lacked aggregate insight into collective organizer wallet balances on the platform without navigating away into dedicated financial ledgers.
+
+### Conceptual Solution
+1. **Organizer Admin Parity**:
+   - Added a dedicated 6th stat card titled "Wallet Balance" to the primary tournament metrics bar.
+   - Positioned flush with the existing metrics grid divided by standard vertical separators.
+   - Displays real-time available liquid funds alongside standard formatters and subtitle indicator.
+   - Synchronized the skeleton loading state to 6 slots, eliminating layout shifts during asynchronous hydration.
+2. **Super Admin Aggregation**:
+   - Synchronously mirrored the 6th stat card titled "Organizers Wallet" on the Super Admin tournament overview.
+   - Displays platform-wide active wallet holdings held across all golf clubs and organizers, providing financial health telemetry at a glance.
+3. **Number Formatting Compliance**:
+   - Configured compact formatting options to ensure that when values scale into millions, billions, or thousands, they strictly follow project conventions using lowercase abbreviation suffixes on major page stat cards.
+
+---
+
+## 6. High-Availability Multi-CDN Bank Logos & Fault-Tolerant Payout Processing
+
+### The Problem
+1. **Bank Logos Failure**: Bank logos had stopped displaying across the platform, falling back uniformly to generic placeholder icons. Investigation revealed that the client-side logo resolution utility had a stub implementation that returned empty values for all CBN bank codes and bank names unless they were already fully-qualified web URLs.
+2. **Withdrawal Processing Void**: The Super Admin financial view contained UI approval actions for withdrawals, but the NestJS backend withdrawals module was completely empty with no controller, service, or endpoints. Organizers could not manage bank accounts, test resolution, or request payouts, and Super Admins could not execute payout approvals.
+
+### Conceptual Solution
+1. **Dual-Tier Resilient Bank Logo Resolution**:
+   - Constructed a comprehensive identification and normalisation dictionary supporting standard Central Bank of Nigeria bank codes, fintech neobank codes, and canonical name aliases.
+   - Resolved identifiers to high-resolution asset paths hosted on a dedicated CDN.
+   - Implemented an automatic client-side mirror fallback that seamlessly attempts a secondary jsDelivr mirror upon image loading failure before ever reverting to placeholder geometry.
+   - Attached no-referrer policies and cross-origin handling to prevent asset blocking in restricted browser environments.
+2. **End-to-End Payout Lifecycle & Atomic Wallet Transactions**:
+   - Created a comprehensive withdrawals service managing the entire state machine: requesting, locking, approving, and rejecting funds.
+   - Used transactional database atomicity so that when an organizer requests a withdrawal, available balance decreases while locked balance increases in a single atomic operation, recording ledger history.
+   - Implemented Super Admin approval and rejection mechanisms with proper balance state reconciliation, refunding locked balances upon rejection and tracking cumulative payouts upon completion.
+   - Built non-blocking notification handling that queues email templates into background processors with an automated direct service fallback if the background broker is temporarily offline in local development.
+3. **Out-of-the-Box Verified Testing Bank Account**:
+   - Automated the provisioning of a working default bank account (Guaranty Trust Bank, account number `0123456789`, verified as `OpenClub Test Account`) whenever an organizer accesses payout settings.
+   - Configured the account name resolution endpoint to automatically verify any test 10-digit number smoothly without throwing external gateway timeout errors.
+   - Automatically seeded a pending test withdrawal in the database whenever the Super Admin opens the payments view, allowing immediate verification of the "Approve & Pay" modal workflow.
+
+---
+
+## 7. Verification Summary
+- **NestJS Backend**: Compiled cleanly with full strict type checking (`tsc --noEmit`) and exit code 0.
+- **Web Admin Preview**: Passed strict TypeScript compilation (`tsc --noEmit`) with exit code 0.
+- **Admin UI Parity**: Synchronous 6-slot stats bar alignment verified across both Super Admin and Organizer Admin views.

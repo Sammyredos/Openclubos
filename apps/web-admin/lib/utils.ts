@@ -91,7 +91,10 @@ export function formatWithCommas(value: number): string {
   return new Intl.NumberFormat("en-US").format(value);
 }
 
-export function formatNumber(value: string | number): string {
+export function formatNumber(
+  value: string | number,
+  options?: { compact?: boolean }
+): string {
   const raw = value.toString().trim();
   const numericValue =
     typeof value === "string"
@@ -103,14 +106,26 @@ export function formatNumber(value: string | number): string {
   const isNaira = raw.includes("₦");
   const absValue = Math.abs(numericValue);
   const sign = numericValue < 0 ? "-" : "";
-  const prefix = isNaira ? " ₦" : "";
+  const prefix = isNaira ? "₦" : "";
+
+  if (options?.compact) {
+    if (absValue >= 1_000_000_000) {
+      return `${sign}${prefix}${(absValue / 1_000_000_000).toFixed(1).replace(/\.0$/, "")}b`;
+    }
+    if (absValue >= 1_000_000) {
+      return `${sign}${prefix}${(absValue / 1_000_000).toFixed(1).replace(/\.0$/, "")}m`;
+    }
+    if (absValue >= 10_000) {
+      return `${sign}${prefix}${(absValue / 1_000).toFixed(1).replace(/\.0$/, "")}k`;
+    }
+  }
 
   const nf = new Intl.NumberFormat(isNaira ? "en-NG" : "en-US", isNaira ? {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   } : undefined);
   
-  return `${sign}${prefix}${nf.format(isNaira ? absValue : Math.round(absValue))}`;
+  return `${sign}${prefix ? prefix + " " : ""}${nf.format(isNaira ? absValue : Math.round(absValue))}`;
 }
 
 export type AdminEvent = { type: string; payload?: unknown; at: number };
@@ -225,12 +240,24 @@ export function getCurrencySymbol(currency?: string | null): string {
 export function formatCurrency(
   amount: number,
   currency: string = "NGN",
-  options?: { showDecimals?: boolean }
+  options?: { showDecimals?: boolean; compact?: boolean }
 ): string {
   const absValue = Math.abs(amount);
   const sign = amount < 0 ? "-" : "";
   const symbol = getCurrencySymbol(currency);
   const showDecimals = options?.showDecimals ?? true;
+
+  if (options?.compact) {
+    if (absValue >= 1_000_000_000) {
+      return `${sign}${symbol}${(absValue / 1_000_000_000).toFixed(1).replace(/\.0$/, "")}b`;
+    }
+    if (absValue >= 1_000_000) {
+      return `${sign}${symbol}${(absValue / 1_000_000).toFixed(1).replace(/\.0$/, "")}m`;
+    }
+    if (absValue >= 10_000) {
+      return `${sign}${symbol}${(absValue / 1_000).toFixed(1).replace(/\.0$/, "")}k`;
+    }
+  }
 
   return `${sign ? sign + " " : ""}${symbol}${new Intl.NumberFormat("en-US", {
     minimumFractionDigits: showDecimals ? 2 : 0,
