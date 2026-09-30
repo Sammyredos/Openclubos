@@ -10,7 +10,7 @@ import {
   Request,
   UseGuards,
 } from '@nestjs/common';
-import { UserRole } from '@prisma/client';
+import { UserRole, WithdrawalStatus } from '@prisma/client';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { Roles } from '../../common/guards/roles.decorator';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -63,14 +63,31 @@ export class WithdrawalsController {
 
   @Get('my')
   @Roles(UserRole.CLUB_ADMIN, UserRole.MANAGER, UserRole.STAFF)
-  getMyWithdrawals(@Request() req: any) {
-    return this.withdrawalsService.getMyWithdrawals(req.user.clubId);
+  getMyWithdrawals(
+    @Request() req: any,
+    @Query('status') status?: WithdrawalStatus,
+    @Query('take') take?: string,
+    @Query('skip') skip?: string,
+  ) {
+    return this.withdrawalsService.getMyWithdrawals(req.user.clubId, {
+      status,
+      take: take ? parseInt(take, 10) : undefined,
+      skip: skip ? parseInt(skip, 10) : undefined,
+    });
   }
 
   @Get('all')
   @Roles(UserRole.SUPER_ADMIN)
-  getAllWithdrawals() {
-    return this.withdrawalsService.getAllWithdrawals();
+  getAllWithdrawals(
+    @Query('status') status?: WithdrawalStatus,
+    @Query('take') take?: string,
+    @Query('skip') skip?: string,
+  ) {
+    return this.withdrawalsService.getAllWithdrawals({
+      status,
+      take: take ? parseInt(take, 10) : undefined,
+      skip: skip ? parseInt(skip, 10) : undefined,
+    });
   }
 
   @Post('request')

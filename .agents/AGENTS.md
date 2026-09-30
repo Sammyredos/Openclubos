@@ -105,3 +105,11 @@ Always ensure that every page has a distinct title shown in the browser tab.
   - **Application**: Must be applied to the primary screen outer container / `Scaffold(backgroundColor: const Color(0xFFF4F6F3))` as well as background wrappers across all mobile screens (including Notifications, Add Friends, Leaderboard, Tournament Details, etc.).
   - **Top Navigation Bars**: Pinned/fixed top navigation header bars retain their former crisp white background (`bg-white` in Tailwind CSS / `Colors.white` in Flutter) with subtle bottom borders (`border-b border-slate-100` / `border-slate-200/60` / `Color(0xFFF1F5F9)`), providing clear optical anchoring above the daylight scrollable body.
   - **Contrast Separation**: Distinct from the soft-mint input background `bg-[#f5faf6]` (`Color(0xFFF5FAF6)`) and pure white cards (`bg-white` / `Colors.white`), ensuring a clean, elevated daylight appearance throughout the mobile experience. Never use pure white (`bg-white` / `Colors.white`) or blue-tinted grays (`bg-[#F8FAFC]` / `Color(0xFFF8FAFC)`) for overall screen backgrounds.
+
+## Segmented Control & Filter Tab Pill Rules
+- All segmented controls, range selectors, and status filter tab bars across the application (Dashboard Trends filters, Payments & Withdrawal status tabs, Transactions tabs):
+  - **Container Styling**: Must strictly use the soft-mint background `bg-[#f5faf6]` with subtle mint border `border border-[#e1efe5]`. Never use cool slate `bg-slate-100` or gray containers.
+  - **Active White Pill Border**: The active tab must always be an elevated white pill card (`bg-white shadow-xs` or `shadow-sm`) and MUST include the subtle mint border `border border-[#e1efe5]` around the white card.
+  - **Inactive Pill Border**: Inactive tabs must apply `border border-transparent` to prevent 1px layout shift during selection state transitions.
+  - **Active Typography**: Dark slate or brand emerald (`text-slate-900` or `text-openclub-700`) with medium or semibold weight (`font-semibold` or `font-medium`). Inactive tabs use `text-slate-500 hover:text-slate-900 font-medium`.
+

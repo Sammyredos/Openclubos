@@ -56,7 +56,6 @@ import { Pagination } from "@/components/ui/pagination";
 import { Label } from "@/components/ui/label";
 import { Modal } from "@/components/ui/modal";
 import { cancelTournament, deleteTournament, getTournaments, updateTournament } from "@/lib/api/tournaments";
-import { getClubWallet, type ClubWalletSummary } from "@/lib/api/withdrawals";
 import { getAdminUsers } from "@/lib/api/members";
 import {
   addRegistrationStrokes,
@@ -309,18 +308,13 @@ export default function TournamentsPage() {
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
-  const [wallet, setWallet] = useState<ClubWalletSummary | null>(null);
 
   async function reloadTournaments() {
     setLoading(true);
     setError(null);
     try {
-      const [data, walletData] = await Promise.all([
-        getTournaments({ clubId: user?.clubId }) as Promise<ApiTournament[]>,
-        getClubWallet().catch(() => null),
-      ]);
+      const data = await getTournaments({ clubId: user?.clubId });
       setTournaments(Array.isArray(data) ? data : []);
-      if (walletData) setWallet(walletData);
     } catch (e: unknown) {
       setError(getErrorMessage(e) || "Failed to fetch tournaments");
       setTournaments([]);
@@ -335,13 +329,9 @@ export default function TournamentsPage() {
       try {
         setLoading(true);
         setError(null);
-        const [data, walletData] = await Promise.all([
-          getTournaments({ clubId: user?.clubId }) as Promise<ApiTournament[]>,
-          getClubWallet().catch(() => null),
-        ]);
+        const data = await getTournaments({ clubId: user?.clubId });
         if (cancelled) return;
         setTournaments(Array.isArray(data) ? data : []);
-        if (walletData) setWallet(walletData);
       } catch (e: unknown) {
         if (cancelled) return;
         setError(getErrorMessage(e) || "Failed to fetch tournaments");
@@ -989,7 +979,7 @@ export default function TournamentsPage() {
       {loading ? (
         <div className="w-full bg-white rounded-lg shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] overflow-x-auto">
           <div className="flex items-center justify-between p-8 min-w-max gap-12 font-sans">
-            {[1, 2, 3, 4, 5, 6].map((i, idx) => (
+            {[1, 2, 3, 4, 5].map((i, idx) => (
               <div key={i} className="flex items-center gap-12 flex-1">
                 <div className="flex flex-col justify-start items-start gap-3.5 w-full">
                   <div className="flex justify-start items-center gap-3.5">
@@ -999,7 +989,7 @@ export default function TournamentsPage() {
                   <Skeleton className="h-9 w-16" />
                   <Skeleton className="h-5 w-24" />
                 </div>
-                {idx < 5 && <div className="w-px h-16 bg-slate-200 shrink-0" />}
+                {idx < 4 && <div className="w-px h-16 bg-slate-200 shrink-0" />}
               </div>
             ))}
           </div>
@@ -1061,19 +1051,8 @@ export default function TournamentsPage() {
               <div className="flex justify-start items-center gap-3.5">
                 <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Entry Fees</div>
               </div>
-              <div className="text-[#15803D] text-3xl font-bold">{formatNaira(totalEntryFeesThisMonth)}</div>
+              <div className="text-[#15803D] text-3xl font-bold">{formatCurrency(totalEntryFeesThisMonth)}</div>
               <div className="text-zinc-500 text-sm font-normal">This Month</div>
-            </div>
-
-            <div className="w-px h-16 bg-slate-200" />
-
-            {/* Stat 6: Organizer Wallet Balance */}
-            <div className="flex flex-col justify-start items-start gap-3.5 flex-1">
-              <div className="flex justify-start items-center gap-3.5">
-                <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Wallet Balance</div>
-              </div>
-              <div className="text-[#15803D] text-3xl font-bold">{formatCurrency(wallet?.availableBalance ?? wallet?.balance ?? 0)}</div>
-              <div className="text-zinc-500 text-sm font-normal">Available Balance</div>
             </div>
 
           </div>
@@ -1084,7 +1063,29 @@ export default function TournamentsPage() {
         {/* Main Content - Table Area */}
         <Card className="border-none shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] overflow-hidden">
           <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6">
-            <CardTitle className="text-zinc-700 text-xl font-medium whitespace-nowrap">All Tournaments</CardTitle>
+            <div className="inline-flex items-center bg-[#f5faf6] border border-[#e1efe5] p-1.5 rounded-2xl gap-1 overflow-x-auto max-w-full">
+              {["All Tournaments", "Upcoming", "Ongoing", "Completed", "Cancelled"].map((status) => {
+                const isSelected = statusFilter === (status === "All Tournaments" ? "All Status" : status);
+                return (
+                  <button
+                    key={status}
+                    type="button"
+                    onClick={() => {
+                      setStatusFilter(status === "All Tournaments" ? "All Status" : status);
+                      setCurrentPage(1);
+                    }}
+                    className={cn(
+                      "px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer whitespace-nowrap",
+                      isSelected
+                        ? "bg-white text-slate-900 shadow-xs border border-[#e1efe5]"
+                        : "text-slate-500 hover:text-slate-900 font-medium border border-transparent"
+                    )}
+                  >
+                    {status}
+                  </button>
+                );
+              })}
+            </div>
             <div className="flex flex-wrap items-center gap-3">
               <Button
                 variant="outline"
@@ -1170,14 +1171,6 @@ export default function TournamentsPage() {
                   </div>
 
                   <div className="flex flex-wrap items-center gap-4 ml-auto">
-                    <SearchableSelect
-                      value={statusFilter}
-                      onValueChange={(v) => setStatusFilter(v)}
-                      options={["All Status", ...uniqueStatuses].map((v) => ({ value: v, label: v }))}
-                      className="min-w-[160px]"
-                      triggerClassName="h-11 bg-white border-[#e1efe5] text-[#15803D] font-medium"
-                      placeholder="All Status"
-                    />
                     <SearchableSelect
                       value={monthFilter}
                       onValueChange={(v) => setMonthFilter(v)}

@@ -310,7 +310,30 @@ export default function SuperAdminGolfCoursesPage() {
 
       <Card className="border-none shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] overflow-hidden">
         <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6">
-          <CardTitle className="text-zinc-700 text-xl font-medium whitespace-nowrap">All Courses</CardTitle>
+          <div className="inline-flex items-center bg-[#f5faf6] border border-[#e1efe5] p-1.5 rounded-2xl gap-1 overflow-x-auto max-w-full">
+            {["All Courses", "Active", "Inactive"].map((tab) => {
+              const val = tab === "All Courses" ? "All Status" : tab.toUpperCase();
+              const isSelected = statusFilter === val;
+              return (
+                <button
+                  key={tab}
+                  type="button"
+                  onClick={() => {
+                    setStatusFilter(val);
+                    setCurrentPage(1);
+                  }}
+                  className={cn(
+                    "px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer whitespace-nowrap",
+                    isSelected
+                      ? "bg-white text-slate-900 shadow-xs border border-[#e1efe5]"
+                      : "text-slate-500 hover:text-slate-900 font-medium border border-transparent"
+                  )}
+                >
+                  {tab}
+                </button>
+              );
+            })}
+          </div>
           <div className="flex flex-wrap items-center gap-3">
             <Button
               variant="outline"
@@ -408,135 +431,17 @@ export default function SuperAdminGolfCoursesPage() {
                 placeholder="All Countries"
               />
               
-              <div className="relative">
-              <button
-                onClick={(e) => {
-                  if (activeMasterFilterDropdown) {
-                    closeMasterFilterDropdown();
-                  } else {
-                    setActiveMasterFilterDropdown(true);
-                    setMasterFilterDropdownAnchorEl(e.currentTarget);
-                  }
-                }}
-                className="h-11 px-4 inline-flex items-center justify-between gap-2 rounded-lg bg-white border border-[#e1efe5] text-[#15803D] font-medium text-[14px] transition-colors hover:bg-gray-50"
-              >
-                <SlidersHorizontal className="w-4 h-4" />
-                <span>Filters</span>
-                {(statusFilter !== "All Status" || typeFilter !== "All Types") && (
-                  <span className="flex items-center justify-center w-5 h-5 ml-1 rounded-full bg-[#15803D] text-white text-[10px]">
-                    {(statusFilter !== "All Status" ? 1 : 0) + (typeFilter !== "All Types" ? 1 : 0)}
-                  </span>
-                )}
-              </button>
-              <FloatingMenu
-                open={activeMasterFilterDropdown}
-                anchorEl={masterFilterDropdownAnchorEl}
-                onClose={closeMasterFilterDropdown}
-                placement="bottom-end"
-              >
-                <div className="w-48 py-1.5 bg-white rounded-xl shadow-[0px_4px_16px_rgba(0,0,0,0.1)] border border-gray-100 flex flex-col max-h-80 overflow-y-auto">
-                  <div className="px-3 pt-1.5 pb-1 text-[12px] font-semibold text-gray-400 uppercase tracking-wider">Status</div>
-                  <button
-                    className="w-full px-3 py-2 text-left text-[13px] text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors flex items-center justify-between"
-                    onClick={() => {
-                      setStatusFilter("All Status");
-                    }}
-                  >
-                    <span className="flex items-center gap-3">
-                      <Layers className="w-4 h-4 text-gray-400" />
-                      All Status
-                    </span>
-                    {statusFilter === "All Status" && <Check className="w-4 h-4 text-[#15803D]" />}
-                  </button>
-                  <button
-                    className="w-full px-3 py-2 text-left text-[13px] text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors flex items-center justify-between"
-                    onClick={() => {
-                      setStatusFilter("ACTIVE");
-                    }}
-                  >
-                    <span className="flex items-center gap-3">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                      Active
-                    </span>
-                    {statusFilter === "ACTIVE" && <Check className="w-4 h-4 text-[#15803D]" />}
-                  </button>
-                  <button
-                    className="w-full px-3 py-2 text-left text-[13px] text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors flex items-center justify-between"
-                    onClick={() => {
-                      setStatusFilter("INACTIVE");
-                    }}
-                  >
-                    <span className="flex items-center gap-3">
-                      <Ban className="w-4 h-4 text-red-500" />
-                      Inactive
-                    </span>
-                    {statusFilter === "INACTIVE" && <Check className="w-4 h-4 text-[#15803D]" />}
-                  </button>
-                  
-                  <div className="px-3 pt-2 pb-1 mt-1 text-[12px] font-semibold text-gray-400 uppercase tracking-wider border-t border-gray-100">Course Type</div>
-                  <button
-                    className="w-full px-3 py-2 text-left text-[13px] text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors flex items-center justify-between"
-                    onClick={() => {
-                      setTypeFilter("All Types");
-                    }}
-                  >
-                    <span className="flex items-center gap-3">
-                      <Layers className="w-4 h-4 text-gray-400" />
-                      All Types
-                    </span>
-                    {typeFilter === "All Types" && <Check className="w-4 h-4 text-[#15803D]" />}
-                  </button>
-                  <button
-                    className="w-full px-3 py-2 text-left text-[13px] text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors flex items-center justify-between"
-                    onClick={() => {
-                      setTypeFilter("Parkland");
-                    }}
-                  >
-                    <span className="flex items-center gap-3">
-                      <Trees className="w-4 h-4 text-emerald-600" />
-                      Parkland
-                    </span>
-                    {typeFilter === "Parkland" && <Check className="w-4 h-4 text-[#15803D]" />}
-                  </button>
-                  <button
-                    className="w-full px-3 py-2 text-left text-[13px] text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors flex items-center justify-between"
-                    onClick={() => {
-                      setTypeFilter("Links");
-                    }}
-                  >
-                    <span className="flex items-center gap-3">
-                      <Waves className="w-4 h-4 text-blue-500" />
-                      Links
-                    </span>
-                    {typeFilter === "Links" && <Check className="w-4 h-4 text-[#15803D]" />}
-                  </button>
-                  <button
-                    className="w-full px-3 py-2 text-left text-[13px] text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors flex items-center justify-between"
-                    onClick={() => {
-                      setTypeFilter("Desert");
-                    }}
-                  >
-                    <span className="flex items-center gap-3">
-                      <Sun className="w-4 h-4 text-orange-500" />
-                      Desert
-                    </span>
-                    {typeFilter === "Desert" && <Check className="w-4 h-4 text-[#15803D]" />}
-                  </button>
-                  <button
-                    className="w-full px-3 py-2 text-left text-[13px] text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors flex items-center justify-between"
-                    onClick={() => {
-                      setTypeFilter("Heathland");
-                    }}
-                  >
-                    <span className="flex items-center gap-3">
-                      <Leaf className="w-4 h-4 text-green-500" />
-                      Heathland
-                    </span>
-                    {typeFilter === "Heathland" && <Check className="w-4 h-4 text-[#15803D]" />}
-                  </button>
-                </div>
-              </FloatingMenu>
-            </div>
+              <SearchableSelect
+                value={typeFilter}
+                onValueChange={setTypeFilter}
+                options={["All Types", "Parkland", "Links", "Desert", "Heathland"].map((v) => ({
+                  value: v,
+                  label: v,
+                }))}
+                className="min-w-[160px]"
+                triggerClassName="h-11 bg-white border-[#e1efe5] text-[#15803D] font-medium"
+                placeholder="All Types"
+              />
             </div>
 
           </div>

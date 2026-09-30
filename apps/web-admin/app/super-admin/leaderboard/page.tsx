@@ -227,8 +227,30 @@ export default function LeaderboardDirectoryPage() {
     <div className="space-y-8 w-full max-w-full px-2 pb-10 font-sans mt-4">
       <div className="w-full">
         <Card className="border-0 rounded-xl shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] flex flex-col w-full bg-white">
-          <CardHeader className="flex flex-row items-center justify-between pb-4 px-6 pt-6">
-            <CardTitle className="text-zinc-700 text-xl font-medium">Tournament Leaderboards</CardTitle>
+          <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6">
+            <div className="inline-flex items-center bg-[#f5faf6] border border-[#e1efe5] p-1.5 rounded-2xl gap-1 overflow-x-auto max-w-full">
+              {["All Leaderboards", "Upcoming", "Ongoing", "Completed", "Cancelled"].map((status) => {
+                const isSelected = statusFilter === (status === "All Leaderboards" ? "All Status" : status);
+                return (
+                  <button
+                    key={status}
+                    type="button"
+                    onClick={() => {
+                      setStatusFilter(status === "All Leaderboards" ? "All Status" : status);
+                      setCurrentPage(1);
+                    }}
+                    className={cn(
+                      "px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer whitespace-nowrap",
+                      isSelected
+                        ? "bg-white text-slate-900 shadow-xs border border-[#e1efe5]"
+                        : "text-slate-500 hover:text-slate-900 font-medium border border-transparent"
+                    )}
+                  >
+                    {status}
+                  </button>
+                );
+              })}
+            </div>
           </CardHeader>
           <CardContent className="p-0">
             {/* Filters */}
@@ -255,15 +277,6 @@ export default function LeaderboardDirectoryPage() {
                   className="w-[300px]"
                   triggerClassName="h-11 bg-white border-[#e1efe5] text-[#15803D] font-medium"
                   placeholder="All Organizers"
-                />
-
-                <SearchableSelect
-                  value={statusFilter}
-                  onValueChange={(v) => setStatusFilter(v)}
-                  options={["All Status", ...uniqueStatuses].map((v) => ({ value: v, label: v }))}
-                  className="w-[160px]"
-                  triggerClassName="h-11 bg-white border-[#e1efe5] text-[#15803D] font-medium"
-                  placeholder="All Status"
                 />
                 
                 <SearchableSelect

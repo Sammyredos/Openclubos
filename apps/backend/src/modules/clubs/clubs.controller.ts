@@ -54,7 +54,7 @@ export class ClubsController {
   }
 
   @Get(':id')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.CLUB_ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.CLUB_ADMIN, UserRole.MANAGER)
   findOne(@Param('id') id: string) {
     return this.clubsService.findOne(id);
   }

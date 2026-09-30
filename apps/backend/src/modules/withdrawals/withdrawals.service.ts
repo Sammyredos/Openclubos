@@ -10,7 +10,9 @@ import { EmailService } from '../email/email.service';
 import {
   WalletTransactionType,
   WithdrawalStatus,
+  NotificationType,
 } from '@prisma/client';
+import { NotificationsService } from '../notifications/notifications.service';
 import { RequestWithdrawalDto } from './dto/request-withdrawal.dto';
 import { ApproveWithdrawalDto } from './dto/approve-withdrawal.dto';
 import { RejectWithdrawalDto } from './dto/reject-withdrawal.dto';
@@ -25,6 +27,7 @@ export class WithdrawalsService {
     private readonly prisma: PrismaService,
     private readonly jobsService: JobsService,
     private readonly emailService: EmailService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   /**
@@ -106,43 +109,77 @@ export class WithdrawalsService {
   /**
    * Retrieves withdrawal history for a single organizer club.
    */
-  async getMyWithdrawals(clubId: string) {
-    const items = await this.prisma.withdrawalRequest.findMany({
-      where: { clubId },
-      include: {
-        club: { select: { id: true, name: true, logo: true } },
-        requestedBy: {
-          select: { id: true, firstName: true, lastName: true, email: true },
+  async getMyWithdrawals(
+    clubId: string,
+    query?: { status?: WithdrawalStatus; take?: number; skip?: number },
+  ) {
+    const where: any = { clubId };
+    if (query?.status) {
+      where.status = query.status;
+    }
+
+    const [items, total] = await Promise.all([
+      this.prisma.withdrawalRequest.findMany({
+        where,
+        include: {
+          club: { select: { id: true, name: true, logo: true } },
+          requestedBy: {
+            select: { id: true, firstName: true, lastName: true, email: true },
+          },
+          wallet: {
+            select: { id: true, balance: true, lockedBalance: true, totalWithdrawn: true },
+          },
         },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+        orderBy: { createdAt: 'desc' },
+        take: query?.take,
+        skip: query?.skip,
+      }),
+      this.prisma.withdrawalRequest.count({ where }),
+    ]);
 
     return {
       items: items.map((i: any) => this.formatWithdrawalItem(i)),
-      total: items.length,
+      total,
     };
   }
 
   /**
    * Super Admin view: retrieves all withdrawals across all clubs.
    */
-  async getAllWithdrawals() {
+  async getAllWithdrawals(query?: {
+    status?: WithdrawalStatus;
+    take?: number;
+    skip?: number;
+  }) {
     await this.ensureTestWithdrawalExists();
 
-    const items = await this.prisma.withdrawalRequest.findMany({
-      include: {
-        club: { select: { id: true, name: true, logo: true } },
-        requestedBy: {
-          select: { id: true, firstName: true, lastName: true, email: true },
+    const where: any = {};
+    if (query?.status) {
+      where.status = query.status;
+    }
+
+    const [items, total] = await Promise.all([
+      this.prisma.withdrawalRequest.findMany({
+        where,
+        include: {
+          club: { select: { id: true, name: true, logo: true } },
+          requestedBy: {
+            select: { id: true, firstName: true, lastName: true, email: true },
+          },
+          wallet: {
+            select: { id: true, balance: true, lockedBalance: true, totalWithdrawn: true },
+          },
         },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+        orderBy: { createdAt: 'desc' },
+        take: query?.take,
+        skip: query?.skip,
+      }),
+      this.prisma.withdrawalRequest.count({ where }),
+    ]);
 
     return {
       items: items.map((i: any) => this.formatWithdrawalItem(i)),
-      total: items.length,
+      total,
     };
   }
 
@@ -246,6 +283,46 @@ export class WithdrawalsService {
       });
     }
 
+    // Create in-app notifications
+    try {
+      // 1. Notify organizer
+      await this.notificationsService.createNotification({
+        recipientId: userId,
+        title: 'Payout Request Submitted',
+        body: `Your payout request of ₦${dto.amount.toLocaleString()} to ${bankName} (${accountNumber}) has been submitted and is pending review.`,
+        type: NotificationType.WITHDRAWAL_REQUESTED,
+        data: {
+          type: 'WITHDRAWAL_REQUESTED',
+          withdrawalId: newRequest.id,
+          amount: dto.amount,
+          bankName,
+          accountNumber,
+        },
+      });
+
+      // 2. Notify Super Admins
+      const superAdmins = await this.prisma.user.findMany({
+        where: { role: 'SUPER_ADMIN', status: 'ACTIVE' },
+        select: { id: true },
+      });
+      for (const admin of superAdmins) {
+        await this.notificationsService.createNotification({
+          recipientId: admin.id,
+          title: 'New Payout Request',
+          body: `${club?.name || 'Club'} requested a payout of ₦${dto.amount.toLocaleString()} to ${bankName}.`,
+          type: NotificationType.WITHDRAWAL_REQUESTED,
+          data: {
+            type: 'WITHDRAWAL_REQUESTED',
+            withdrawalId: newRequest.id,
+            clubId,
+            amount: dto.amount,
+          },
+        });
+      }
+    } catch (notifErr) {
+      this.logger.warn(`Failed to dispatch in-app notifications for withdrawal request: ${notifErr}`);
+    }
+
     return this.formatWithdrawalItem(newRequest);
   }
 
@@ -258,6 +335,7 @@ export class WithdrawalsService {
       include: {
         club: { select: { id: true, name: true } },
         requestedBy: { select: { email: true, firstName: true, lastName: true } },
+        wallet: true,
       },
     });
 
@@ -267,6 +345,21 @@ export class WithdrawalsService {
 
     if (request.status !== WithdrawalStatus.PENDING) {
       throw new BadRequestException(`Cannot approve request in ${request.status} status.`);
+    }
+
+    // Check organizer admin wallet balance before confirming withdrawal
+    const wallet = request.wallet || (await this.prisma.clubWallet.findUnique({
+      where: { id: request.walletId },
+    }));
+
+    if (!wallet) {
+      throw new NotFoundException('Organizer club wallet not found for this withdrawal request.');
+    }
+
+    if (wallet.lockedBalance < request.amount) {
+      throw new BadRequestException(
+        `Insufficient locked funds in organizer wallet. Organizer currently has ₦${wallet.lockedBalance.toLocaleString()} locked in escrow, but this withdrawal requires ₦${request.amount.toLocaleString()}. Payout confirmation rejected to prevent overdraft.`,
+      );
     }
 
     const d = new Date();
@@ -322,6 +415,26 @@ export class WithdrawalsService {
         notes: dto.notes,
         currency: request.currency || 'NGN',
       });
+    }
+
+    // Notify organizer via in-app notification
+    try {
+      await this.notificationsService.createNotification({
+        recipientId: request.userId,
+        title: 'Payout Disbursed',
+        body: `Your payout of ₦${request.amount.toLocaleString()} has been disbursed to ${request.bankName} (${request.accountNumber}). Ref: ${generatedRef}`,
+        type: NotificationType.WITHDRAWAL_APPROVED,
+        data: {
+          type: 'WITHDRAWAL_APPROVED',
+          withdrawalId: request.id,
+          amount: request.amount,
+          bankName: request.bankName,
+          accountNumber: request.accountNumber,
+          reference: generatedRef,
+        },
+      });
+    } catch (notifErr) {
+      this.logger.warn(`Failed to dispatch in-app notification for withdrawal approval: ${notifErr}`);
     }
 
     return {
@@ -396,6 +509,24 @@ export class WithdrawalsService {
         reason: dto.reason,
         currency: request.currency || 'NGN',
       });
+    }
+
+    // Notify organizer via in-app notification
+    try {
+      await this.notificationsService.createNotification({
+        recipientId: request.userId,
+        title: 'Payout Request Declined',
+        body: `Your payout request of ₦${request.amount.toLocaleString()} was declined: ${dto.reason.trim()}. Funds have been unlocked and returned to your available balance.`,
+        type: NotificationType.WITHDRAWAL_REJECTED,
+        data: {
+          type: 'WITHDRAWAL_REJECTED',
+          withdrawalId: request.id,
+          amount: request.amount,
+          reason: dto.reason.trim(),
+        },
+      });
+    } catch (notifErr) {
+      this.logger.warn(`Failed to dispatch in-app notification for withdrawal rejection: ${notifErr}`);
     }
 
     return {
@@ -585,55 +716,90 @@ export class WithdrawalsService {
   }
 
   /**
-   * Ensures that a pending test withdrawal exists so Super Admin can immediately test payout processing.
+   * Ensures that a pending test withdrawal exists only on fresh database setups.
+   * Cleans up any phantom duplicate test requests created by legacy seeding.
    */
   private async ensureTestWithdrawalExists() {
     try {
-      const pendingCount = await this.prisma.withdrawalRequest.count({
-        where: { status: WithdrawalStatus.PENDING },
+      // 1. Clean up any phantom duplicate pending test requests if a paid-out test request already exists
+      const duplicatePendingTest = await this.prisma.withdrawalRequest.findMany({
+        where: {
+          status: WithdrawalStatus.PENDING,
+          notes: 'Test payout request ready for Super Admin approval',
+        },
       });
 
-      if (pendingCount === 0) {
-        const club = await this.prisma.club.findFirst();
-        if (!club) return;
-
-        let wallet = await this.prisma.clubWallet.findUnique({
-          where: { clubId: club.id },
+      if (duplicatePendingTest.length > 0) {
+        const hasCompletedTest = await this.prisma.withdrawalRequest.findFirst({
+          where: {
+            status: WithdrawalStatus.COMPLETED,
+            amount: 150000,
+            accountNumber: '0123456789',
+          },
         });
 
-        if (!wallet) {
-          wallet = await this.prisma.clubWallet.create({
-            data: {
-              clubId: club.id,
-              balance: 2350000,
-              lockedBalance: 150000,
-              totalWithdrawn: 350000,
-              currency: 'NGN',
+        if (hasCompletedTest) {
+          await this.prisma.withdrawalRequest.deleteMany({
+            where: {
+              id: { in: duplicatePendingTest.map((d: any) => d.id) },
             },
           });
+          this.logger.log('Cleaned up phantom duplicate test withdrawal requests');
+          return;
         }
+      }
 
-        const user =
-          (await this.prisma.user.findFirst({ where: { clubId: club.id } })) ||
-          (await this.prisma.user.findFirst());
+      // 2. Only seed if the system has ZERO withdrawal requests ever
+      const totalCount = await this.prisma.withdrawalRequest.count();
+      if (totalCount > 0) return;
 
-        if (user) {
-          await this.prisma.withdrawalRequest.create({
-            data: {
-              clubId: club.id,
-              walletId: wallet.id,
-              userId: user.id,
-              amount: 150000,
-              currency: 'NGN',
-              bankName: 'Guaranty Trust Bank (GTBank)',
-              accountNumber: '0123456789',
-              accountName: 'OpenClub Test Account',
-              status: WithdrawalStatus.PENDING,
-              notes: 'Test payout request ready for Super Admin approval',
-            },
-          });
-          this.logger.log('Seeded pending test withdrawal request for Super Admin testing');
-        }
+      const club = await this.prisma.club.findFirst();
+      if (!club) return;
+
+      let wallet = await this.prisma.clubWallet.findUnique({
+        where: { clubId: club.id },
+      });
+
+      if (!wallet) {
+        wallet = await this.prisma.clubWallet.create({
+          data: {
+            clubId: club.id,
+            balance: 2350000,
+            lockedBalance: 150000,
+            totalWithdrawn: 350000,
+            currency: 'NGN',
+          },
+        });
+      } else if (wallet.balance >= 150000) {
+        wallet = await this.prisma.clubWallet.update({
+          where: { id: wallet.id },
+          data: {
+            balance: { decrement: 150000 },
+            lockedBalance: { increment: 150000 },
+          },
+        });
+      }
+
+      const user =
+        (await this.prisma.user.findFirst({ where: { clubId: club.id } })) ||
+        (await this.prisma.user.findFirst());
+
+      if (user) {
+        await this.prisma.withdrawalRequest.create({
+          data: {
+            clubId: club.id,
+            walletId: wallet.id,
+            userId: user.id,
+            amount: 150000,
+            currency: 'NGN',
+            bankName: 'Guaranty Trust Bank (GTBank)',
+            accountNumber: '0123456789',
+            accountName: 'OpenClub Test Account',
+            status: WithdrawalStatus.PENDING,
+            notes: 'Test payout request ready for Super Admin approval',
+          },
+        });
+        this.logger.log('Seeded initial test withdrawal request for Super Admin testing');
       }
     } catch (err: any) {
       this.logger.warn(`Could not seed test withdrawal: ${err.message}`);
@@ -716,6 +882,15 @@ export class WithdrawalsService {
             firstName: i.requestedBy.firstName,
             lastName: i.requestedBy.lastName,
             email: i.requestedBy.email,
+          }
+        : undefined,
+      wallet: i.wallet
+        ? {
+            id: i.wallet.id,
+            balance: i.wallet.balance,
+            availableBalance: i.wallet.balance,
+            lockedBalance: i.wallet.lockedBalance,
+            totalWithdrawn: i.wallet.totalWithdrawn,
           }
         : undefined,
     };

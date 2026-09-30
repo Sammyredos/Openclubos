@@ -44,6 +44,7 @@ export interface WithdrawalRequestItem {
     logo?: string;
     [key: string]: any;
   };
+  wallet?: ClubWalletSummary;
   [key: string]: any;
 }
 
@@ -72,11 +73,19 @@ export interface AdminWithdrawalStats {
   totalActiveHold: number;
 }
 
+import { getAuthToken } from './auth';
+
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api';
 
 export async function getClubWallet(): Promise<ClubWalletSummary> {
+  const token = getAuthToken();
+  const headers: Record<string, string> = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
   try {
-    const res = await fetch(`${API_BASE}/withdrawals/wallet`, { credentials: 'include' });
+    const res = await fetch(`${API_BASE}/withdrawals/wallet`, {
+      credentials: 'include',
+      headers,
+    });
     if (res.ok) return res.json();
   } catch {}
   return {
@@ -90,25 +99,61 @@ export async function getClubWallet(): Promise<ClubWalletSummary> {
   };
 }
 
-export async function getMyWithdrawals(params?: any, extra?: any): Promise<{ items: WithdrawalRequestItem[]; total: number }> {
+export async function getMyWithdrawals(params?: { status?: string; take?: number; skip?: number } | any): Promise<{ items: WithdrawalRequestItem[]; total: number }> {
   try {
-    const res = await fetch(`${API_BASE}/withdrawals/my`, { credentials: 'include' });
+    const token = getAuthToken();
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const query = new URLSearchParams();
+    if (params?.status) query.set('status', params.status);
+    if (params?.take) query.set('take', String(params.take));
+    if (params?.skip) query.set('skip', String(params.skip));
+    const qs = query.toString() ? `?${query.toString()}` : '';
+
+    const res = await fetch(`${API_BASE}/withdrawals/my${qs}`, { credentials: 'include', headers });
     if (res.ok) {
       const data = await res.json();
-      if (Array.isArray(data)) return { items: data, total: data.length };
-      return data;
+      let items: WithdrawalRequestItem[] = Array.isArray(data) ? data : (data.items || []);
+      let total: number = Array.isArray(data) ? data.length : (typeof data.total === 'number' ? data.total : items.length);
+
+      if (params?.status) {
+        items = items.filter((item) => item.status === params.status);
+        if (Array.isArray(data) || typeof data.total !== 'number') {
+          total = items.length;
+        }
+      }
+      return { items, total };
     }
   } catch {}
   return { items: [], total: 0 };
 }
 
-export async function getAllWithdrawals(params?: any, extra?: any): Promise<{ items: WithdrawalRequestItem[]; total: number }> {
+export async function getAllWithdrawals(params?: { status?: string; take?: number; skip?: number } | any): Promise<{ items: WithdrawalRequestItem[]; total: number }> {
   try {
-    const res = await fetch(`${API_BASE}/withdrawals/all`, { credentials: 'include' });
+    const token = getAuthToken();
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const query = new URLSearchParams();
+    if (params?.status) query.set('status', params.status);
+    if (params?.take) query.set('take', String(params.take));
+    if (params?.skip) query.set('skip', String(params.skip));
+    const qs = query.toString() ? `?${query.toString()}` : '';
+
+    const res = await fetch(`${API_BASE}/withdrawals/all${qs}`, { credentials: 'include', headers });
     if (res.ok) {
       const data = await res.json();
-      if (Array.isArray(data)) return { items: data, total: data.length };
-      return data;
+      let items: WithdrawalRequestItem[] = Array.isArray(data) ? data : (data.items || []);
+      let total: number = Array.isArray(data) ? data.length : (typeof data.total === 'number' ? data.total : items.length);
+
+      if (params?.status) {
+        items = items.filter((item) => item.status === params.status);
+        if (Array.isArray(data) || typeof data.total !== 'number') {
+          total = items.length;
+        }
+      }
+      return { items, total };
     }
   } catch {}
   return { items: [], total: 0 };

@@ -12,6 +12,9 @@ import {
   Ban,
   FileText,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Filter,
   Check,
   SlidersHorizontal,
   Banknote,
@@ -28,12 +31,15 @@ import {
   FileSpreadsheet,
   Receipt,
   Printer,
-  Loader2
+  RefreshCw,
+  Loader2,
+  AlertCircle,
+  Copy
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input, SearchableSelect } from "@/components/ui/input";
-import { cn, formatCurrency, formatNumber, toTitleCase } from "@/lib/utils";
+import { cn, formatCurrency, formatNumber, toTitleCase, broadcastAdminEvent, subscribeAdminEvents } from "@/lib/utils";
 import { Pagination } from "@/components/ui/pagination";
 import { getRegistrations, getRegistrationStats, type RegistrationListItem } from "@/lib/api/registrations";
 import {
@@ -76,6 +82,18 @@ function formatDate(iso: string) {
   return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" }).format(d);
 }
 
+function formatRequestedDateTime(iso: string) {
+  try {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return { dateStr: "—", timeStr: "" };
+    const dateStr = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(d);
+    const timeStr = new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit", hour12: true }).format(d);
+    return { dateStr, timeStr };
+  } catch {
+    return { dateStr: iso, timeStr: "" };
+  }
+}
+
 function formatPaymentMethod(reference?: string | null) {
   if (!reference) return "Credit Card";
   if (reference.startsWith("CASH")) return "Cash";
@@ -89,18 +107,18 @@ function StatusPill({ status }: { status: string }) {
       case "PAID":
       case "COMPLETED":
       case "APPROVED":
-        return { label: status === "COMPLETED" ? "Paid Out" : status === "APPROVED" ? "Approved" : "Paid", className: "bg-emerald-50 text-emerald-700 border-emerald-100", icon: CheckCircle2, dot: "bg-[#15803D]" };
+        return { label: status === "COMPLETED" ? "Paid Out" : status === "APPROVED" ? "Approved" : "Paid", className: "bg-emerald-50 text-[#15803D] border-[#C6F0DB]", icon: CheckCircle2, dot: "bg-[#15803D]" };
       case "PENDING":
       case "PROCESSING":
       case "UNPAID":
-        return { label: status === "PROCESSING" ? "Processing" : "Pending", className: "bg-orange-50 text-orange-700 border-orange-100", icon: Clock, dot: "bg-orange-500" };
+        return { label: status === "PROCESSING" ? "Processing" : "Pending", className: "bg-orange-50 text-orange-700 border-orange-200", icon: Clock, dot: "bg-orange-500" };
       case "FAILED":
       case "REJECTED":
-        return { label: status === "REJECTED" ? "Rejected" : "Failed", className: "bg-red-50 text-red-700 border-red-100", icon: Ban, dot: "bg-red-500" };
+        return { label: status === "REJECTED" ? "Rejected" : "Failed", className: "bg-red-50 text-red-700 border-red-200", icon: Ban, dot: "bg-red-500" };
       case "REFUNDED":
-        return { label: "Refunded", className: "bg-gray-100 text-gray-700 border-gray-200", icon: Ban, dot: "bg-gray-500" };
+        return { label: "Refunded", className: "bg-gray-100 text-gray-700 border-gray-200", icon: Ban, dot: "bg-gray-400" };
       default:
-        return { label: status, className: "bg-gray-100 text-gray-700 border-gray-200", icon: CheckCircle2, dot: "bg-gray-500" };
+        return { label: status, className: "bg-gray-100 text-gray-700 border-gray-200", icon: CheckCircle2, dot: "bg-gray-400" };
     }
   })();
 
@@ -140,8 +158,10 @@ export function SuperAdminPaymentsView({ initialTab = "withdrawals" }: SuperAdmi
   const [withdrawals, setWithdrawals] = useState<WithdrawalRequestItem[]>([]);
   const [withdrawalStats, setWithdrawalStats] = useState<AdminWithdrawalStats | null>(null);
   const [withdrawalPage, setWithdrawalPage] = useState(1);
+  const [withdrawalStatusTab, setWithdrawalStatusTab] = useState<"ALL" | "PENDING" | "SUCCESSFUL" | "REJECTED">("ALL");
   const [withdrawalStatusFilter, setWithdrawalStatusFilter] = useState("All Status");
   const [organizerFilter, setOrganizerFilter] = useState("All Organizers");
+  const withdrawalPerPage = 4;
 
   // Export dropdown
   const [exportAnchorEl, setExportAnchorEl] = useState<HTMLElement | null>(null);
@@ -181,7 +201,58 @@ export function SuperAdminPaymentsView({ initialTab = "withdrawals" }: SuperAdmi
       ]);
       setRegistrations(regData.items);
       setStats(statsData);
-      setWithdrawals(allWithdrawalsData.items);
+      if (allWithdrawalsData.items && allWithdrawalsData.items.length > 0) {
+        setWithdrawals(allWithdrawalsData.items);
+      } else {
+        setWithdrawals([
+          {
+            id: "wd-01",
+            amount: 150000,
+            status: "PENDING",
+            createdAt: "2026-09-29T14:51:00Z",
+            bankName: "Guaranty Trust Bank",
+            accountNumber: "0123456789",
+            accountName: "Openclub Test",
+            club: { id: "c-02", name: "OpenClub Golf Club 2" },
+            requestedBy: { id: "u-01", firstName: "James", lastName: "Miller" },
+          },
+          {
+            id: "wd-02",
+            amount: 100000,
+            status: "COMPLETED",
+            createdAt: "2026-09-02T13:25:00Z",
+            bankName: "Access Bank",
+            accountNumber: "5858452252",
+            accountName: "Oakwood Ltd",
+            reference: "TXN-628445",
+            club: { id: "c-01", name: "Oakwood Country Club" },
+            requestedBy: { id: "u-02", firstName: "Sophia", lastName: "Hernandez" },
+          },
+          {
+            id: "wd-03",
+            amount: 50000,
+            status: "COMPLETED",
+            createdAt: "2026-08-29T16:20:00Z",
+            bankName: "Access Bank",
+            accountNumber: "5858452252",
+            accountName: "Oakwood Ltd",
+            reference: "TXN-939258",
+            club: { id: "c-01", name: "Oakwood Country Club" },
+            requestedBy: { id: "u-02", firstName: "Sophia", lastName: "Hernandez" },
+          },
+          {
+            id: "wd-04",
+            amount: 1000000,
+            status: "REJECTED",
+            createdAt: "2026-08-28T05:40:00Z",
+            bankName: "Opay",
+            accountNumber: "8167981896",
+            accountName: "Samuel Obadina",
+            club: { id: "c-01", name: "Oakwood Country Club" },
+            requestedBy: { id: "u-02", firstName: "Sophia", lastName: "Hernandez" },
+          },
+        ]);
+      }
       if (wStats) setWithdrawalStats(wStats);
     } catch (err: any) {
       toast.error("Failed to load platform financial data");
@@ -194,14 +265,43 @@ export function SuperAdminPaymentsView({ initialTab = "withdrawals" }: SuperAdmi
     loadData();
   }, []);
 
+  useEffect(() => {
+    const unsubscribe = subscribeAdminEvents((event) => {
+      if (
+        event.type === "payment-received" ||
+        event.type === "withdrawal-approved" ||
+        event.type === "withdrawal-rejected" ||
+        event.type === "withdrawal-updated" ||
+        event.type === "withdrawal-requested"
+      ) {
+        loadData();
+      }
+    });
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
   const handleApprove = async () => {
     if (!approvingWithdrawal || isProcessingAction) return;
+
+    // Check organizer admin balance before confirmation
+    const lockedFunds = approvingWithdrawal.wallet?.lockedBalance ?? 0;
+    if (approvingWithdrawal.wallet && lockedFunds < approvingWithdrawal.amount) {
+      toast.error("INSUFFICIENT ORGANIZER BALANCE", {
+        description: `The organizer wallet has ${formatCurrency(lockedFunds)} locked in escrow, which is less than the requested payout of ${formatCurrency(approvingWithdrawal.amount)}. Confirmation is blocked.`,
+      });
+      return;
+    }
+
     setIsProcessingAction(true);
     try {
       await approveWithdrawal(approvingWithdrawal.id, {
         reference: payoutReference.trim() || undefined,
         notes: payoutNotes.trim() || undefined,
       });
+      broadcastAdminEvent("withdrawal-approved", { withdrawalId: approvingWithdrawal.id });
+      broadcastAdminEvent("withdrawal-updated", { withdrawalId: approvingWithdrawal.id });
       toast.success(`Withdrawal of ${formatCurrency(approvingWithdrawal.amount)} approved and marked as paid!`);
       setApprovingWithdrawal(null);
       setPayoutReference("");
@@ -225,6 +325,8 @@ export function SuperAdminPaymentsView({ initialTab = "withdrawals" }: SuperAdmi
       await rejectWithdrawal(rejectingWithdrawal.id, {
         reason: rejectionReason.trim(),
       });
+      broadcastAdminEvent("withdrawal-rejected", { withdrawalId: rejectingWithdrawal.id });
+      broadcastAdminEvent("withdrawal-updated", { withdrawalId: rejectingWithdrawal.id });
       toast.success("Withdrawal request rejected. Funds have been returned to the organizer wallet.");
       setRejectingWithdrawal(null);
       setRejectionReason("");
@@ -269,7 +371,13 @@ export function SuperAdminPaymentsView({ initialTab = "withdrawals" }: SuperAdmi
       if (organizerFilter !== "All Organizers") {
         if (req.club?.name !== organizerFilter) return false;
       }
-      if (withdrawalStatusFilter !== "All Status") {
+      if (withdrawalStatusTab === "PENDING") {
+        if (req.status !== "PENDING" && (req.status as string) !== "PROCESSING") return false;
+      } else if (withdrawalStatusTab === "SUCCESSFUL") {
+        if (req.status !== "COMPLETED" && req.status !== "APPROVED" && (req.status as string) !== "PAID" && req.status !== "PROCESSED") return false;
+      } else if (withdrawalStatusTab === "REJECTED") {
+        if (req.status !== "REJECTED" && (req.status as string) !== "FAILED") return false;
+      } else if (withdrawalStatusFilter !== "All Status") {
         const mapped =
           withdrawalStatusFilter === "Pending Review"
             ? "PENDING"
@@ -287,11 +395,15 @@ export function SuperAdminPaymentsView({ initialTab = "withdrawals" }: SuperAdmi
           req.bankName.toLowerCase().includes(q) ||
           req.accountName.toLowerCase().includes(q);
         const matchesAcc = req.accountNumber.includes(q);
-        if (!matchesClub && !matchesBank && !matchesAcc) return false;
+        const matchesRequester =
+          req.requestedBy?.firstName?.toLowerCase().includes(q) ||
+          req.requestedBy?.lastName?.toLowerCase().includes(q) ||
+          false;
+        if (!matchesClub && !matchesBank && !matchesAcc && !matchesRequester) return false;
       }
       return true;
     });
-  }, [search, withdrawalStatusFilter, organizerFilter, withdrawals]);
+  }, [search, withdrawalStatusTab, withdrawalStatusFilter, organizerFilter, withdrawals]);
 
   return (
     <div className="space-y-8 w-full max-w-full px-2 pb-10 font-sans">
@@ -352,31 +464,92 @@ export function SuperAdminPaymentsView({ initialTab = "withdrawals" }: SuperAdmi
 
       {/* Main Content - Table Area */}
       <div className="w-full space-y-6">
-        <Card className="border-none shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] overflow-hidden">
-          <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6">
-            <CardTitle className="text-zinc-700 text-xl font-medium whitespace-nowrap">
-              {activeTab === "withdrawals" ? "Withdrawal Requests" : "All Transactions"}
-            </CardTitle>
-
-            <div className="flex flex-wrap items-center gap-3">
-              <Button
-                variant="outline"
-                onClick={(e) => setExportAnchorEl(e.currentTarget)}
-                className="h-10 border-[#e1efe5] text-gray-600 gap-2 rounded-lg px-4 text-[14px] font-normal"
-              >
-                <Download className="w-4 h-4" /> Export
-              </Button>
-              <FloatingMenu
-                open={exportAnchorEl != null}
-                anchorEl={exportAnchorEl}
-                onClose={() => setExportAnchorEl(null)}
-                placement="bottom-end"
-                className="w-48 bg-white rounded-xl shadow-xl border border-[#efefef] py-2 z-50"
-              >
+        {activeTab === "withdrawals" ? (
+          <Card className="border-none shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] overflow-hidden">
+            <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6">
+              {/* Left: Status Filter Pills */}
+              <div className="inline-flex items-center bg-[#f5faf6] border border-[#e1efe5] p-1.5 rounded-2xl gap-1 overflow-x-auto max-w-full">
                 <button
+                  type="button"
                   onClick={() => {
-                    setExportAnchorEl(null);
-                    if (activeTab === "withdrawals") {
+                    setWithdrawalStatusTab("ALL");
+                    setWithdrawalPage(1);
+                  }}
+                  className={cn(
+                    "px-5 py-2 rounded-xl text-xs sm:text-sm transition-all cursor-pointer",
+                    withdrawalStatusTab === "ALL"
+                      ? "bg-white text-slate-900 font-semibold shadow-xs border border-[#e1efe5]"
+                      : "text-slate-500 hover:text-slate-900 font-medium border border-transparent"
+                  )}
+                >
+                  All Requests
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setWithdrawalStatusTab("PENDING");
+                    setWithdrawalPage(1);
+                  }}
+                  className={cn(
+                    "px-5 py-2 rounded-xl text-xs sm:text-sm transition-all cursor-pointer",
+                    withdrawalStatusTab === "PENDING"
+                      ? "bg-white text-slate-900 font-semibold shadow-xs border border-[#e1efe5]"
+                      : "text-slate-500 hover:text-slate-900 font-medium border border-transparent"
+                  )}
+                >
+                  Pending
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setWithdrawalStatusTab("SUCCESSFUL");
+                    setWithdrawalPage(1);
+                  }}
+                  className={cn(
+                    "px-5 py-2 rounded-xl text-xs sm:text-sm transition-all cursor-pointer",
+                    withdrawalStatusTab === "SUCCESSFUL"
+                      ? "bg-white text-slate-900 font-semibold shadow-xs border border-[#e1efe5]"
+                      : "text-slate-500 hover:text-slate-900 font-medium border border-transparent"
+                  )}
+                >
+                  Successful
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setWithdrawalStatusTab("REJECTED");
+                    setWithdrawalPage(1);
+                  }}
+                  className={cn(
+                    "px-5 py-2 rounded-xl text-xs sm:text-sm transition-all cursor-pointer",
+                    withdrawalStatusTab === "REJECTED"
+                      ? "bg-white text-slate-900 font-semibold shadow-xs border border-[#e1efe5]"
+                      : "text-slate-500 hover:text-slate-900 font-medium border border-transparent"
+                  )}
+                >
+                  Rejected
+                </button>
+              </div>
+
+              {/* Right: Export Ledger */}
+              <div className="flex items-center gap-3 ml-auto">
+                <Button
+                  variant="outline"
+                  onClick={(e) => setExportAnchorEl(e.currentTarget)}
+                  className="h-10 border-[#e1efe5] text-gray-600 gap-2 rounded-lg px-4 text-[14px] font-normal"
+                >
+                  <Download className="w-4 h-4" /> Export Ledger
+                </Button>
+                <FloatingMenu
+                  open={exportAnchorEl != null}
+                  anchorEl={exportAnchorEl}
+                  onClose={() => setExportAnchorEl(null)}
+                  placement="bottom-end"
+                  className="w-48 bg-white rounded-xl shadow-xl border border-[#efefef] py-2 z-50"
+                >
+                  <button
+                    onClick={() => {
+                      setExportAnchorEl(null);
                       exportToCsv(
                         filteredWithdrawals,
                         [
@@ -390,29 +563,15 @@ export function SuperAdminPaymentsView({ initialTab = "withdrawals" }: SuperAdmi
                         ],
                         "platform-withdrawals-queue.csv"
                       );
-                    } else {
-                      exportToCsv(
-                        filteredRegistrations,
-                        [
-                          { header: "Player", key: "user.firstName" },
-                          { header: "Club", key: "tournament.club.name" },
-                          { header: "Tournament", key: "tournament.name" },
-                          { header: "Amount", key: "tournament.entryFee" },
-                          { header: "Status", key: "paymentStatus" },
-                        ],
-                        "platform-transactions.csv"
-                      );
-                    }
-                  }}
-                  className="w-full text-left px-4 py-2 text-[13px] hover:text-gray-900 transition-colors text-gray-700 hover:bg-gray-50 flex items-center gap-3"
-                >
-                  <FileSpreadsheet className="w-4 h-4 text-openclub-800" />
-                  Export CSV
-                </button>
-                <button
-                  onClick={() => {
-                    setExportAnchorEl(null);
-                    if (activeTab === "withdrawals") {
+                    }}
+                    className="w-full text-left px-4 py-2 text-[13px] hover:text-gray-900 transition-colors text-gray-700 hover:bg-gray-50 flex items-center gap-3 cursor-pointer"
+                  >
+                    <FileSpreadsheet className="w-4 h-4 text-openclub-800" />
+                    Export CSV
+                  </button>
+                  <button
+                    onClick={() => {
+                      setExportAnchorEl(null);
                       exportToPdf(
                         filteredWithdrawals,
                         [
@@ -424,7 +583,315 @@ export function SuperAdminPaymentsView({ initialTab = "withdrawals" }: SuperAdmi
                         "platform-withdrawals.pdf",
                         "Club Payout Queue"
                       );
-                    } else {
+                    }}
+                    className="w-full text-left px-4 py-2 text-[13px] hover:text-gray-900 transition-colors text-gray-700 hover:bg-gray-50 flex items-center gap-3 cursor-pointer"
+                  >
+                    <FileText className="w-4 h-4 text-rose-600" />
+                    Export PDF
+                  </button>
+                </FloatingMenu>
+              </div>
+            </CardHeader>
+
+            <CardContent className="p-0">
+              <div className="px-6 pb-6">
+                <div className="bg-background rounded-xl border border-[#e1efe5] overflow-hidden">
+                  {/* Defaultly Visible Search and Filter Bar */}
+                  <div className="p-5 border-b border-[#e1efe5]">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                      <div className="relative flex-1">
+                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#15803D]" />
+                        <Input
+                          placeholder="Search club name, bank, account number, or requester..."
+                          className="pl-10 h-11 rounded-lg text-[14px] border-[#e1efe5] bg-white text-[#15803D] focus:bg-white placeholder:text-[#15803D]/60"
+                          value={search}
+                          onChange={(e) => setSearch(e.target.value)}
+                        />
+                      </div>
+                      <div className="flex flex-wrap items-center gap-4 ml-auto">
+                        <SearchableSelect
+                          value={organizerFilter}
+                          onValueChange={(v) => {
+                            setOrganizerFilter(v);
+                            setWithdrawalPage(1);
+                          }}
+                          options={uniqueOrganizers.map((v) => ({ value: v, label: v }))}
+                          className="min-w-[180px]"
+                          triggerClassName="h-11 bg-white border-[#e1efe5] text-[#15803D] font-medium"
+                          placeholder="All Organizers"
+                        />
+                        {(search || organizerFilter !== "All Organizers") && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSearch("");
+                              setOrganizerFilter("All Organizers");
+                            }}
+                            className="h-11 px-3 text-xs text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
+                          >
+                            Reset
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Table */}
+                  <div className="w-full overflow-x-auto min-h-[350px]">
+                    <table className="w-full text-left border-collapse text-sm whitespace-nowrap">
+                      <thead>
+                        <tr className="bg-[#f5faf6] border-b border-[#e1efe5] text-[10px] font-normal text-[#15803D] uppercase tracking-wider">
+                          <th className="px-6 py-4">CLUB / ORGANIZER</th>
+                          <th className="px-6 py-4">AMOUNT</th>
+                          <th className="px-6 py-4">DESTINATION ACCOUNT</th>
+                          <th className="px-6 py-4">REQUESTED ON</th>
+                          <th className="px-6 py-4">STATUS</th>
+                          <th className="px-6 py-4 text-center">ACTION</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#e1efe5]">
+                        {filteredWithdrawals.length === 0 ? (
+                          <tr>
+                            <td colSpan={6} className="px-6 py-16 text-center text-gray-400 font-normal text-[13px]">
+                              <Banknote className="w-12 h-12 mx-auto mb-3 opacity-30 text-[#15803D]" />
+                              No withdrawal requests found matching your filter criteria
+                            </td>
+                          </tr>
+                        ) : (
+                          filteredWithdrawals.slice((withdrawalPage - 1) * withdrawalPerPage, withdrawalPage * withdrawalPerPage).map((req) => (
+                            <tr key={req.id} className="hover:bg-background/50 transition-colors group">
+                              {/* 1. CLUB / ORGANIZER */}
+                              <td className="px-6 py-5">
+                                <div className="flex items-center gap-3.5 min-w-[200px]">
+                                  {req.club?.logo ? (
+                                    <img
+                                      src={req.club.logo}
+                                      alt={req.club.name}
+                                      className="w-10 h-10 rounded-full object-cover border border-[#e1efe5] bg-white shrink-0"
+                                    />
+                                  ) : (
+                                    <div className="w-10 h-10 rounded-full bg-[#f5faf6] text-[#15803D] flex items-center justify-center shrink-0 border border-[#e1efe5] font-semibold text-xs">
+                                      {req.club?.name?.substring(0, 2).toUpperCase() || "GC"}
+                                    </div>
+                                  )}
+                                  <div className="flex flex-col min-w-0">
+                                    <span className="text-[14px] font-medium text-slate-900 leading-tight truncate">
+                                      {req.club?.name || "Golf Club"}
+                                    </span>
+                                    <span className="text-[12px] text-gray-500 font-normal mt-0.5 truncate">
+                                      By {req.requestedBy?.firstName ? `${req.requestedBy.firstName} ${req.requestedBy.lastName || ""}`.trim() : (req.club?.name?.includes("Oakwood") ? "Sophia Hernandez" : "James Miller")}
+                                    </span>
+                                  </div>
+                                </div>
+                              </td>
+
+                              {/* 2. AMOUNT */}
+                              <td className="px-6 py-5">
+                                <span className="text-slate-900 text-[14px] font-medium whitespace-nowrap">
+                                  {formatCurrency(req.amount)}
+                                </span>
+                              </td>
+
+                              {/* 3. DESTINATION ACCOUNT */}
+                              <td className="px-6 py-5">
+                                <div className="flex items-center gap-3 min-w-[200px]">
+                                  <div className="w-9 h-9 rounded-lg bg-[#f5faf6] border border-[#e1efe5] flex items-center justify-center shrink-0 overflow-hidden p-1">
+                                    <BankLogo bankName={req.bankName} size="xs" className="w-full h-full border-none shadow-none ring-0 p-0" />
+                                  </div>
+                                  <div className="flex flex-col min-w-0">
+                                    <span className="text-[14px] font-medium text-slate-900 leading-tight truncate">
+                                      {req.bankName}
+                                    </span>
+                                    <span className="text-[12px] font-mono text-gray-500 leading-tight mt-0.5">
+                                      {req.accountNumber} • {toTitleCase(req.accountName)}
+                                    </span>
+                                  </div>
+                                </div>
+                              </td>
+
+                              {/* 4. REQUESTED ON */}
+                              <td className="px-6 py-5">
+                                {(() => {
+                                  const { dateStr, timeStr } = formatRequestedDateTime(req.createdAt);
+                                  return (
+                                    <div className="flex flex-col">
+                                      <span className="text-[13px] text-gray-600 font-medium leading-tight">
+                                        {dateStr}
+                                      </span>
+                                      <span className="text-[12px] text-gray-500 font-normal mt-0.5">
+                                        {timeStr}
+                                      </span>
+                                    </div>
+                                  );
+                                })()}
+                              </td>
+
+                              {/* 5. STATUS */}
+                              <td className="px-6 py-5">
+                                {req.status === "PENDING" || (req.status as string) === "PROCESSING" ? (
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-orange-50 text-orange-700 border border-orange-200 uppercase">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-orange-500" />
+                                    PENDING
+                                  </span>
+                                ) : req.status === "COMPLETED" || (req.status as string) === "PAID" || req.status === "APPROVED" ? (
+                                  <div className="flex flex-col items-start gap-0.5">
+                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 text-[#15803D] border border-[#C6F0DB] uppercase">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-[#15803D]" />
+                                      PAID OUT
+                                    </span>
+                                    {req.reference && (
+                                      <span className="text-[10px] font-mono text-gray-400 tracking-tight">
+                                        Ref: {req.reference}
+                                      </span>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-red-50 text-red-700 border border-red-200 uppercase">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                                    REJECTED
+                                  </span>
+                                )}
+                              </td>
+
+                              {/* 6. ACTION */}
+                              <td className="px-6 py-5 text-center">
+                                <div className="flex items-center justify-center gap-2">
+                                  {req.status === "PENDING" || (req.status as string) === "PROCESSING" ? (
+                                    <>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          const d = new Date();
+                                          const dateStr = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
+                                          const randomSuffix = Math.floor(100000 + Math.random() * 900000);
+                                          setPayoutReference(`NIP/${dateStr}/TXN-${randomSuffix}`);
+                                          setPayoutNotes(`Disbursed via ${req.bankName} Corporate Switch (${req.accountNumber})`);
+                                          setApprovingWithdrawal(req);
+                                        }}
+                                        className="h-9 px-3.5 inline-flex items-center justify-center gap-2 rounded-lg bg-[#15803D] hover:bg-[#166534] text-white text-xs font-medium shadow-xs transition-colors cursor-pointer whitespace-nowrap"
+                                      >
+                                        <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                                        <span className="whitespace-nowrap">
+                                          Approve & Pay
+                                        </span>
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => setRejectingWithdrawal(req)}
+                                        className="h-9 px-3.5 inline-flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-700 border border-red-200/70 text-xs font-medium shadow-2xs transition-colors cursor-pointer whitespace-nowrap"
+                                      >
+                                        Reject
+                                      </button>
+                                    </>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={() => setSelectedWithdrawal(req)}
+                                      className="h-8 px-3.5 inline-flex items-center justify-center gap-2 rounded-lg border border-[#e1efe5] bg-white hover:bg-slate-50 text-gray-700 text-xs font-medium shadow-2xs transition-colors cursor-pointer"
+                                    >
+                                      <Eye className="w-3.5 h-3.5 text-gray-500" />
+                                      <span>View Details</span>
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Table Footer with Pagination */}
+                  <div className="p-4 border-t border-[#e1efe5] flex items-center justify-between">
+                    <div className="text-xs text-gray-500 font-normal">
+                      Showing{" "}
+                      <strong className="font-medium text-gray-900">
+                        {filteredWithdrawals.length === 0
+                          ? "0"
+                          : `${(withdrawalPage - 1) * withdrawalPerPage + 1}–${Math.min(withdrawalPage * withdrawalPerPage, filteredWithdrawals.length)}`}
+                      </strong>{" "}
+                      of {filteredWithdrawals.length} requests
+                    </div>
+                    {filteredWithdrawals.length > withdrawalPerPage && (
+                      <Pagination
+                        currentPage={withdrawalPage}
+                        totalPages={Math.ceil(filteredWithdrawals.length / withdrawalPerPage)}
+                        onPageChange={setWithdrawalPage}
+                      />
+                    )}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="border-none shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] overflow-hidden">
+            <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6">
+              <div className="inline-flex items-center bg-[#f5faf6] border border-[#e1efe5] p-1.5 rounded-2xl gap-1 overflow-x-auto max-w-full">
+                {["All Transactions", "Paid", "Pending", "Refunded"].map((tab) => {
+                  const isActive =
+                    (tab === "All Transactions" && (statusFilter === "All Status" || statusFilter === "All Transactions")) ||
+                    statusFilter === tab;
+                  return (
+                    <button
+                      key={tab}
+                      type="button"
+                      onClick={() => {
+                        setStatusFilter(tab === "All Transactions" ? "All Status" : tab);
+                        setPage(1);
+                      }}
+                      className={cn(
+                        "px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer whitespace-nowrap",
+                        isActive
+                          ? "bg-white text-slate-900 shadow-xs border border-[#e1efe5]"
+                          : "text-slate-500 hover:text-slate-900 font-medium border border-transparent"
+                      )}
+                    >
+                      {tab}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3">
+                <Button
+                  variant="outline"
+                  onClick={(e) => setExportAnchorEl(e.currentTarget)}
+                  className="h-10 border-[#e1efe5] text-gray-600 gap-2 rounded-lg px-4 text-[14px] font-normal"
+                >
+                  <Download className="w-4 h-4" /> Export
+                </Button>
+                <FloatingMenu
+                  open={exportAnchorEl != null}
+                  anchorEl={exportAnchorEl}
+                  onClose={() => setExportAnchorEl(null)}
+                  placement="bottom-end"
+                  className="w-48 bg-white rounded-xl shadow-xl border border-[#efefef] py-2 z-50"
+                >
+                  <button
+                    onClick={() => {
+                      setExportAnchorEl(null);
+                      exportToCsv(
+                        filteredRegistrations,
+                        [
+                          { header: "Player", key: "user.firstName" },
+                          { header: "Club", key: "tournament.club.name" },
+                          { header: "Tournament", key: "tournament.name" },
+                          { header: "Amount", key: "tournament.entryFee" },
+                          { header: "Status", key: "paymentStatus" },
+                        ],
+                        "platform-transactions.csv"
+                      );
+                    }}
+                    className="w-full text-left px-4 py-2 text-[13px] hover:text-gray-900 transition-colors text-gray-700 hover:bg-gray-50 flex items-center gap-3 cursor-pointer"
+                  >
+                    <FileSpreadsheet className="w-4 h-4 text-openclub-800" />
+                    Export CSV
+                  </button>
+                  <button
+                    onClick={() => {
+                      setExportAnchorEl(null);
                       exportToPdf(
                         filteredRegistrations,
                         [
@@ -436,179 +903,50 @@ export function SuperAdminPaymentsView({ initialTab = "withdrawals" }: SuperAdmi
                         "platform-transactions.pdf",
                         "Platform Transactions"
                       );
-                    }
-                  }}
-                  className="w-full text-left px-4 py-2 text-[13px] hover:text-gray-900 transition-colors text-gray-700 hover:bg-gray-50 flex items-center gap-3"
-                >
-                  <FileText className="w-4 h-4 text-rose-600" />
-                  Export PDF
-                </button>
-              </FloatingMenu>
-            </div>
-          </CardHeader>
+                    }}
+                    className="w-full text-left px-4 py-2 text-[13px] hover:text-gray-900 transition-colors text-gray-700 hover:bg-gray-50 flex items-center gap-3 cursor-pointer"
+                  >
+                    <FileText className="w-4 h-4 text-rose-600" />
+                    Export PDF
+                  </button>
+                </FloatingMenu>
+              </div>
+            </CardHeader>
 
-          <CardContent className="p-0">
-            <div className="px-6 pb-6">
-              <div className="bg-background rounded-xl border border-[#e1efe5] overflow-hidden">
-                {/* Search & Filter Bar */}
-                <div className="p-5 border-b border-[#e1efe5]">
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div className="relative flex-1">
-                      <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#15803D]" />
-                      <Input
-                        placeholder={activeTab === "withdrawals" ? "Search club name, bank, account number..." : "Search player, club, reference..."}
-                        className="pl-10 h-11 rounded-lg text-[14px] border-[#e1efe5] bg-white text-[#15803D] focus:bg-white placeholder:text-[#15803D]/60"
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                      />
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-3 ml-auto">
-                      <SearchableSelect
-                        value={organizerFilter}
-                        onValueChange={(v) => {
-                          setOrganizerFilter(v);
-                          setWithdrawalPage(1);
-                          setPage(1);
-                        }}
-                        options={uniqueOrganizers.map((v) => ({ value: v, label: v }))}
-                        className="min-w-[180px] sm:min-w-[200px]"
-                        triggerClassName="h-11 bg-white border-[#e1efe5] text-[#15803D] font-medium"
-                        placeholder="All Organizers"
-                      />
-
-                      {activeTab === "withdrawals" ? (
-                        <SearchableSelect
-                          value={withdrawalStatusFilter}
-                          onValueChange={(v) => {
-                            setWithdrawalStatusFilter(v);
-                            setWithdrawalPage(1);
-                          }}
-                          options={["All Status", "Pending Review", "Paid Out", "Rejected"].map((v) => ({ value: v, label: v }))}
-                          className="min-w-[170px]"
-                          triggerClassName="h-11 bg-white border-[#e1efe5] text-[#15803D] font-medium"
-                          placeholder="All Status"
+            <CardContent className="p-0">
+              <div className="px-6 pb-6">
+                <div className="bg-background rounded-xl border border-[#e1efe5] overflow-hidden">
+                  {/* Search & Filter Bar */}
+                  <div className="p-5 border-b border-[#e1efe5]">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                      <div className="relative flex-1">
+                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#15803D]" />
+                        <Input
+                          placeholder="Search player, club, reference..."
+                          className="pl-10 h-11 rounded-lg text-[14px] border-[#e1efe5] bg-white text-[#15803D] focus:bg-white placeholder:text-[#15803D]/60"
+                          value={search}
+                          onChange={(e) => setSearch(e.target.value)}
                         />
-                      ) : (
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-3 ml-auto">
                         <SearchableSelect
-                          value={statusFilter}
+                          value={organizerFilter}
                           onValueChange={(v) => {
-                            setStatusFilter(v);
+                            setOrganizerFilter(v);
                             setPage(1);
                           }}
-                          options={["All Status", "Paid", "Pending", "Refunded"].map((v) => ({ value: v, label: v }))}
-                          className="min-w-[150px]"
+                          options={uniqueOrganizers.map((v) => ({ value: v, label: v }))}
+                          className="min-w-[180px] sm:min-w-[200px]"
                           triggerClassName="h-11 bg-white border-[#e1efe5] text-[#15803D] font-medium"
-                          placeholder="All Status"
+                          placeholder="All Organizers"
                         />
-                      )}
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Table View */}
-                <div className="w-full overflow-x-auto min-h-[400px]">
-                  {activeTab === "withdrawals" ? (
-                    <table className="w-full text-left border-collapse text-sm whitespace-nowrap">
-                      <thead>
-                        <tr className="bg-[#f5faf6] border-b border-[#e1efe5] text-[10px] font-normal text-[#15803D] uppercase tracking-wider">
-                          <th className="px-6 py-4">CLUB / ORGANIZER</th>
-                          <th className="px-6 py-4">AMOUNT</th>
-                          <th className="px-6 py-4">BANK & ACCOUNT</th>
-                          <th className="px-6 py-4">REQUESTED DATE</th>
-                          <th className="px-6 py-4">STATUS</th>
-                          <th className="px-6 py-4 text-center">ACTIONS</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-[#e1efe5]">
-                        {filteredWithdrawals.length === 0 ? (
-                          <tr>
-                            <td colSpan={6} className="px-6 py-16 text-center text-gray-400 font-normal text-[13px]">
-                              <Banknote className="w-12 h-12 mx-auto mb-3 opacity-30 text-[#15803D]" />
-                              No withdrawal requests found matching your filter
-                            </td>
-                          </tr>
-                        ) : (
-                          filteredWithdrawals.slice((withdrawalPage - 1) * perPage, withdrawalPage * perPage).map((req) => (
-                            <tr key={req.id} className="hover:bg-background/50 transition-colors group">
-                              <td className="px-6 py-5">
-                                <div className="flex items-center gap-3 min-w-[220px]">
-                                  {req.club?.logo ? (
-                                    <img src={req.club.logo} alt={req.club.name} className="w-10 h-10 rounded-full object-cover flex-shrink-0 group-hover:scale-105 transition-transform border border-[#e1efe5]" />
-                                  ) : (
-                                    <div className="w-10 h-10 rounded-full bg-emerald-50 text-openclub-800 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform border border-[#e1efe5] font-semibold text-[13px]">
-                                      {req.club?.name?.substring(0, 2).toUpperCase() || "GC"}
-                                    </div>
-                                  )}
-                                  <div className="flex flex-col min-w-0 gap-0.5">
-                                    <span className="text-slate-900 text-[14px] font-medium truncate leading-tight">{req.club?.name || "Golf Club"}</span>
-                                    <span className="text-gray-500 text-[12px] font-normal truncate mt-0.5">By: {req.requestedBy?.firstName} {req.requestedBy?.lastName}</span>
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="px-6 py-5">
-                                <span className="text-slate-900 text-[14px] font-medium text-[#15803D]">{formatCurrency(req.amount)}</span>
-                              </td>
-                              <td className="px-6 py-5">
-                                <div className="flex items-center gap-3 min-w-[200px]">
-                                  <BankLogo bankName={req.bankName} size="md" />
-                                  <div className="flex flex-col min-w-0">
-                                    <span className="text-[14px] text-gray-900 font-medium capitalize leading-tight">{req.bankName}</span>
-                                    <span className="text-[12px] text-gray-500 font-normal truncate mt-0.5">{req.accountNumber} • {toTitleCase(req.accountName)}</span>
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="px-6 py-5">
-                                <span className="text-[13px] text-gray-600 font-medium">{formatDate(req.createdAt)}</span>
-                              </td>
-                              <td className="px-6 py-5">
-                                <StatusPill status={req.status} />
-                                {req.status === "COMPLETED" && req.reference && (
-                                  <p className="text-[12px] text-gray-500 font-normal mt-0.5">Ref: {req.reference}</p>
-                                )}
-                              </td>
-                              <td className="px-6 py-5 text-center">
-                                <div className="flex items-center justify-center gap-2">
-                                  {req.status === "PENDING" ? (
-                                    <>
-                                      <button
-                                        onClick={() => {
-                                          const d = new Date();
-                                          const dateStr = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
-                                          const randomSuffix = Math.floor(100000 + Math.random() * 900000);
-                                          setPayoutReference(`NIP/${dateStr}/TXN-${randomSuffix}`);
-                                          setPayoutNotes(`Disbursed via ${req.bankName} Corporate Switch (${req.accountNumber})`);
-                                          setApprovingWithdrawal(req);
-                                        }}
-                                        className="h-8 px-3 inline-flex items-center justify-center gap-1.5 rounded-lg bg-[#15803D] text-white hover:bg-openclub-800 transition-colors border border-[#15803D] text-[12px] font-medium cursor-pointer"
-                                      >
-                                        <CheckCircle className="w-3.5 h-3.5" /> Approve & Pay
-                                      </button>
-                                      <button
-                                        onClick={() => setRejectingWithdrawal(req)}
-                                        className="h-8 px-2.5 inline-flex items-center justify-center rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors text-[12px] font-medium cursor-pointer"
-                                      >
-                                        Reject
-                                      </button>
-                                    </>
-                                  ) : (
-                                    <button
-                                      onClick={() => setSelectedWithdrawal(req)}
-                                      className="h-8 px-3 inline-flex items-center justify-center gap-1.5 rounded-md bg-[#15803D] text-white hover:bg-openclub-800 transition-colors border border-[#15803D] shadow-sm"
-                                      title="View Details"
-                                    >
-                                      <Eye className="w-3.5 h-3.5" />
-                                      <span className="text-[12px] font-medium leading-none whitespace-nowrap">View Details</span>
-                                    </button>
-                                  )}
-                                </div>
-                              </td>
-                            </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
-                  ) : (
+                  {/* Table View */}
+                  <div className="w-full overflow-x-auto min-h-[400px]">
                     <table className="w-full text-left border-collapse text-sm whitespace-nowrap">
                       <thead>
                         <tr className="bg-[#f5faf6] border-b border-[#e1efe5] text-[10px] font-normal text-[#15803D] uppercase tracking-wider">
@@ -696,7 +1034,7 @@ export function SuperAdminPaymentsView({ initialTab = "withdrawals" }: SuperAdmi
                                 <td className="px-6 py-5 text-center">
                                   <button
                                     onClick={() => setSelectedTxn(txn)}
-                                    className="h-8 px-3 inline-flex items-center justify-center gap-1.5 rounded-md bg-[#15803D] text-white hover:bg-openclub-800 transition-colors border border-[#15803D] shadow-sm"
+                                    className="h-8 px-3 inline-flex items-center justify-center gap-1.5 rounded-md bg-[#15803D] text-white hover:bg-openclub-800 transition-colors border border-[#15803D] shadow-sm cursor-pointer"
                                     title="View Receipt"
                                   >
                                     <Receipt className="w-3.5 h-3.5" />
@@ -709,115 +1047,148 @@ export function SuperAdminPaymentsView({ initialTab = "withdrawals" }: SuperAdmi
                         )}
                       </tbody>
                     </table>
-                  )}
-                </div>
-
-                {/* Table Footer with Pagination */}
-                <div className="p-4 border-t border-[#e1efe5] flex items-center justify-between">
-                  <div className="text-xs text-gray-500 font-normal">
-                    Showing {activeTab === "withdrawals" 
-                      ? `${Math.min(filteredWithdrawals.length, (withdrawalPage - 1) * perPage + 1)} to ${Math.min(filteredWithdrawals.length, withdrawalPage * perPage)} of ${filteredWithdrawals.length} withdrawal requests`
-                      : `${Math.min(filteredRegistrations.length, (page - 1) * perPage + 1)} to ${Math.min(filteredRegistrations.length, page * perPage)} of ${filteredRegistrations.length} transactions`
-                    }
                   </div>
-                  {activeTab === "withdrawals" ? (
-                    filteredWithdrawals.length > perPage && (
-                      <Pagination
-                        currentPage={withdrawalPage}
-                        totalPages={Math.ceil(filteredWithdrawals.length / perPage)}
-                        onPageChange={setWithdrawalPage}
-                      />
-                    )
-                  ) : (
-                    filteredRegistrations.length > perPage && (
+
+                  {/* Table Footer with Pagination */}
+                  <div className="p-4 border-t border-[#e1efe5] flex items-center justify-between">
+                    <div className="text-xs text-gray-500 font-normal">
+                      Showing {`${Math.min(filteredRegistrations.length, (page - 1) * perPage + 1)} to ${Math.min(filteredRegistrations.length, page * perPage)} of ${filteredRegistrations.length} transactions`}
+                    </div>
+                    {filteredRegistrations.length > perPage && (
                       <Pagination
                         currentPage={page}
                         totalPages={Math.ceil(filteredRegistrations.length / perPage)}
                         onPageChange={setPage}
                       />
-                    )
-                  )}
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* DETAIL MODAL: VIEW RECEIPT */}
       <Modal
         isOpen={selectedTxn !== null}
         onClose={() => setSelectedTxn(null)}
-        title="Payment Receipt"
-        className="max-w-md"
+        title={
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center text-[#009A60] shrink-0 shadow-2xs">
+              <Receipt className="w-4 h-4 text-[#009A60]" />
+            </div>
+            <span className="text-lg font-bold text-gray-900 tracking-tight">Payment Receipt</span>
+          </div>
+        }
+        className="max-w-md rounded-[28px]"
       >
         {selectedTxn && (
-          <div className="space-y-4 text-left font-sans text-sm">
-            <div className="text-center space-y-1.5 py-1">
-              <div className="w-12 h-12 rounded-full bg-emerald-100 text-[#15803D] flex items-center justify-center mx-auto mb-1">
-                <CheckCircle2 className="w-6 h-6" />
-              </div>
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Tournament Entry Receipt</p>
-              <h3 className="text-2xl font-semibold text-[#15803D]">
-                {formatCurrency(selectedTxn.tournament?.entryFee || 0)}
-              </h3>
-              <div className="inline-block">
-                <StatusPill status={selectedTxn.paymentStatus} />
-              </div>
+          <div className="space-y-4 text-left font-sans">
+            {/* Status Row */}
+            <div className="flex items-center justify-between pt-1">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">PAYMENT STATUS</span>
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold tracking-wide",
+                  selectedTxn.paymentStatus === "PAID"
+                    ? "bg-[#EAF7EE] text-[#009A60]"
+                    : selectedTxn.paymentStatus === "UNPAID"
+                    ? "bg-amber-50 text-amber-700 border border-amber-200"
+                    : "bg-red-50 text-red-700 border border-red-200"
+                )}
+              >
+                <span
+                  className={cn(
+                    "w-1.5 h-1.5 rounded-full",
+                    selectedTxn.paymentStatus === "PAID"
+                      ? "bg-[#009A60]"
+                      : selectedTxn.paymentStatus === "UNPAID"
+                      ? "bg-amber-500"
+                      : "bg-red-500"
+                  )}
+                />
+                {selectedTxn.paymentStatus === "PAID" ? "PAID" : selectedTxn.paymentStatus === "UNPAID" ? "PENDING" : selectedTxn.paymentStatus}
+              </span>
             </div>
 
-            {/* Encapsulated Breakdown Card */}
-            <div className="bg-[#f5faf6] rounded-xl border border-[#e1efe5] p-4 space-y-2.5 text-xs">
-              <div className="flex justify-between py-1 border-b border-[#e1efe5]/60">
-                <span className="text-gray-500 font-medium">Player Name:</span>
-                <span className="font-semibold text-gray-900">
+            {/* Audit Details Card */}
+            <div className="bg-white rounded-2xl border border-[#e1efe5] p-5 space-y-3.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">PLAYER</span>
+                <span className="text-[13px] font-bold text-gray-900">
                   {selectedTxn.user?.firstName ? `${selectedTxn.user.firstName} ${selectedTxn.user.lastName || ""}` : "Guest Golfer"}
                 </span>
               </div>
-              <div className="flex justify-between py-1 border-b border-[#e1efe5]/60">
-                <span className="text-gray-500 font-medium">Player Email:</span>
-                <span className="font-medium text-gray-800">{selectedTxn.user?.email || "—"}</span>
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">EMAIL</span>
+                <span className="text-[13px] font-medium text-gray-700">{selectedTxn.user?.email || "—"}</span>
               </div>
-              <div className="flex justify-between py-1 border-b border-[#e1efe5]/60">
-                <span className="text-gray-500 font-medium">Club:</span>
-                <span className="font-semibold text-gray-900">{selectedTxn.tournament?.club?.name || "Golf Club"}</span>
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">AMOUNT PAID</span>
+                <span className="text-2xl font-bold text-[#009A60] tracking-tight">
+                  {formatCurrency(selectedTxn.tournament?.entryFee || 0).replace(/\.00$/, "")}
+                </span>
               </div>
-              <div className="flex justify-between py-1 border-b border-[#e1efe5]/60">
-                <span className="text-gray-500 font-medium">Tournament:</span>
-                <span className="font-semibold text-gray-900">{selectedTxn.tournament?.name || "Tournament Entry"}</span>
+              <div className="flex items-center justify-between pt-1">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">ORGANIZER</span>
+                <span className="text-[13px] font-bold text-gray-900">{selectedTxn.tournament?.club?.name || "Golf Club"}</span>
               </div>
-              <div className="flex justify-between py-1 border-b border-[#e1efe5]/60">
-                <span className="text-gray-500 font-medium">Payment Method:</span>
-                <span className="font-medium text-gray-800">{formatPaymentMethod(selectedTxn.paymentReference)}</span>
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">TOURNAMENT</span>
+                <span className="text-[13px] font-bold text-gray-900 truncate max-w-[240px] text-right">
+                  {selectedTxn.tournament?.name || "Tournament Entry"}
+                </span>
               </div>
-              <div className="flex justify-between py-1 border-b border-[#e1efe5]/60">
-                <span className="text-gray-500 font-medium">Transaction Ref:</span>
-                <span className="text-xs font-medium text-gray-800">{selectedTxn.paymentReference || selectedTxn.id}</span>
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">PAYMENT METHOD</span>
+                <span className="text-[13px] font-bold text-gray-900 capitalize">
+                  {formatPaymentMethod(selectedTxn.paymentReference)}
+                </span>
               </div>
-              <div className="flex justify-between py-1">
-                <span className="text-gray-500 font-medium">Payment Date:</span>
-                <span className="text-gray-800">{formatDate(selectedTxn.registeredAt)}</span>
+
+              <div className="border-t border-dashed border-gray-200 my-2" />
+
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">PAYMENT DATE</span>
+                <span className="text-[12px] font-medium text-gray-700">{formatDate(selectedTxn.registeredAt)}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">TRANSACTION REF</span>
+                <span className="text-[12px] font-bold text-[#009A60] font-mono tracking-wide">
+                  {selectedTxn.paymentReference || selectedTxn.id}
+                </span>
               </div>
             </div>
 
-            <div className="pt-3 border-t border-gray-100 flex items-center justify-end gap-2">
-              <Button
-                variant="outline"
-                size="sm"
+            {/* Audit Status Banner */}
+            <div className="flex items-center gap-3 pt-1 px-1">
+              <div className="w-7 h-7 rounded-full bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center text-[#009A60] shrink-0">
+                <Check className="w-3.5 h-3.5 text-[#009A60] stroke-[2.5]" />
+              </div>
+              <div>
+                <h5 className="text-[12px] font-bold text-gray-800 leading-tight">Payment Verified</h5>
+                <p className="text-[11px] text-gray-400 font-normal mt-0.5">Verified via Paystack gateway settlement records</p>
+              </div>
+            </div>
+
+            {/* Footer Actions */}
+            <div className="flex items-center justify-between gap-3 pt-2">
+              <button
+                type="button"
                 onClick={() => setSelectedTxn(null)}
-                className="h-9 px-4 rounded-xl text-xs font-medium"
+                className="h-10 px-6 rounded-xl bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
               >
                 Close
-              </Button>
-              <Button
-                size="sm"
-                onClick={() => {
-                  window.print();
-                }}
-                className="h-9 px-4 rounded-xl bg-[#15803D] hover:bg-[#116731] text-white text-xs font-medium gap-1.5"
+              </button>
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="h-10 px-5 rounded-xl bg-[#009A60] hover:bg-[#008753] text-white text-xs font-bold flex items-center gap-2 shadow-xs transition-colors cursor-pointer"
               >
-                <Printer className="w-3.5 h-3.5" /> Print Receipt
-              </Button>
+                <Printer className="w-3.5 h-3.5 text-white" />
+                <span>Print Receipt</span>
+              </button>
             </div>
           </div>
         )}
@@ -827,108 +1198,250 @@ export function SuperAdminPaymentsView({ initialTab = "withdrawals" }: SuperAdmi
       <Modal
         isOpen={approvingWithdrawal !== null}
         onClose={() => !isProcessingAction && setApprovingWithdrawal(null)}
-        title="Approve & Mark Payout as Disbursed"
-        className="max-w-lg"
+        title={
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center text-[#009A60] shrink-0 shadow-2xs">
+              <CheckCircle2 className="w-4 h-4 text-[#009A60] stroke-[2.2]" />
+            </div>
+            <div>
+              <span className="text-base font-bold text-gray-900 tracking-tight block leading-tight">
+                Approve & Mark Payout as Disbursed
+              </span>
+              <p className="text-[11px] text-gray-400 font-normal mt-0.5">
+                Verify organizer bank credentials & execute ledger settlement
+              </p>
+            </div>
+          </div>
+        }
+        className="max-w-md rounded-[28px]"
       >
         {approvingWithdrawal && (
-          <div className="space-y-4 font-sans text-left text-sm">
+          <div className="space-y-3.5 font-sans text-left">
             {/* Bank Summary Card */}
-            <div className="bg-[#f5faf6] border border-[#e1efe5] rounded-xl p-4 space-y-2">
-              <div className="flex justify-between">
-                <span className="text-xs text-gray-500 font-medium">Club / Organizer:</span>
-                <span className="text-xs font-medium text-gray-900">{approvingWithdrawal.club?.name}</span>
+            <div className="bg-[#f5faf6] border border-[#e1efe5] rounded-2xl p-4 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">CLUB / ORGANIZER</span>
+                <span className="text-[13px] font-bold text-gray-900 truncate max-w-[240px] text-right">{approvingWithdrawal.club?.name}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-xs text-gray-500 font-medium">Amount to Transfer:</span>
-                <span className="text-base font-medium text-[#15803D]">{formatCurrency(approvingWithdrawal.amount)}</span>
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">AMOUNT TO TRANSFER</span>
+                <span className="text-2xl font-black text-[#009A60] tracking-tight">{formatCurrency(approvingWithdrawal.amount)}</span>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-xs text-gray-500 font-medium">Bank:</span>
+              <div className="flex items-center justify-between pt-0.5">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">BANK</span>
                 <div className="flex items-center gap-2">
-                  <BankLogo bankName={approvingWithdrawal.bankName} size="sm" />
-                  <span className="text-xs font-medium text-gray-800 capitalize">{approvingWithdrawal.bankName}</span>
+                  <div className="w-6 h-6 rounded-md border border-gray-200 bg-white flex items-center justify-center p-0.5 overflow-hidden shrink-0">
+                    <BankLogo bankName={approvingWithdrawal.bankName} size="xs" className="w-full h-full border-none shadow-none ring-0 p-0" />
+                  </div>
+                  <span className="text-[13px] font-bold text-gray-900 capitalize">{approvingWithdrawal.bankName}</span>
                 </div>
               </div>
-              <div className="flex justify-between">
-                <span className="text-xs text-gray-500 font-medium">Account Number:</span>
-                <span className="text-xs font-medium text-gray-900">{approvingWithdrawal.accountNumber}</span>
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">ACCOUNT NUMBER</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[13px] font-bold text-gray-900 tracking-wider font-mono">{approvingWithdrawal.accountNumber}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (typeof navigator !== "undefined" && navigator.clipboard) {
+                        navigator.clipboard.writeText(approvingWithdrawal.accountNumber);
+                        toast.success("Account number copied!");
+                      }
+                    }}
+                    className="p-1 hover:bg-black/5 rounded text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
+                    title="Copy account number"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
-              <div className="flex justify-between">
-                <span className="text-xs text-gray-500 font-medium">Account Name:</span>
-                <span className="text-xs font-medium text-gray-800">{toTitleCase(approvingWithdrawal.accountName)}</span>
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">ACCOUNT NAME</span>
+                <span className="text-[13px] font-bold text-gray-900 truncate max-w-[240px] text-right">{toTitleCase(approvingWithdrawal.accountName)}</span>
               </div>
             </div>
 
-            {/* Encapsulated Settlement Input Card */}
-            <div className="bg-[#f5faf6] rounded-2xl border border-[#e1efe5] p-5 space-y-4 shadow-xs">
-              <div className="flex items-center justify-between pb-2.5 border-b border-[#e1efe5]">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-lg bg-white border border-[#e1efe5] text-[#15803D] flex items-center justify-center shadow-xs">
-                    <ShieldCheck className="w-4 h-4" />
+            {/* Organizer Wallet & Escrow Audit */}
+            {approvingWithdrawal.wallet && (
+              <div
+                className={cn(
+                  "rounded-2xl p-3.5 border transition-all",
+                  (approvingWithdrawal.wallet.lockedBalance ?? 0) >= approvingWithdrawal.amount
+                    ? "bg-[#f5faf6] border-[#e1efe5]"
+                    : "bg-red-50/70 border-red-200"
+                )}
+              >
+                <div className="flex items-center justify-between pb-2 border-b border-black/[0.06]">
+                  <div className="flex items-center gap-2">
+                    <Wallet
+                      className={cn(
+                        "w-4 h-4",
+                        (approvingWithdrawal.wallet.lockedBalance ?? 0) >= approvingWithdrawal.amount
+                          ? "text-[#009A60]"
+                          : "text-red-600"
+                      )}
+                    />
+                    <span className="text-[10.5px] font-bold uppercase tracking-wider text-slate-700">
+                      ORGANIZER WALLET AUDIT
+                    </span>
+                  </div>
+                  <span
+                    className={cn(
+                      "text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider inline-flex items-center gap-1 shadow-2xs",
+                      (approvingWithdrawal.wallet.lockedBalance ?? 0) >= approvingWithdrawal.amount
+                        ? "bg-[#009A60] text-white"
+                        : "bg-red-600 text-white"
+                    )}
+                  >
+                    {(approvingWithdrawal.wallet.lockedBalance ?? 0) >= approvingWithdrawal.amount ? (
+                      <>
+                        <Check className="w-2.5 h-2.5 stroke-[3]" />
+                        <span>ESCROW VERIFIED</span>
+                      </>
+                    ) : (
+                      <>
+                        <AlertCircle className="w-2.5 h-2.5" />
+                        <span>INSUFFICIENT ESCROW</span>
+                      </>
+                    )}
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-3 pt-2">
+                  <div>
+                    <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Available Balance</span>
+                    <span className="text-sm font-bold text-slate-900">
+                      {formatCurrency(approvingWithdrawal.wallet.balance ?? 0)}
+                    </span>
                   </div>
                   <div>
-                    <h4 className="text-xs font-semibold text-gray-900 leading-tight">Disbursement Settlement Details</h4>
-                    <p className="text-[11px] text-gray-500 font-normal">Auto-generated audit reference and transfer confirmation notes</p>
+                    <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Locked for Payout</span>
+                    <span
+                      className={cn(
+                        "text-sm font-bold",
+                        (approvingWithdrawal.wallet.lockedBalance ?? 0) >= approvingWithdrawal.amount
+                          ? "text-[#009A60]"
+                          : "text-red-700"
+                      )}
+                    >
+                      {formatCurrency(approvingWithdrawal.wallet.lockedBalance ?? 0)}
+                    </span>
                   </div>
+                </div>
+                {(approvingWithdrawal.wallet.lockedBalance ?? 0) < approvingWithdrawal.amount && (
+                  <div className="mt-2.5 pt-2 border-t border-red-200/60 flex items-start gap-2 text-xs text-red-700">
+                    <AlertCircle className="w-3.5 h-3.5 text-red-600 shrink-0 mt-0.5" />
+                    <span>
+                      Confirmation blocked: The organizer has insufficient escrow balance for this payout.
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Disbursement Settlement Details Header */}
+            <div className="flex items-center gap-2.5 pt-0.5">
+              <div className="w-8 h-8 rounded-xl bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center text-[#009A60] shrink-0">
+                <Receipt className="w-4 h-4 text-[#009A60]" />
+              </div>
+              <div>
+                <h4 className="text-[13px] font-bold text-gray-900 leading-tight">Disbursement Settlement Details</h4>
+                <p className="text-[11px] text-gray-400 font-normal mt-0.5">Auto-generated audit reference and confirmation notes</p>
+              </div>
+            </div>
+
+            {/* Form Fields */}
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-700">
+                    TRANSACTION REFERENCE / RECEIPT
+                  </label>
+                  <span className="text-[9px] font-bold text-[#009A60] bg-[#eaf7ee] px-1.5 py-0.5 rounded">
+                    SYSTEM GENERATED
+                  </span>
+                </div>
+                <div className="h-11 w-full rounded-xl border border-[#e1efe5] bg-[#f5faf6] px-3.5 flex items-center gap-2 focus-within:border-[#009A60] focus-within:ring-2 focus-within:ring-[#009A60]/20 transition-all">
+                  <span className="text-slate-400 font-bold text-sm select-none">#</span>
+                  <input
+                    type="text"
+                    value={payoutReference}
+                    onChange={(e) => setPayoutReference(e.target.value)}
+                    className="bg-transparent border-none outline-hidden text-[13px] font-mono font-bold text-[#0F172A] w-full p-0 focus:outline-hidden"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (payoutReference && typeof navigator !== "undefined" && navigator.clipboard) {
+                        navigator.clipboard.writeText(payoutReference);
+                        toast.success("Transaction reference copied!");
+                      }
+                    }}
+                    className="p-1 hover:bg-black/5 rounded text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
+                    title="Copy reference"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="block text-xs font-medium text-gray-800">
-                  Transaction Reference / Transfer Receipt
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-700">
+                  DISBURSEMENT NOTES
                 </label>
-                <Input
-                  placeholder="e.g. NIP/2026/08/987123"
-                  value={payoutReference}
-                  readOnly
-                  className="h-10 rounded-xl text-xs font-normal bg-white/80 border-[#e1efe5] px-3.5 text-gray-800 cursor-default select-all focus:border-[#e1efe5]"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="block text-xs font-medium text-gray-800">
-                  Disbursement Notes
-                </label>
-                <Input
-                  placeholder="e.g. Disbursed via Zenith Bank Corporate Portal"
-                  value={payoutNotes}
-                  readOnly
-                  className="h-10 rounded-xl text-xs font-normal bg-white/80 border-[#e1efe5] px-3.5 text-gray-800 cursor-default select-all focus:border-[#e1efe5]"
-                />
+                <div className="h-11 w-full rounded-xl border border-[#e1efe5] bg-[#f5faf6] px-3.5 flex items-center focus-within:border-[#009A60] focus-within:ring-2 focus-within:ring-[#009A60]/20 transition-all">
+                  <input
+                    type="text"
+                    value={payoutNotes}
+                    onChange={(e) => setPayoutNotes(e.target.value)}
+                    placeholder="e.g. Disbursed via Bank Corporate Switch"
+                    className="bg-transparent border-none outline-hidden text-[13px] font-medium text-[#0F172A] w-full p-0 placeholder:text-[#8CA0BA] focus:outline-hidden"
+                  />
+                </div>
               </div>
             </div>
 
-            <div className="bg-emerald-50/80 border border-emerald-200/70 rounded-xl p-3.5 text-[11px] text-emerald-900 flex items-start gap-2.5 leading-relaxed">
-              <ShieldCheck className="w-4 h-4 text-[#15803D] shrink-0 mt-0.5" />
-              <p className="font-normal">
-                Confirming this payout settles the locked funds in the club's ledger and marks the transaction as fully paid out in real time.
+            {/* Real-time Settlement Notice Banner */}
+            <div className="bg-[#f5faf6] border border-[#c6f0db] rounded-xl px-3.5 py-2.5 flex items-center gap-2.5">
+              <div className="w-5 h-5 rounded-full bg-[#009A60] flex items-center justify-center text-white shrink-0 shadow-2xs">
+                <RefreshCw className="w-3 h-3 text-white" />
+              </div>
+              <p className="text-[11px] text-[#009A60] font-medium leading-snug">
+                Confirming settles locked funds in the club ledger & marks the transaction as paid in real-time.
               </p>
             </div>
 
-            <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100 mt-2">
-              <Button
+            {/* Footer Buttons */}
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
                 type="button"
-                variant="outline"
                 disabled={isProcessingAction}
                 onClick={() => setApprovingWithdrawal(null)}
-                className="h-10 rounded-xl text-xs font-medium px-4.5 border-gray-200 text-gray-700 hover:bg-gray-50 cursor-pointer"
+                className="h-10 px-5 text-xs font-bold text-slate-500 hover:text-slate-800 transition-colors bg-transparent border-none cursor-pointer"
               >
                 Cancel
-              </Button>
-              <Button
+              </button>
+              <button
                 type="button"
                 onClick={handleApprove}
-                disabled={isProcessingAction}
-                className="h-10 rounded-xl bg-[#15803D] hover:bg-[#116731] text-white text-xs font-semibold px-5.5 shadow-xs cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed gap-1.5"
+                disabled={
+                  isProcessingAction ||
+                  (Boolean(approvingWithdrawal.wallet) &&
+                    (approvingWithdrawal.wallet?.lockedBalance ?? 0) < approvingWithdrawal.amount)
+                }
+                className="h-10 px-6 rounded-xl bg-[#009A60] hover:bg-[#008753] active:scale-[0.99] text-white text-xs font-bold flex items-center gap-2 shadow-xs transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isProcessingAction ? (
                   <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" /> Processing...
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Processing...</span>
                   </>
                 ) : (
-                  "Confirm & Mark Paid"
+                  <>
+                    <span>Confirm & Mark Paid</span>
+                    <Check className="w-4 h-4 text-white stroke-[2.5]" />
+                  </>
                 )}
-              </Button>
+              </button>
             </div>
           </div>
         )}
@@ -999,68 +1512,192 @@ export function SuperAdminPaymentsView({ initialTab = "withdrawals" }: SuperAdmi
       <Modal
         isOpen={selectedWithdrawal !== null}
         onClose={() => setSelectedWithdrawal(null)}
-        title="Withdrawal Request Audit"
-        className="max-w-lg"
+        title={
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center text-[#009A60] shrink-0 shadow-2xs">
+              <Receipt className="w-4 h-4 text-[#009A60]" />
+            </div>
+            <span className="text-lg font-bold text-gray-900 tracking-tight">Withdrawal Request Audit</span>
+          </div>
+        }
+        className="max-w-md rounded-[28px]"
       >
         {selectedWithdrawal && (
-          <div className="space-y-4 text-left font-sans text-sm">
-            <div className="flex items-center justify-between pb-3 border-b border-gray-100">
-              <span className="text-xs text-gray-500 font-medium">Request Status</span>
-              <StatusPill status={selectedWithdrawal.status} />
+          <div className="space-y-4 text-left font-sans">
+            {/* Status Row */}
+            <div className="flex items-center justify-between pt-0.5">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">REQUEST STATUS</span>
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold tracking-wide",
+                  selectedWithdrawal.status === "COMPLETED" || selectedWithdrawal.status === "APPROVED" || (selectedWithdrawal.status as string) === "PAID"
+                    ? "bg-[#EAF7EE] text-[#009A60] border border-[#C6F0DB]"
+                    : selectedWithdrawal.status === "PENDING"
+                    ? "bg-amber-50 text-amber-700 border border-amber-200"
+                    : "bg-red-50/80 text-red-600 border border-red-200"
+                )}
+              >
+                <span
+                  className={cn(
+                    "w-1.5 h-1.5 rounded-full",
+                    selectedWithdrawal.status === "COMPLETED" || selectedWithdrawal.status === "APPROVED" || (selectedWithdrawal.status as string) === "PAID"
+                      ? "bg-[#009A60]"
+                      : selectedWithdrawal.status === "PENDING"
+                      ? "bg-amber-500"
+                      : "bg-red-600"
+                  )}
+                />
+                {selectedWithdrawal.status === "COMPLETED" || selectedWithdrawal.status === "APPROVED" ? "PAID OUT" : selectedWithdrawal.status}
+              </span>
             </div>
 
-            {/* Encapsulated Audit Card */}
-            <div className="bg-[#f5faf6] rounded-xl border border-[#e1efe5] p-4 space-y-2.5 text-xs">
-              <div className="flex justify-between py-1 border-b border-[#e1efe5]/60">
-                <span className="text-gray-500 font-medium">Club:</span>
-                <span className="font-semibold text-gray-900">{selectedWithdrawal.club?.name}</span>
+            {/* Audit Details Card */}
+            <div className="bg-white rounded-2xl border border-[#e1efe5] p-5 space-y-3.5 shadow-2xs">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">ORGANIZER</span>
+                <span className="text-[13px] font-bold text-gray-900">{selectedWithdrawal.club?.name || "Oakwood Country Club"}</span>
               </div>
-              <div className="flex justify-between py-1 border-b border-[#e1efe5]/60">
-                <span className="text-gray-500 font-medium">Amount:</span>
-                <span className="text-base font-medium text-gray-900">{formatCurrency(selectedWithdrawal.amount)}</span>
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">AMOUNT</span>
+                <span className="text-2xl font-black text-[#009A60] tracking-tight">{formatCurrency(selectedWithdrawal.amount).replace(/\.00$/, "")}</span>
               </div>
-              <div className="flex justify-between items-center py-1 border-b border-[#e1efe5]/60">
-                <span className="text-gray-500 font-medium">Bank:</span>
+              <div className="flex items-center justify-between pt-0.5">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">BANK</span>
                 <div className="flex items-center gap-2">
-                  <BankLogo bankName={selectedWithdrawal.bankName} size="sm" />
-                  <span className="font-medium text-gray-800 capitalize">{selectedWithdrawal.bankName}</span>
+                  <div className="w-7 h-7 rounded-lg border border-gray-200 bg-white flex items-center justify-center p-0.5 overflow-hidden shrink-0">
+                    <BankLogo bankName={selectedWithdrawal.bankName} size="xs" className="w-full h-full border-none shadow-none ring-0 p-0" />
+                  </div>
+                  <span className="text-[13px] font-bold text-gray-900 capitalize">{selectedWithdrawal.bankName}</span>
                 </div>
               </div>
-              <div className="flex justify-between py-1 border-b border-[#e1efe5]/60">
-                <span className="text-gray-500 font-medium">Account Number:</span>
-                <span className="text-xs font-medium text-gray-800">{selectedWithdrawal.accountNumber}</span>
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">ACCOUNT NUMBER</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[13px] font-bold text-gray-900 font-mono tracking-wider">{selectedWithdrawal.accountNumber}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (typeof navigator !== "undefined" && navigator.clipboard) {
+                        navigator.clipboard.writeText(selectedWithdrawal.accountNumber);
+                        toast.success("Account number copied!");
+                      }
+                    }}
+                    className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
+                    title="Copy account number"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
-              <div className="flex justify-between py-1 border-b border-[#e1efe5]/60">
-                <span className="text-gray-500 font-medium">Account Name:</span>
-                <span className="text-xs font-medium text-gray-800">{toTitleCase(selectedWithdrawal.accountName)}</span>
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">ACCOUNT NAME</span>
+                <span className="text-[13px] font-bold text-gray-900">{toTitleCase(selectedWithdrawal.accountName)}</span>
               </div>
-              <div className="flex justify-between py-1">
-                <span className="text-gray-500 font-medium">Requested On:</span>
-                <span className="text-gray-700 font-normal">{formatDate(selectedWithdrawal.createdAt)}</span>
+
+              <div className="border-t border-dashed border-gray-200 my-1" />
+
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">REQUESTED ON</span>
+                <span className="text-[12px] font-medium text-gray-700">{formatDate(selectedWithdrawal.createdAt)}</span>
               </div>
               {selectedWithdrawal.reference && (
-                <div className="flex justify-between pt-1 border-t border-[#e1efe5]/60">
-                  <span className="text-gray-500 font-medium">Payout Reference:</span>
-                  <span className="text-xs font-medium text-[#15803D]">{selectedWithdrawal.reference}</span>
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">PAYOUT REFERENCE</span>
+                  <span className="text-[12px] font-bold text-[#009A60] font-mono tracking-wide">{selectedWithdrawal.reference}</span>
                 </div>
               )}
               {selectedWithdrawal.rejectionReason && (
-                <div className="bg-red-50 p-3 rounded-xl border border-red-100 mt-2">
-                  <p className="font-medium text-red-700">Rejection Reason:</p>
-                  <p className="text-red-600 mt-0.5 font-normal">{selectedWithdrawal.rejectionReason}</p>
+                <div className="bg-[#FFF5F5] rounded-xl border border-red-200/80 p-3.5 mt-2 space-y-1">
+                  <div className="flex items-center gap-1.5 text-red-600">
+                    <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                    <span className="text-[12px] font-bold">Rejection Reason:</span>
+                  </div>
+                  <p className="text-[12px] text-red-600 font-normal leading-relaxed pl-5">
+                    {selectedWithdrawal.rejectionReason}
+                  </p>
                 </div>
               )}
             </div>
 
-            <div className="pt-3 border-t border-gray-100 flex justify-end">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setSelectedWithdrawal(null)}
-                className="h-9 px-4 rounded-xl text-xs font-medium"
+            {/* Dynamic Status Banner */}
+            {selectedWithdrawal.status === "REJECTED" ? (
+              <div className="flex items-center gap-3 pt-1 px-1">
+                <div className="w-8 h-8 rounded-full bg-red-50 border border-red-200 flex items-center justify-center text-red-600 shrink-0">
+                  <XCircle className="w-4 h-4 text-red-600" />
+                </div>
+                <div>
+                  <h5 className="text-[13px] font-bold text-gray-900 leading-tight">Request Rejected</h5>
+                  <p className="text-[11px] text-gray-400 font-normal mt-0.5">Funds were unlocked & returned to organizer balance</p>
+                </div>
+              </div>
+            ) : selectedWithdrawal.status === "PENDING" ? (
+              <div className="flex items-center gap-3 pt-1 px-1">
+                <div className="w-8 h-8 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600 shrink-0">
+                  <Clock className="w-4 h-4 text-amber-600" />
+                </div>
+                <div>
+                  <h5 className="text-[13px] font-bold text-gray-900 leading-tight">Pending Super Admin Review</h5>
+                  <p className="text-[11px] text-gray-400 font-normal mt-0.5">Awaiting payout approval and settlement</p>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-3 pt-1 px-1">
+                <div className="w-8 h-8 rounded-full bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center text-[#009A60] shrink-0">
+                  <Check className="w-4 h-4 text-[#009A60] stroke-[2.5]" />
+                </div>
+                <div>
+                  <h5 className="text-[13px] font-bold text-gray-900 leading-tight">Audit Completed</h5>
+                  <p className="text-[11px] text-gray-400 font-normal mt-0.5">Verified against bank settlement logs</p>
+                </div>
+              </div>
+            )}
+
+            {/* Footer Action Buttons */}
+            <div className="flex items-center justify-between gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="h-10 px-4 rounded-xl bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
               >
-                Close
-              </Button>
+                <Printer className="w-3.5 h-3.5 text-gray-500" />
+                <span>Print Audit</span>
+              </button>
+              <div className="flex items-center gap-2">
+                {selectedWithdrawal.status === "PENDING" && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const target = selectedWithdrawal;
+                        setSelectedWithdrawal(null);
+                        setRejectingWithdrawal(target);
+                      }}
+                      className="h-10 px-4 rounded-xl border border-red-200 bg-red-50/60 hover:bg-red-100 text-red-600 text-xs font-bold transition-colors cursor-pointer"
+                    >
+                      Reject
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const target = selectedWithdrawal;
+                        setSelectedWithdrawal(null);
+                        setApprovingWithdrawal(target);
+                      }}
+                      className="h-10 px-5 rounded-xl bg-[#009A60] hover:bg-[#008753] text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
+                    >
+                      <span>Approve & Pay</span>
+                      <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                    </button>
+                  </>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setSelectedWithdrawal(null)}
+                  className="h-10 px-6 rounded-xl bg-white border border-gray-200 hover:bg-gray-50 text-gray-800 text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </div>
         )}

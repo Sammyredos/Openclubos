@@ -80,6 +80,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
+      include: { club: true },
     });
     if (!user || user.deletedAt != null) throw new UnauthorizedException();
     if (user.status === MemberStatus.SUSPENDED)
@@ -106,6 +107,16 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       email: payload.email,
       role: payload.role === UserRole.STAFF ? UserRole.PLAYER : payload.role,
       clubId: user.clubId || payload.clubId,
+      club: user.club
+        ? {
+            id: user.club.id,
+            name: user.club.name,
+            logo: user.club.logo,
+            type: user.club.type,
+            city: user.club.city,
+            state: user.club.state,
+          }
+        : undefined,
       name:
         user.firstName || user.lastName
           ? `${user.firstName} ${user.lastName}`.trim()

@@ -243,20 +243,44 @@ function SidebarInner() {
   const currentTab = searchParams.get("tab");
   const { logout, user, isLoading } = useAuth();
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
-  const [fetchedClub, setFetchedClub] = useState<{ name: string; logo?: string } | null>(null);
+  const [fetchedClub, setFetchedClub] = useState<{ name: string; logo?: string | null; type?: string | null } | null>(() => {
+    if (user?.club) {
+      return {
+        name: user.club.name,
+        logo: user.club.logo || null,
+        type: user.club.type || "Golf Club",
+      };
+    }
+    return null;
+  });
+  const [logoFailed, setLogoFailed] = useState(false);
   const [isFetchingClub, setIsFetchingClub] = useState(false);
 
   useEffect(() => {
-    if (user?.role === "CLUB_ADMIN" && user?.clubId) {
+    const isOrganizerRole = user?.role === "CLUB_ADMIN" || user?.role === "MANAGER";
+    if (isOrganizerRole && user?.clubId) {
       setIsFetchingClub(true);
       getClub(user.clubId)
         .then((data) => {
-          setFetchedClub({ name: data.name, logo: data.logo });
+          if (data) {
+            setFetchedClub({
+              name: data.name,
+              logo: data.logo || null,
+              type: data.type || "Golf Club",
+            });
+            setLogoFailed(false);
+          }
         })
-        .catch(() => {})
+        .catch((err) => {
+          console.error("Failed to fetch club from database:", err);
+        })
         .finally(() => setIsFetchingClub(false));
     }
   }, [user?.role, user?.clubId]);
+
+  const clubName = fetchedClub?.name || user?.club?.name || "Golf Club";
+  const clubType = fetchedClub?.type || user?.club?.type || "Golf Club";
+  const clubLogo = !logoFailed ? (fetchedClub?.logo || user?.club?.logo) : null;
 
   useEffect(() => {
     const newExpanded: Record<string, boolean> = {};
@@ -318,33 +342,36 @@ function SidebarInner() {
   return (
     <div className="flex flex-col h-full bg-white w-[218px] flex-shrink-0 border-r border-[#e1efe5] relative select-none">
       {/* Club Admin Brand Info Header */}
-      <div className="p-8 flex flex-col gap-4">
-        {user.role === "CLUB_ADMIN" ? (
-          <div className="flex items-center gap-4">
-            <div className="h-[52px] w-[52px] rounded-full flex items-center justify-center overflow-hidden border border-gray-100 flex-shrink-0">
-              {fetchedClub?.logo ? (
-                <img src={fetchedClub.logo} alt="Club Logo" className="h-full w-full object-cover" />
+      <div className="px-3 pt-6 pb-4 flex flex-col items-center border-b border-[#e1efe5]/60 mb-1">
+        {user.role === "CLUB_ADMIN" || user.role === "MANAGER" ? (
+          <div className="flex flex-col items-center text-center gap-2.5 w-full">
+            <div className="h-[60px] w-[60px] rounded-full flex items-center justify-center overflow-hidden border border-[#E1EFE5] shadow-xs bg-[#F5FAF6] shrink-0 mx-auto">
+              {clubLogo ? (
+                <img
+                  src={clubLogo}
+                  alt={clubName}
+                  className="h-full w-full object-cover"
+                  onError={() => setLogoFailed(true)}
+                />
               ) : (
                 <div className="h-full w-full bg-[#e0fbea] flex items-center justify-center">
-                  <span className="text-[#15803D] font-bold text-xl">
-                    {fetchedClub?.name
-                      ? fetchedClub.name.charAt(0).toUpperCase()
-                      : user.name
-                      ? user.name.charAt(0).toUpperCase()
-                      : "C"}
+                  <span className="text-[#15803D] font-medium text-xl">
+                    {clubName.charAt(0).toUpperCase()}
                   </span>
                 </div>
               )}
             </div>
-            <div className="flex flex-col min-w-0">
-              <span className="text-[17px] font-bold text-[#15803D] truncate leading-tight">
-                {fetchedClub?.name || "Golf Club"}
+            <div className="flex flex-col items-center text-center w-full min-w-0 px-1">
+              <span className="text-[14px] font-semibold text-[#15803D] leading-snug tracking-tight text-center break-words max-w-full">
+                {clubName}
               </span>
-              <span className="text-xs text-zinc-500 font-medium">Golf Club</span>
+              <span className="text-xs text-zinc-500 font-normal mt-0.5 text-center">
+                {clubType}
+              </span>
             </div>
           </div>
         ) : (
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2.5 self-start px-4 py-2">
             <div className="h-7 w-7 rounded-lg bg-[#009A60] flex items-center justify-center text-white shadow-xs">
               <Icons.logo className="h-4 w-4" />
             </div>

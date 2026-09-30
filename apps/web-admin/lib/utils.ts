@@ -108,24 +108,24 @@ export function formatNumber(
   const sign = numericValue < 0 ? "-" : "";
   const prefix = isNaira ? "₦" : "";
 
-  if (options?.compact) {
+  // Only use abbreviations for values more than 9,999,999 (e.g. 10m+, 1b+)
+  // Values <= 9,999,999 display the actual full amount
+  if (options?.compact !== false && absValue > 9_999_999) {
     if (absValue >= 1_000_000_000) {
       return `${sign}${prefix}${(absValue / 1_000_000_000).toFixed(1).replace(/\.0$/, "")}b`;
     }
-    if (absValue >= 1_000_000) {
-      return `${sign}${prefix}${(absValue / 1_000_000).toFixed(1).replace(/\.0$/, "")}m`;
-    }
-    if (absValue >= 10_000) {
-      return `${sign}${prefix}${(absValue / 1_000).toFixed(1).replace(/\.0$/, "")}k`;
-    }
+    return `${sign}${prefix}${(absValue / 1_000_000).toFixed(1).replace(/\.0$/, "")}m`;
   }
 
-  const nf = new Intl.NumberFormat(isNaira ? "en-NG" : "en-US", isNaira ? {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  } : undefined);
+  // Never include .00 on whole numbers
+  const hasFraction = absValue % 1 !== 0;
+  const nf = new Intl.NumberFormat(isNaira ? "en-NG" : "en-US", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: hasFraction ? 2 : 0,
+  });
   
-  return `${sign}${prefix ? prefix + " " : ""}${nf.format(isNaira ? absValue : Math.round(absValue))}`;
+  const formatted = nf.format(hasFraction ? absValue : Math.round(absValue)).replace(/\.00(?=[a-zA-Z\s]|$)/, "");
+  return `${sign}${prefix ? prefix + " " : ""}${formatted}`;
 }
 
 export type AdminEvent = { type: string; payload?: unknown; at: number };
@@ -245,24 +245,26 @@ export function formatCurrency(
   const absValue = Math.abs(amount);
   const sign = amount < 0 ? "-" : "";
   const symbol = getCurrencySymbol(currency);
-  const showDecimals = options?.showDecimals ?? true;
 
-  if (options?.compact) {
+  // Only use abbreviations for values more than 9,999,999 (e.g. 10m+, 1b+)
+  // Values <= 9,999,999 display the actual full amount without abbreviation
+  if (options?.compact !== false && absValue > 9_999_999) {
     if (absValue >= 1_000_000_000) {
       return `${sign}${symbol}${(absValue / 1_000_000_000).toFixed(1).replace(/\.0$/, "")}b`;
     }
-    if (absValue >= 1_000_000) {
-      return `${sign}${symbol}${(absValue / 1_000_000).toFixed(1).replace(/\.0$/, "")}m`;
-    }
-    if (absValue >= 10_000) {
-      return `${sign}${symbol}${(absValue / 1_000).toFixed(1).replace(/\.0$/, "")}k`;
-    }
+    return `${sign}${symbol}${(absValue / 1_000_000).toFixed(1).replace(/\.0$/, "")}m`;
   }
 
-  return `${sign ? sign + " " : ""}${symbol}${new Intl.NumberFormat("en-US", {
+  // Never show .00 on any amount across the app
+  const hasFraction = absValue % 1 !== 0;
+  const showDecimals = options?.showDecimals === true && hasFraction;
+
+  const formatted = new Intl.NumberFormat("en-US", {
     minimumFractionDigits: showDecimals ? 2 : 0,
     maximumFractionDigits: showDecimals ? 2 : 0,
-  }).format(absValue)}`;
+  }).format(absValue).replace(/\.00(?=[a-zA-Z\s]|$)/, "");
+
+  return `${sign ? sign + " " : ""}${symbol}${formatted}`;
 }
 
 export function formatTournamentFee(
@@ -276,9 +278,10 @@ export function formatTournamentFee(
   if (!Number.isFinite(num) || num <= 0) return "FREE";
 
   const symbol = getCurrencySymbol(currency || "NGN");
-  const formatted = num % 1 === 0
-    ? formatWithCommas(num)
-    : new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num);
+  const hasFraction = num % 1 !== 0;
+  const formatted = hasFraction
+    ? new Intl.NumberFormat("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(num).replace(/\.00$/, "")
+    : formatWithCommas(Math.round(num));
   return `${symbol}${formatted}`;
 }
 

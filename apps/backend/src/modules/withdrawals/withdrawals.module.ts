@@ -2,11 +2,12 @@ import { Module } from '@nestjs/common';
 import { PrismaModule } from '../../common/prisma.module';
 import { JobsModule } from '../jobs/jobs.module';
 import { EmailModule } from '../email/email.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { WithdrawalsController } from './withdrawals.controller';
 import { WithdrawalsService } from './withdrawals.service';
 
 @Module({
-  imports: [PrismaModule, JobsModule, EmailModule],
+  imports: [PrismaModule, JobsModule, EmailModule, NotificationsModule],
   controllers: [WithdrawalsController],
   providers: [WithdrawalsService],
   exports: [WithdrawalsService],

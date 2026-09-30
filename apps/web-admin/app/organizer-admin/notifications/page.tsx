@@ -215,6 +215,8 @@ export default function OrganizerNotificationsPage() {
       notif.type === "WITHDRAWAL_REJECTED"
     ) {
       router.push("/organizer-admin/payments/withdrawals");
+    } else if (notif.type === "PAYMENT_RECEIVED") {
+      router.push("/organizer-admin/payments/transactions");
     } else if (notif.type === "TOURNAMENT_ALERT") {
       const tournId = notif.data?.tournamentId;
       const target = tournId ? `/organizer-admin/tournaments/${tournId}?tab=penalize` : "/organizer-admin/tournaments";
@@ -267,9 +269,30 @@ export default function OrganizerNotificationsPage() {
       <div className="w-full space-y-6">
         <Card className="border-none shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] overflow-hidden">
           <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6">
-            <CardTitle className="text-zinc-700 text-xl font-medium whitespace-nowrap">
-              All Notifications
-            </CardTitle>
+            <div className="inline-flex items-center bg-[#f5faf6] border border-[#e1efe5] p-1.5 rounded-2xl gap-1 overflow-x-auto max-w-full">
+              {["All Notifications", "Unread", "Read"].map((tab) => {
+                const val = tab === "All Notifications" ? "All Status" : tab;
+                const isSelected = statusFilter === val;
+                return (
+                  <button
+                    key={tab}
+                    type="button"
+                    onClick={() => {
+                      setStatusFilter(val);
+                      setCurrentPage(1);
+                    }}
+                    className={cn(
+                      "px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer whitespace-nowrap",
+                      isSelected
+                        ? "bg-white text-slate-900 shadow-xs border border-[#e1efe5]"
+                        : "text-slate-500 hover:text-slate-900 font-medium border border-transparent"
+                    )}
+                  >
+                    {tab}
+                  </button>
+                );
+              })}
+            </div>
             <div className="flex flex-wrap items-center gap-3">
               <Button
                 variant="outline"
@@ -392,21 +415,6 @@ export default function OrganizerNotificationsPage() {
                         className="min-w-[160px]"
                         triggerClassName="h-11 bg-white border-[#e1efe5] text-[#15803D] font-medium"
                         placeholder="All Categories"
-                      />
-                      <SearchableSelect
-                        value={statusFilter}
-                        onValueChange={(v) => {
-                          setStatusFilter(v);
-                          setCurrentPage(1);
-                        }}
-                        options={[
-                          { value: "All Status", label: "All Status" },
-                          { value: "Unread", label: "Unread" },
-                          { value: "Read", label: "Read" },
-                        ]}
-                        className="min-w-[160px]"
-                        triggerClassName="h-11 bg-white border-[#e1efe5] text-[#15803D] font-medium"
-                        placeholder="All Status"
                       />
                     </div>
                   </div>

@@ -145,7 +145,30 @@ export default function SubscriptionsPage() {
 
       <Card className="border-none shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] overflow-hidden">
         <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6">
-          <CardTitle className="text-zinc-700 text-xl font-medium whitespace-nowrap">All Subscriptions</CardTitle>
+          <div className="inline-flex items-center bg-[#f5faf6] border border-[#e1efe5] p-1.5 rounded-2xl gap-1 overflow-x-auto max-w-full">
+            {["All Subscriptions", "Active", "Past Due", "Trialing", "Cancelled"].map((tab) => {
+              const val = tab === "All Subscriptions" ? "All" : tab;
+              const isSelected = statusFilter === val;
+              return (
+                <button
+                  key={tab}
+                  type="button"
+                  onClick={() => {
+                    setStatusFilter(val);
+                    setPage(1);
+                  }}
+                  className={cn(
+                    "px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer whitespace-nowrap",
+                    isSelected
+                      ? "bg-white text-slate-900 shadow-xs border border-[#e1efe5]"
+                      : "text-slate-500 hover:text-slate-900 font-medium border border-transparent"
+                  )}
+                >
+                  {tab}
+                </button>
+              );
+            })}
+          </div>
           <div className="flex flex-wrap items-center gap-3">
             <Button
               variant="outline"
@@ -232,23 +255,6 @@ export default function SubscriptionsPage() {
                 }}
               />
             </div>
-            <SearchableSelect
-              value={statusFilter}
-              onValueChange={(v) => {
-                setStatusFilter(v);
-                setPage(1);
-              }}
-              options={[
-                { value: "All", label: "Status: All" },
-                { value: "Active", label: "Active" },
-                { value: "Past Due", label: "Past Due" },
-                { value: "Trialing", label: "Trialing" },
-                { value: "Cancelled", label: "Cancelled" },
-              ]}
-              className="min-w-[160px]"
-              triggerClassName="h-11 bg-white border-[#e1efe5] text-[#15803D] font-medium"
-              placeholder="All Status"
-            />
             <SearchableSelect
               value={planFilter}
               onValueChange={(v) => {

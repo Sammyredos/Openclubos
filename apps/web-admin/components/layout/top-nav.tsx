@@ -1,15 +1,38 @@
 "use client";
 
-import { Search } from "lucide-react";
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { Search, ArrowUpRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { NotificationDropdown } from "@/components/notifications/NotificationDropdown";
+import { getClubWallet } from "@/lib/api/withdrawals";
 
 export function TopNav() {
   const { user } = useAuth();
   const pathname = usePathname();
   const isOrganizerAdmin = user?.role === 'CLUB_ADMIN';
+  const isOrganizer = isOrganizerAdmin || user?.role === 'MANAGER' || pathname.startsWith('/organizer-admin');
+  const isDashboard = pathname === '/organizer-admin/dashboard' || pathname === '/organizer-admin';
+  const showWithdrawButton = isOrganizer && isDashboard;
+
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (showWithdrawButton) {
+      getClubWallet()
+        .then((wallet) => {
+          const bal = Number(wallet?.availableBalance ?? wallet?.balance ?? 0);
+          setWalletBalance(bal);
+        })
+        .catch(() => {
+          setWalletBalance(0);
+        });
+    }
+  }, [showWithdrawButton, user?.clubId]);
+
+  const hasFunds = (walletBalance ?? 0) > 0;
 
   const pageTitle = (() => {
     if (pathname.startsWith("/organizer-admin")) {
@@ -132,18 +155,44 @@ export function TopNav() {
           </div>
         )}
       </div>
-      <div className="flex items-center gap-3.5 shrink-0">
-        {isMajorPage && (
-          <div className="w-[330px] h-11 relative bg-white rounded-[30px] border border-[#e1efe5] overflow-hidden flex items-center px-4 shadow-sm">
-            <Input
-              placeholder="Search anything here..."
-              className="border-none bg-transparent shadow-none px-0 h-full text-zinc-500 text-[14px] font-normal focus-visible:ring-0 focus-visible:ring-offset-0 flex-1 placeholder:text-zinc-400"
-            />
-            <Search className="h-4 w-4 text-zinc-400 shrink-0" />
-          </div>
-        )}
-        <NotificationDropdown />
-      </div>
+      {(isMajorPage || showWithdrawButton) && (
+        <div className="flex items-center gap-3.5 shrink-0">
+          {isMajorPage && (
+            <>
+              <div className="w-[330px] h-11 relative bg-white rounded-[30px] border border-[#e1efe5] overflow-hidden flex items-center px-4 shadow-sm">
+                <Input
+                  placeholder="Search anything here..."
+                  className="border-none bg-transparent shadow-none px-0 h-full text-zinc-500 text-[14px] font-normal focus-visible:ring-0 focus-visible:ring-offset-0 flex-1 placeholder:text-zinc-400"
+                />
+                <Search className="h-4 w-4 text-zinc-400 shrink-0" />
+              </div>
+              <NotificationDropdown />
+            </>
+          )}
+          {showWithdrawButton && (
+            hasFunds ? (
+              <Link
+                href="/organizer-admin/payments/withdrawals?action=withdraw"
+                className="h-11 px-5 rounded-[30px] bg-[#15803D] hover:bg-[#166534] text-white text-[13px] font-semibold flex items-center gap-2 shadow-sm transition-colors no-underline cursor-pointer"
+              >
+                <ArrowUpRight className="w-4 h-4 text-white shrink-0" />
+                <span>Withdraw</span>
+              </Link>
+            ) : (
+              <button
+                type="button"
+                disabled
+                aria-disabled="true"
+                title="Insufficient funds: Your account has no withdrawable balance"
+                className="h-11 px-5 rounded-[30px] bg-zinc-100 text-zinc-400 border border-zinc-200 text-[13px] font-semibold flex items-center gap-2 cursor-not-allowed select-none opacity-80 shadow-sm"
+              >
+                <ArrowUpRight className="w-4 h-4 text-zinc-400 shrink-0" />
+                <span>Withdraw</span>
+              </button>
+            )
+          )}
+        </div>
+      )}
     </div>
   );
 }

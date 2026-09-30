@@ -9,9 +9,12 @@ import {
   RegistrationStatus,
   PaymentStatus,
   TournamentStatus,
+  NotificationType,
+  WalletTransactionType,
 } from '@prisma/client';
 import { PrismaService } from '../../common/prisma.service';
 import { JobsService } from '../jobs/jobs.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { RegisterTournamentDto } from './dto/register-tournament.dto';
 import { InvitePlayerDto } from './dto/invite-player.dto';
 
@@ -22,6 +25,7 @@ export class RegistrationsService {
   constructor(
     private prisma: PrismaService,
     private jobsService: JobsService,
+    private notificationsService: NotificationsService,
   ) {}
 
   async register(userId: string, dto: RegisterTournamentDto, isAdmin = false) {
@@ -233,6 +237,78 @@ export class RegistrationsService {
           .catch((err) => {
             console.error('Failed to queue waitlistNotification email:', err);
           });
+      }
+    }
+
+    if (paymentStatusVal === PaymentStatus.PAID && tournament.clubId) {
+      const fee = tournament.entryFee ? Number(tournament.entryFee) : 0;
+      const formattedFee = fee > 0 ? `₦${fee.toLocaleString()}` : 'Free';
+      const playerName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Player';
+
+      // 1. Notify club organizers of the payment received
+      try {
+        const organizers = await this.prisma.user.findMany({
+          where: {
+            clubId: tournament.clubId,
+            role: { in: ['CLUB_ADMIN', 'MANAGER', 'STAFF'] },
+            status: 'ACTIVE',
+          },
+          select: { id: true },
+        });
+        const recipientIds = new Set(organizers.map((o) => o.id));
+
+        for (const recipientId of recipientIds) {
+          await this.notificationsService.createNotification({
+            recipientId,
+            title: fee > 0 ? `Payment Received: ${formattedFee}` : `New Registration: ${tournament.name}`,
+            body: `${playerName} registered and completed payment of ${formattedFee} for ${tournament.name}. Ref: ${paymentReference || 'Direct'}`,
+            type: NotificationType.PAYMENT_RECEIVED,
+            data: {
+              type: 'PAYMENT_RECEIVED',
+              tournamentId: tournament.id,
+              tournamentName: tournament.name,
+              registrationId: registration.id,
+              amount: fee,
+              paymentReference,
+            },
+          }).catch((err) => {
+            console.error(`Failed to dispatch payment notification to recipient ${recipientId}:`, err);
+          });
+        }
+      } catch (notifErr) {
+        console.error('Failed to notify organizers of registration payment:', notifErr);
+      }
+
+      // 2. Credit club wallet for tournament entry fee
+      if (fee > 0) {
+        try {
+          const wallet = await this.prisma.clubWallet.findUnique({
+            where: { clubId: tournament.clubId },
+          });
+          if (wallet) {
+            const balanceBefore = wallet.balance;
+            const balanceAfter = wallet.balance + fee;
+            await this.prisma.$transaction([
+              this.prisma.clubWallet.update({
+                where: { id: wallet.id },
+                data: { balance: { increment: fee } },
+              }),
+              this.prisma.walletTransaction.create({
+                data: {
+                  walletId: wallet.id,
+                  type: WalletTransactionType.REGISTRATION_CREDIT,
+                  amount: fee,
+                  balanceBefore,
+                  balanceAfter,
+                  reference: paymentReference || registration.id,
+                  description: `Entry fee payment from ${playerName} for ${tournament.name}`,
+                },
+              }),
+            ]);
+          }
+        } catch (walletErr) {
+          console.error('Failed to credit club wallet for entry fee:', walletErr);
+        }
       }
     }
 

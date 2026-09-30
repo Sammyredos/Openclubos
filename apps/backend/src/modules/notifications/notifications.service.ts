@@ -13,6 +13,152 @@ export class NotificationsService {
       return { items: [], notifications: [], total: 0, unreadCount: 0 };
     }
 
+    // For club admins/organizers, ensure paid tournament entries and payout settlements in their club have notification records
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true, clubId: true, role: true },
+      });
+
+      if (user?.clubId && ['CLUB_ADMIN', 'MANAGER', 'STAFF'].includes(user.role)) {
+        // Collect existing notification reference IDs to avoid duplicate creation
+        const existingNotifs = await this.prisma.notification.findMany({
+          where: {
+            userId,
+            type: {
+              in: [
+                NotificationType.PAYMENT_RECEIVED,
+                NotificationType.WITHDRAWAL_APPROVED,
+                NotificationType.WITHDRAWAL_REJECTED,
+                NotificationType.WITHDRAWAL_REQUESTED,
+              ],
+            },
+          },
+          select: { data: true },
+        });
+
+        const existingRegIds = new Set(
+          existingNotifs.map((n) => (n.data as any)?.registrationId).filter(Boolean),
+        );
+        const existingWithIds = new Set(
+          existingNotifs.map((n) => (n.data as any)?.withdrawalId).filter(Boolean),
+        );
+
+        // 1. Check paid registrations for tournaments organized by this club
+        const paidRegistrations = await this.prisma.registration.findMany({
+          where: {
+            tournament: { clubId: user.clubId },
+            paymentStatus: 'PAID',
+          },
+          include: {
+            user: { select: { firstName: true, lastName: true } },
+            tournament: { select: { id: true, name: true, entryFee: true } },
+          },
+          orderBy: { registeredAt: 'desc' },
+          take: 20,
+        });
+
+        for (const reg of paidRegistrations) {
+          if (!existingRegIds.has(reg.id)) {
+            const fee = reg.tournament?.entryFee ? Number(reg.tournament.entryFee) : 0;
+            const formattedFee = fee > 0 ? `₦${fee.toLocaleString()}` : 'Free';
+            const playerName = `${reg.user?.firstName || ''} ${reg.user?.lastName || ''}`.trim() || 'Player';
+            await this.prisma.notification.create({
+              data: {
+                userId,
+                title: fee > 0 ? `Payment Received: ${formattedFee}` : `New Registration: ${reg.tournament?.name || 'Tournament'}`,
+                body: `${playerName} completed entry payment of ${formattedFee} for ${reg.tournament?.name || 'Tournament'}. Ref: ${reg.paymentReference || 'Direct'}`,
+                type: NotificationType.PAYMENT_RECEIVED,
+                data: {
+                  type: 'PAYMENT_RECEIVED',
+                  tournamentId: reg.tournament?.id,
+                  tournamentName: reg.tournament?.name,
+                  registrationId: reg.id,
+                  amount: fee,
+                  paymentReference: reg.paymentReference,
+                },
+                isRead: false,
+                createdAt: reg.registeredAt || new Date(),
+              },
+            });
+            existingRegIds.add(reg.id);
+          }
+        }
+
+        // 2. Check withdrawal / payout requests for this club
+        const clubWithdrawals = await this.prisma.withdrawalRequest.findMany({
+          where: { clubId: user.clubId },
+          orderBy: { createdAt: 'desc' },
+          take: 20,
+        });
+
+        for (const w of clubWithdrawals) {
+          if (!existingWithIds.has(w.id)) {
+            if (w.status === 'COMPLETED') {
+              await this.prisma.notification.create({
+                data: {
+                  userId,
+                  title: 'Payout Disbursed',
+                  body: `Your payout of ₦${w.amount.toLocaleString()} has been disbursed to ${w.bankName} (${w.accountNumber}). Ref: ${w.reference || 'NIP/SETTLED'}`,
+                  type: NotificationType.WITHDRAWAL_APPROVED,
+                  data: {
+                    type: 'WITHDRAWAL_APPROVED',
+                    withdrawalId: w.id,
+                    amount: w.amount,
+                    bankName: w.bankName,
+                    accountNumber: w.accountNumber,
+                    reference: w.reference,
+                  },
+                  isRead: false,
+                  createdAt: w.processedAt || w.updatedAt || new Date(),
+                },
+              });
+              existingWithIds.add(w.id);
+            } else if (w.status === 'REJECTED') {
+              await this.prisma.notification.create({
+                data: {
+                  userId,
+                  title: 'Payout Request Declined',
+                  body: `Your payout request of ₦${w.amount.toLocaleString()} was declined: ${w.rejectionReason || 'Account details mismatch'}. Funds returned to available balance.`,
+                  type: NotificationType.WITHDRAWAL_REJECTED,
+                  data: {
+                    type: 'WITHDRAWAL_REJECTED',
+                    withdrawalId: w.id,
+                    amount: w.amount,
+                    reason: w.rejectionReason,
+                  },
+                  isRead: false,
+                  createdAt: w.processedAt || w.updatedAt || new Date(),
+                },
+              });
+              existingWithIds.add(w.id);
+            } else if (w.status === 'PENDING') {
+              await this.prisma.notification.create({
+                data: {
+                  userId,
+                  title: 'Payout Request Submitted',
+                  body: `Your payout request of ₦${w.amount.toLocaleString()} to ${w.bankName} (${w.accountNumber}) is pending review.`,
+                  type: NotificationType.WITHDRAWAL_REQUESTED,
+                  data: {
+                    type: 'WITHDRAWAL_REQUESTED',
+                    withdrawalId: w.id,
+                    amount: w.amount,
+                    bankName: w.bankName,
+                    accountNumber: w.accountNumber,
+                  },
+                  isRead: false,
+                  createdAt: w.createdAt || new Date(),
+                },
+              });
+              existingWithIds.add(w.id);
+            }
+          }
+        }
+      }
+    } catch (syncErr) {
+      this.logger.warn(`Failed to auto-sync payment notifications for user ${userId}: ${syncErr instanceof Error ? syncErr.message : String(syncErr)}`);
+    }
+
     // Exclude FRIEND_REQUEST and FRIEND_REQUEST_SENT notifications from the general feed.
     // These are managed exclusively by the friends system (GET /friends/requests) and
     // rendered via the dedicated friend request cards in the notifications screen.

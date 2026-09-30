@@ -1875,9 +1875,30 @@ function ViewTournamentPageInner() {
             {activeTab === "players" && (
               <div className="space-y-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#e1efe5] pb-4">
-                  <div>
-                    <h2 className="text-[15px] font-medium text-gray-900">Registered Players</h2>
-                    <p className="text-[13px] text-gray-500 mt-0.5">Manage participation, handicap indices, and add extra strokes.</p>
+                  <div className="inline-flex items-center bg-[#f5faf6] border border-[#e1efe5] p-1.5 rounded-2xl gap-1 overflow-x-auto max-w-full">
+                    {["All Players", "Approved", "Pending", "Waitlisted", "Rejected", "Disqualified"].map((label) => {
+                      const val = label === "All Players" ? "All Status" : label.toUpperCase();
+                      const isSelected = registrationsStatusFilter === val;
+                      return (
+                        <button
+                          key={label}
+                          type="button"
+                          onClick={() => {
+                            setRegistrationsPage(1);
+                            if (registrationsMode === "server") setRegistrationsLoading(true);
+                            setRegistrationsStatusFilter(val as any);
+                          }}
+                          className={cn(
+                            "px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer whitespace-nowrap",
+                            isSelected
+                              ? "bg-white text-slate-900 shadow-xs border border-[#e1efe5]"
+                              : "text-slate-500 hover:text-slate-900 font-medium border border-transparent"
+                          )}
+                        >
+                          {label}
+                        </button>
+                      );
+                    })}
                   </div>
                   <div className="flex items-center gap-3">
                     <Button
@@ -1921,25 +1942,6 @@ function ViewTournamentPageInner() {
                         />
                       </div>
                       <div className="flex flex-wrap items-center gap-4 ml-auto">
-                        <SearchableSelect
-                          value={registrationsStatusFilter}
-                          onValueChange={(v: any) => {
-                            setRegistrationsPage(1);
-                            if (registrationsMode === "server") setRegistrationsLoading(true);
-                            setRegistrationsStatusFilter(v);
-                          }}
-                          options={[
-                            { value: "All Status", label: "All Status" },
-                            { value: "PENDING", label: "Pending" },
-                            { value: "APPROVED", label: "Approved" },
-                            { value: "REJECTED", label: "Rejected" },
-                            { value: "WAITLISTED", label: "Waitlisted" },
-                            { value: "DISQUALIFIED", label: "Disqualified" },
-                          ]}
-                          className="min-w-[150px]"
-                          triggerClassName="h-11 bg-white border-[#e1efe5] text-[#15803D] font-medium"
-                          placeholder="All Status"
-                        />
                         <SearchableSelect
                           value={registrationsPaymentFilter}
                           onValueChange={(v: any) => {

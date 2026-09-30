@@ -811,6 +811,8 @@ export class AuthService {
           ? {
               id: user.club.id,
               name: user.club.name,
+              logo: user.club.logo,
+              type: user.club.type,
               city: user.club.city,
               state: user.club.state,
             }

@@ -12,7 +12,7 @@ export interface AuthUser {
   profilePhoto?: string;
   gender?: string;
   handicap?: number;
-  role: 'SUPER_ADMIN' | 'CLUB_ADMIN' | 'PLAYER' | 'MARKER' | 'MANAGER';
+  role: 'SUPER_ADMIN' | 'CLUB_ADMIN' | 'PLAYER' | 'MARKER' | 'MANAGER' | 'STAFF';
   clubId?: string;
   managerScope?: string;
   aiTournamentDescCount?: number;
@@ -20,6 +20,7 @@ export interface AuthUser {
   club?: {
     name: string;
     logo?: string;
+    type?: string;
     [key: string]: any;
   };
 }
@@ -181,10 +182,13 @@ export async function registerOrganizationRequest(payload: {
 }
 
 export function getAuthToken(): string | null {
-  // getAuthToken is deprecated with httpOnly cookies.
-  // We keep the signature to avoid breaking any stray imports, but it always returns null.
-  // Fetch calls should use credentials: 'include' instead of Authorization headers.
-  return null;
+  if (typeof window === 'undefined') return null;
+  return (
+    localStorage.getItem('oc_token') ||
+    localStorage.getItem('accessToken') ||
+    sessionStorage.getItem('oc_token') ||
+    null
+  );
 }
 
 export async function validateOrganizationRequest(organizationName: string): Promise<{ available: boolean; message?: string }> {

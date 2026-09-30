@@ -839,7 +839,7 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                             Location and Host Venue Locked
                           </p>
                           <p className="text-[12px] font-normal text-amber-800 leading-relaxed">
-                            Location and host venue can only be modified by a Super Administrator on an already created tournament. Contact your platform administrator if this tournament needs to be relocated.
+                            Location and host venue are locked on an already created tournament. Contact platform support if this tournament needs to be relocated.
                           </p>
                         </div>
                       </div>
@@ -848,10 +848,10 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                         <Shield className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                         <div className="space-y-0.5">
                           <p className="text-[12px] font-medium text-emerald-900">
-                            Super Administrator Access
+                            Administrator Access
                           </p>
                           <p className="text-[12px] font-normal text-emerald-800 leading-relaxed">
-                            You have elevated administrative permissions to reassign the host venue, country, or course for this tournament.
+                            You have administrative permissions to reassign the host venue, country, or course for this tournament.
                           </p>
                         </div>
                       </div>

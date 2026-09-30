@@ -234,7 +234,12 @@ async function main() {
         : `${randomInt(10, 999)} Greens Avenue, City ${i}`;
 
     const club = await prisma.club.create({
-      data: { name: clubName, address: clubAddress },
+      data: {
+        name: clubName,
+        address: clubAddress,
+        type: 'Golf Club',
+        logo: i === 1 ? '/images/brand/oakwood-logo.svg' : undefined,
+      },
     });
     createdClubs += 1;
 

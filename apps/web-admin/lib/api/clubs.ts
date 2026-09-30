@@ -3,10 +3,16 @@ import { getAuthToken, handleAuthFailure } from './auth';
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api';
 
 async function fetchWithSuperAdminFallback(path: string, init: RequestInit) {
-  const res = await fetch(`${API_BASE}${path}`, init);
+  const token = getAuthToken();
+  const headers = new Headers(init.headers || {});
+  if (token && !headers.has('Authorization')) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+  const mergedInit = { ...init, headers };
+  const res = await fetch(`${API_BASE}${path}`, mergedInit);
   if (res.status !== 404) return res;
   if (!path.startsWith('/clubs')) return res;
-  return fetch(`${API_BASE}/super-admin${path}`, init);
+  return fetch(`${API_BASE}/super-admin${path}`, mergedInit);
 }
 
 export async function getClubs() {

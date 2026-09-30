@@ -35,12 +35,14 @@ import {
   Trash2,
   Star,
   CheckCircle,
-  Loader2
+  Loader2,
+  Copy,
+  XCircle
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input, SearchableSelect } from "@/components/ui/input";
-import { cn, formatCurrency, formatNumber, toTitleCase } from "@/lib/utils";
+import { cn, formatCurrency, formatNumber, toTitleCase, broadcastAdminEvent, subscribeAdminEvents } from "@/lib/utils";
 import { Pagination } from "@/components/ui/pagination";
 import { getRegistrations, getRegistrationStats, type RegistrationListItem } from "@/lib/api/registrations";
 import {
@@ -91,6 +93,18 @@ function formatDate(iso: string) {
   return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" }).format(d);
 }
 
+function formatRequestedDateTime(iso: string) {
+  try {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return { dateStr: "—", timeStr: "" };
+    const dateStr = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(d);
+    const timeStr = new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit", hour12: true }).format(d);
+    return { dateStr, timeStr };
+  } catch {
+    return { dateStr: iso, timeStr: "" };
+  }
+}
+
 function formatPaymentMethod(reference?: string | null) {
   if (!reference) return "Credit Card";
   if (reference.startsWith("CASH")) return "Cash";
@@ -104,18 +118,18 @@ function StatusPill({ status }: { status: string }) {
       case "PAID":
       case "COMPLETED":
       case "APPROVED":
-        return { label: status === "COMPLETED" ? "Paid Out" : status === "APPROVED" ? "Approved" : "Paid", className: "bg-emerald-50 text-emerald-700 border-emerald-100", icon: CheckCircle2, dot: "bg-[#15803D]" };
+        return { label: status === "COMPLETED" ? "Paid Out" : status === "APPROVED" ? "Approved" : "Paid", className: "bg-emerald-50 text-[#15803D] border-[#C6F0DB]", icon: CheckCircle2, dot: "bg-[#15803D]" };
       case "PENDING":
       case "PROCESSING":
       case "UNPAID":
-        return { label: status === "PROCESSING" ? "Processing" : "Pending", className: "bg-orange-50 text-orange-700 border-orange-100", icon: Clock, dot: "bg-orange-500" };
+        return { label: status === "PROCESSING" ? "Processing" : "Pending", className: "bg-orange-50 text-orange-700 border-orange-200", icon: Clock, dot: "bg-orange-500" };
       case "FAILED":
       case "REJECTED":
-        return { label: status === "REJECTED" ? "Rejected" : "Failed", className: "bg-red-50 text-red-700 border-red-100", icon: Ban, dot: "bg-red-500" };
+        return { label: status === "REJECTED" ? "Rejected" : "Failed", className: "bg-red-50 text-red-700 border-red-200", icon: Ban, dot: "bg-red-500" };
       case "REFUNDED":
-        return { label: "Refunded", className: "bg-gray-100 text-gray-700 border-gray-200", icon: Ban, dot: "bg-gray-500" };
+        return { label: "Refunded", className: "bg-gray-100 text-gray-700 border-gray-200", icon: Ban, dot: "bg-gray-400" };
       default:
-        return { label: status, className: "bg-gray-100 text-gray-700 border-gray-200", icon: CheckCircle2, dot: "bg-gray-500" };
+        return { label: status, className: "bg-gray-100 text-gray-700 border-gray-200", icon: CheckCircle2, dot: "bg-gray-400" };
     }
   })();
 
@@ -280,6 +294,49 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
     loadData();
   }, [user?.clubId]);
 
+  useEffect(() => {
+    const unsubscribe = subscribeAdminEvents((event) => {
+      if (
+        event.type === "payment-received" ||
+        event.type === "withdrawal-approved" ||
+        event.type === "withdrawal-rejected" ||
+        event.type === "withdrawal-updated" ||
+        event.type === "withdrawal-requested"
+      ) {
+        loadData();
+      }
+    });
+    return () => {
+      unsubscribe();
+    };
+  }, [user?.clubId]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("action") === "withdraw") {
+        setActiveTab("withdrawals");
+        if (!isLoading) {
+          if (bankAccounts.length === 0) {
+            toast.info("Please add a payout bank account to proceed with withdrawals.");
+            setIsPendingWithdrawalAfterBankAdd(true);
+            setIsAddingAccount(true);
+            setIsBankModalOpen(true);
+          } else {
+            const def = bankAccounts.find((a) => a.isDefault) || bankAccounts[0];
+            if (def) {
+              setSelectedBankAccountId(def.id);
+              setBankName(def.bankName);
+              setAccountNumber(def.accountNumber);
+              setAccountName(def.accountName);
+            }
+            setIsWithdrawModalOpen(true);
+          }
+        }
+      }
+    }
+  }, [isLoading, bankAccounts]);
+
   const resolveAccount = async (num: string, bankCode: string) => {
     if (num.length !== 10 || !bankCode) {
       setResolvedAccountName(null);
@@ -441,6 +498,7 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
       });
 
       toast.success("Withdrawal request submitted successfully!");
+      broadcastAdminEvent("withdrawal-requested", { amount: parsedWithdrawAmount });
       setIsWithdrawModalOpen(false);
       setWithdrawAmount("");
       setWithdrawNotes("");
@@ -537,7 +595,7 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
               ) : null}
             </div>
             <div className="text-[#15803D] text-3xl font-bold">{formatCurrency(wallet?.lockedBalance || 0)}</div>
-            <div className="text-zinc-500 text-sm font-normal">Pending Super Admin review</div>
+            <div className="text-zinc-500 text-sm font-normal">Pending review</div>
           </div>
 
           <div className="w-px h-16 bg-slate-200" />
@@ -569,9 +627,59 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
       <div className="w-full space-y-6">
         <Card className="border-none shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] overflow-hidden">
           <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6">
-            <CardTitle className="text-zinc-700 text-xl font-medium whitespace-nowrap">
-              {activeTab === "transactions" ? "All Transactions" : "Withdrawal Requests"}
-            </CardTitle>
+            {activeTab === "transactions" ? (
+              <div className="inline-flex items-center bg-[#f5faf6] border border-[#e1efe5] p-1.5 rounded-2xl gap-1 overflow-x-auto max-w-full">
+                {["All Transactions", "Paid", "Pending", "Refunded"].map((tab) => {
+                  const isActive =
+                    (tab === "All Transactions" && (statusFilter === "All Status" || statusFilter === "All Transactions")) ||
+                    statusFilter === tab;
+                  return (
+                    <button
+                      key={tab}
+                      type="button"
+                      onClick={() => {
+                        setStatusFilter(tab === "All Transactions" ? "All Status" : tab);
+                        setPage(1);
+                      }}
+                      className={cn(
+                        "px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer whitespace-nowrap",
+                        isActive
+                          ? "bg-white text-slate-900 shadow-xs border border-[#e1efe5]"
+                          : "text-slate-500 hover:text-slate-900 font-medium border border-transparent"
+                      )}
+                    >
+                      {tab}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="inline-flex items-center bg-[#f5faf6] border border-[#e1efe5] p-1.5 rounded-2xl gap-1 overflow-x-auto max-w-full">
+                {["All Requests", "Pending Review", "Paid Out", "Rejected"].map((tab) => {
+                  const isActive =
+                    (tab === "All Requests" && (withdrawalStatusFilter === "All Status" || withdrawalStatusFilter === "All Requests")) ||
+                    withdrawalStatusFilter === tab;
+                  return (
+                    <button
+                      key={tab}
+                      type="button"
+                      onClick={() => {
+                        setWithdrawalStatusFilter(tab === "All Requests" ? "All Status" : tab);
+                        setWithdrawalPage(1);
+                      }}
+                      className={cn(
+                        "px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer whitespace-nowrap",
+                        isActive
+                          ? "bg-white text-slate-900 shadow-xs border border-[#e1efe5]"
+                          : "text-slate-500 hover:text-slate-900 font-medium border border-transparent"
+                      )}
+                    >
+                      {tab}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
 
             <div className="flex flex-wrap items-center gap-3">
               <Button
@@ -727,14 +835,6 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
                       {activeTab === "transactions" ? (
                         <>
                           <SearchableSelect
-                            value={statusFilter}
-                            onValueChange={(v) => setStatusFilter(v)}
-                            options={["All Status", "Paid", "Pending", "Refunded"].map((v) => ({ value: v, label: v }))}
-                            className="min-w-[160px]"
-                            triggerClassName="h-11 bg-white border-[#e1efe5] text-[#15803D] font-medium"
-                            placeholder="All Status"
-                          />
-                          <SearchableSelect
                             value={methodFilter}
                             onValueChange={(v) => setMethodFilter(v)}
                             options={["All Methods", "Credit Card", "Bank Transfer", "Cash"].map((v) => ({ value: v, label: v }))}
@@ -753,16 +853,7 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
                             />
                           )}
                         </>
-                      ) : (
-                        <SearchableSelect
-                          value={withdrawalStatusFilter}
-                          onValueChange={(v) => setWithdrawalStatusFilter(v)}
-                          options={["All Status", "Pending Review", "Paid Out", "Rejected"].map((v) => ({ value: v, label: v }))}
-                          className="min-w-[180px]"
-                          triggerClassName="h-11 bg-white border-[#e1efe5] text-[#15803D] font-medium"
-                          placeholder="All Status"
-                        />
-                      )}
+                      ) : null}
                     </div>
                   </div>
                 </div>
@@ -874,18 +965,17 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
                     <table className="w-full text-left border-collapse text-sm whitespace-nowrap">
                       <thead>
                         <tr className="bg-[#f5faf6] border-b border-[#e1efe5] text-[10px] font-normal text-[#15803D] uppercase tracking-wider">
-                          <th className="px-6 py-4">BANK & ACCOUNT</th>
+                          <th className="px-6 py-4">DESTINATION ACCOUNT</th>
                           <th className="px-6 py-4">AMOUNT</th>
-                          <th className="px-6 py-4">REQUESTED DATE</th>
+                          <th className="px-6 py-4">REQUESTED ON</th>
                           <th className="px-6 py-4">PAYOUT STATUS</th>
-                          <th className="px-6 py-4">TRANSFER REFERENCE</th>
                           <th className="px-6 py-4 text-center">ACTION</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-[#e1efe5]">
                         {filteredWithdrawals.length === 0 ? (
                           <tr>
-                            <td colSpan={6} className="px-6 py-16 text-center text-gray-400 font-normal text-[13px]">
+                            <td colSpan={5} className="px-6 py-16 text-center text-gray-400 font-normal text-[13px]">
                               <Banknote className="w-12 h-12 mx-auto mb-3 opacity-30 text-[#15803D]" />
                               No withdrawal requests found matching your filter
                             </td>
@@ -893,35 +983,84 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
                         ) : (
                           filteredWithdrawals.slice((withdrawalPage - 1) * perPage, withdrawalPage * perPage).map((req) => (
                             <tr key={req.id} className="hover:bg-background/50 transition-colors group">
+                              {/* 1. DESTINATION ACCOUNT */}
                               <td className="px-6 py-5">
-                                <div className="flex items-center gap-3 min-w-[220px]">
-                                  <BankLogo bankName={req.bankName} size="md" />
-                                  <div className="flex flex-col min-w-0 gap-0.5">
-                                    <span className="text-slate-900 text-[14px] font-medium capitalize truncate leading-tight">{req.bankName}</span>
-                                    <span className="text-gray-500 text-[12px] font-normal truncate mt-0.5">{req.accountNumber} • {toTitleCase(req.accountName)}</span>
+                                <div className="flex items-center gap-3 min-w-[200px]">
+                                  <div className="w-9 h-9 rounded-lg bg-[#f5faf6] border border-[#e1efe5] flex items-center justify-center shrink-0 overflow-hidden p-1">
+                                    <BankLogo bankName={req.bankName} size="xs" className="w-full h-full border-none shadow-none ring-0 p-0" />
+                                  </div>
+                                  <div className="flex flex-col min-w-0">
+                                    <span className="text-[14px] font-medium text-slate-900 leading-tight truncate">
+                                      {req.bankName}
+                                    </span>
+                                    <span className="text-[12px] font-mono text-gray-500 leading-tight mt-0.5">
+                                      {req.accountNumber} • {toTitleCase(req.accountName)}
+                                    </span>
                                   </div>
                                 </div>
                               </td>
+
+                              {/* 2. AMOUNT */}
                               <td className="px-6 py-5">
-                                <span className="text-slate-900 text-[14px] font-medium text-[#15803D]">{formatCurrency(req.amount)}</span>
+                                <span className="text-slate-900 text-[14px] font-medium whitespace-nowrap">
+                                  {formatCurrency(req.amount)}
+                                </span>
                               </td>
+
+                              {/* 3. REQUESTED ON */}
                               <td className="px-6 py-5">
-                                <span className="text-[13px] text-gray-600 font-medium">{formatDate(req.createdAt)}</span>
+                                {(() => {
+                                  const { dateStr, timeStr } = formatRequestedDateTime(req.createdAt);
+                                  return (
+                                    <div className="flex flex-col">
+                                      <span className="text-[13px] text-gray-600 font-medium leading-tight">
+                                        {dateStr}
+                                      </span>
+                                      <span className="text-[12px] text-gray-500 font-normal mt-0.5">
+                                        {timeStr}
+                                      </span>
+                                    </div>
+                                  );
+                                })()}
                               </td>
+
+                              {/* 4. PAYOUT STATUS */}
                               <td className="px-6 py-5">
-                                <StatusPill status={req.status} />
+                                {req.status === "PENDING" || (req.status as string) === "PROCESSING" ? (
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-orange-50 text-orange-700 border border-orange-200 uppercase">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-orange-500" />
+                                    PENDING
+                                  </span>
+                                ) : req.status === "COMPLETED" || (req.status as string) === "PAID" || req.status === "APPROVED" ? (
+                                  <div className="flex flex-col items-start gap-0.5">
+                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 text-[#15803D] border border-[#C6F0DB] uppercase">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-[#15803D]" />
+                                      PAID OUT
+                                    </span>
+                                    {req.reference && (
+                                      <span className="text-[10px] font-mono text-gray-400 tracking-tight">
+                                        Ref: {req.reference}
+                                      </span>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-red-50 text-red-700 border border-red-200 uppercase">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                                    REJECTED
+                                  </span>
+                                )}
                               </td>
-                              <td className="px-6 py-5">
-                                <span className="text-[13px] text-gray-600 font-normal">{req.reference || "—"}</span>
-                              </td>
+
+                              {/* 5. ACTION */}
                               <td className="px-6 py-5 text-center">
                                 <button
+                                  type="button"
                                   onClick={() => setSelectedWithdrawal(req)}
-                                  className="h-8 px-3 inline-flex items-center justify-center gap-1.5 rounded-md bg-[#15803D] text-white hover:bg-openclub-800 transition-colors border border-[#15803D] shadow-sm"
+                                  className="h-8 px-3.5 inline-flex items-center justify-center gap-2 rounded-lg border border-[#e1efe5] bg-white hover:bg-slate-50 text-gray-700 text-xs font-medium shadow-2xs transition-colors cursor-pointer"
                                   title="View Details"
                                 >
-                                  <Eye className="w-3.5 h-3.5" />
-                                  <span className="text-[12px] font-medium leading-none whitespace-nowrap">View Details</span>
+                                  <Eye className="w-3.5 h-3.5 text-gray-500" />
+                                  <span>View Details</span>
                                 </button>
                               </td>
                             </tr>
@@ -1135,7 +1274,7 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
           <div className="bg-amber-50/80 border border-amber-200/70 rounded-xl p-3.5 text-[11px] text-amber-800 flex items-start gap-2.5 my-1 leading-relaxed">
             <ShieldCheck className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
             <p className="font-normal">
-              Requested funds are locked atomically and reviewed by Super Admin. Payouts are typically disbursed within 24 business hours.
+              Requested funds are locked atomically and reviewed securely. Payouts are typically disbursed within 24 business hours.
             </p>
           </div>
 
@@ -1470,72 +1609,122 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
       <Modal
         isOpen={selectedTxn !== null}
         onClose={() => setSelectedTxn(null)}
-        title="Payment Receipt"
-        className="max-w-lg"
+        title={
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center text-[#009A60] shrink-0">
+              <Receipt className="w-4 h-4 text-[#009A60]" />
+            </div>
+            <span className="text-[17px] font-bold text-gray-900 tracking-tight">Payment Receipt</span>
+          </div>
+        }
+        className="max-w-md rounded-[28px]"
       >
         {selectedTxn && (
-          <div className="space-y-4 text-left font-sans text-sm">
-            <div className="text-center space-y-1.5 py-1">
-              <div className="w-12 h-12 rounded-full bg-emerald-100 text-[#15803D] flex items-center justify-center mx-auto mb-1">
-                <CheckCircle2 className="w-6 h-6" />
-              </div>
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Tournament Entry Receipt</p>
-              <h3 className="text-2xl font-semibold text-[#15803D]">
-                {formatCurrency(selectedTxn.tournament?.entryFee || 0)}
-              </h3>
-              <div className="inline-block">
-                <StatusPill status={selectedTxn.paymentStatus} />
-              </div>
+          <div className="space-y-4 text-left font-sans">
+            {/* Status Row */}
+            <div className="flex items-center justify-between pt-1">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">PAYMENT STATUS</span>
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold tracking-wide",
+                  selectedTxn.paymentStatus === "PAID"
+                    ? "bg-[#EAF7EE] text-[#009A60]"
+                    : selectedTxn.paymentStatus === "UNPAID"
+                    ? "bg-amber-50 text-amber-700 border border-amber-200"
+                    : "bg-red-50 text-red-700 border border-red-200"
+                )}
+              >
+                <span
+                  className={cn(
+                    "w-1.5 h-1.5 rounded-full",
+                    selectedTxn.paymentStatus === "PAID"
+                      ? "bg-[#009A60]"
+                      : selectedTxn.paymentStatus === "UNPAID"
+                      ? "bg-amber-500"
+                      : "bg-red-500"
+                  )}
+                />
+                {selectedTxn.paymentStatus === "PAID" ? "PAID" : selectedTxn.paymentStatus === "UNPAID" ? "PENDING" : selectedTxn.paymentStatus}
+              </span>
             </div>
 
-            {/* Encapsulated Breakdown Card */}
-            <div className="bg-[#f5faf6] rounded-xl border border-[#e1efe5] p-4 space-y-2.5 text-xs">
-              <div className="flex justify-between py-1 border-b border-[#e1efe5]/60">
-                <span className="text-gray-500 font-medium">Player Name:</span>
-                <span className="font-semibold text-gray-900">
+            {/* Audit Details Card */}
+            <div className="bg-white rounded-2xl border border-[#e1efe5] p-5 space-y-3.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">PLAYER</span>
+                <span className="text-[13px] font-bold text-gray-900">
                   {selectedTxn.user?.firstName ? `${selectedTxn.user.firstName} ${selectedTxn.user.lastName || ""}` : "Guest Golfer"}
                 </span>
               </div>
-              <div className="flex justify-between py-1 border-b border-[#e1efe5]/60">
-                <span className="text-gray-500 font-medium">Player Email:</span>
-                <span className="font-medium text-gray-800">{selectedTxn.user?.email || "—"}</span>
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">EMAIL</span>
+                <span className="text-[13px] font-medium text-gray-700">{selectedTxn.user?.email || "—"}</span>
               </div>
-              <div className="flex justify-between py-1 border-b border-[#e1efe5]/60">
-                <span className="text-gray-500 font-medium">Tournament:</span>
-                <span className="font-semibold text-gray-900">{selectedTxn.tournament?.name || "Tournament Entry"}</span>
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">AMOUNT PAID</span>
+                <span className="text-2xl font-bold text-[#009A60] tracking-tight">
+                  {formatCurrency(selectedTxn.tournament?.entryFee || 0).replace(/\.00$/, "")}
+                </span>
               </div>
-              <div className="flex justify-between py-1 border-b border-[#e1efe5]/60">
-                <span className="text-gray-500 font-medium">Payment Method:</span>
-                <span className="font-medium text-gray-800">{formatPaymentMethod(selectedTxn.paymentReference)}</span>
+              <div className="flex items-center justify-between pt-1">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">ORGANIZER</span>
+                <span className="text-[13px] font-bold text-gray-900">{selectedTxn.tournament?.club?.name || "Golf Club"}</span>
               </div>
-              <div className="flex justify-between py-1 border-b border-[#e1efe5]/60">
-                <span className="text-gray-500 font-medium">Transaction Ref:</span>
-                <span className="text-xs font-medium text-gray-800">{selectedTxn.paymentReference || selectedTxn.id}</span>
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">TOURNAMENT</span>
+                <span className="text-[13px] font-bold text-gray-900 truncate max-w-[240px] text-right">
+                  {selectedTxn.tournament?.name || "Tournament Entry"}
+                </span>
               </div>
-              <div className="flex justify-between py-1">
-                <span className="text-gray-500 font-medium">Payment Date:</span>
-                <span className="text-gray-800">{formatDate(selectedTxn.registeredAt)}</span>
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">PAYMENT METHOD</span>
+                <span className="text-[13px] font-bold text-gray-900 capitalize">
+                  {formatPaymentMethod(selectedTxn.paymentReference)}
+                </span>
+              </div>
+
+              <div className="border-t border-dashed border-gray-200 my-2" />
+
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">PAYMENT DATE</span>
+                <span className="text-[12px] font-medium text-gray-700">{formatDate(selectedTxn.registeredAt)}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">TRANSACTION REF</span>
+                <span className="text-[12px] font-bold text-[#009A60] font-mono tracking-wide">
+                  {selectedTxn.paymentReference || selectedTxn.id}
+                </span>
               </div>
             </div>
 
-            <div className="pt-3 border-t border-gray-100 flex items-center justify-end gap-2">
-              <Button
-                variant="outline"
-                size="sm"
+            {/* Audit Status Banner */}
+            <div className="flex items-center gap-3 pt-1 px-1">
+              <div className="w-7 h-7 rounded-full bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center text-[#009A60] shrink-0">
+                <Check className="w-3.5 h-3.5 text-[#009A60] stroke-[2.5]" />
+              </div>
+              <div>
+                <h5 className="text-[12px] font-bold text-gray-800 leading-tight">Payment Verified</h5>
+                <p className="text-[11px] text-gray-400 font-normal mt-0.5">Verified via Paystack gateway settlement records</p>
+              </div>
+            </div>
+
+            {/* Footer Actions */}
+            <div className="flex items-center justify-between gap-3 pt-2">
+              <button
+                type="button"
                 onClick={() => setSelectedTxn(null)}
-                className="h-9 px-4 rounded-xl text-xs font-medium"
+                className="h-10 px-6 rounded-xl bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
               >
                 Close
-              </Button>
-              <Button
-                size="sm"
-                onClick={() => {
-                  window.print();
-                }}
-                className="h-9 px-4 rounded-xl bg-[#15803D] hover:bg-[#116731] text-white text-xs font-medium gap-1.5"
+              </button>
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="h-10 px-5 rounded-xl bg-[#009A60] hover:bg-[#008753] text-white text-xs font-bold flex items-center gap-2 shadow-xs transition-colors cursor-pointer"
               >
-                <Printer className="w-3.5 h-3.5" /> Print Receipt
-              </Button>
+                <Printer className="w-3.5 h-3.5 text-white" />
+                <span>Print Receipt</span>
+              </button>
             </div>
           </div>
         )}
@@ -1545,61 +1734,163 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
       <Modal
         isOpen={selectedWithdrawal !== null}
         onClose={() => setSelectedWithdrawal(null)}
-        title="Withdrawal Details"
-        className="max-w-lg"
+        title={
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center text-[#009A60] shrink-0 shadow-2xs">
+              <Receipt className="w-4 h-4 text-[#009A60]" />
+            </div>
+            <span className="text-lg font-bold text-gray-900 tracking-tight">Withdrawal Request Audit</span>
+          </div>
+        }
+        className="max-w-md rounded-[28px]"
       >
         {selectedWithdrawal && (
-          <div className="space-y-4 text-left font-sans text-sm">
-            <div className="flex items-center justify-between pb-3 border-b border-gray-100">
-              <span className="text-xs text-gray-500 font-medium">Request Status</span>
-              <StatusPill status={selectedWithdrawal.status} />
+          <div className="space-y-4 text-left font-sans">
+            {/* Status Row */}
+            <div className="flex items-center justify-between pt-0.5">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">REQUEST STATUS</span>
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold tracking-wide",
+                  selectedWithdrawal.status === "COMPLETED" || selectedWithdrawal.status === "APPROVED" || (selectedWithdrawal.status as string) === "PAID"
+                    ? "bg-[#EAF7EE] text-[#009A60] border border-[#C6F0DB]"
+                    : selectedWithdrawal.status === "PENDING"
+                    ? "bg-amber-50 text-amber-700 border border-amber-200"
+                    : "bg-red-50/80 text-red-600 border border-red-200"
+                )}
+              >
+                <span
+                  className={cn(
+                    "w-1.5 h-1.5 rounded-full",
+                    selectedWithdrawal.status === "COMPLETED" || selectedWithdrawal.status === "APPROVED" || (selectedWithdrawal.status as string) === "PAID"
+                      ? "bg-[#009A60]"
+                      : selectedWithdrawal.status === "PENDING"
+                      ? "bg-amber-500"
+                      : "bg-red-600"
+                  )}
+                />
+                {selectedWithdrawal.status === "COMPLETED" || selectedWithdrawal.status === "APPROVED" ? "PAID OUT" : selectedWithdrawal.status}
+              </span>
             </div>
 
-            {/* Encapsulated Withdrawal Details Card */}
-            <div className="bg-[#f5faf6] rounded-xl border border-[#e1efe5] p-4 space-y-2.5 text-xs">
-              <div className="flex justify-between py-1 border-b border-[#e1efe5]/60">
-                <span className="text-gray-500 font-medium">Amount Requested:</span>
-                <span className="text-base font-medium text-gray-900">{formatCurrency(selectedWithdrawal.amount)}</span>
+            {/* Audit Details Card */}
+            <div className="bg-white rounded-2xl border border-[#e1efe5] p-5 space-y-3.5 shadow-2xs">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">ORGANIZER</span>
+                <span className="text-[13px] font-bold text-gray-900">{selectedWithdrawal.club?.name || user?.club?.name || "Oakwood Country Club"}</span>
               </div>
-              <div className="flex justify-between py-1 border-b border-[#e1efe5]/60">
-                <span className="text-gray-500 font-medium">Bank:</span>
-                <span className="font-medium text-gray-800 capitalize">{selectedWithdrawal.bankName}</span>
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">AMOUNT</span>
+                <span className="text-2xl font-black text-[#009A60] tracking-tight">{formatCurrency(selectedWithdrawal.amount).replace(/\.00$/, "")}</span>
               </div>
-              <div className="flex justify-between py-1 border-b border-[#e1efe5]/60">
-                <span className="text-gray-500 font-medium">Account Number:</span>
-                <span className="text-xs font-medium text-gray-800">{selectedWithdrawal.accountNumber}</span>
+              <div className="flex items-center justify-between pt-0.5">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">BANK</span>
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg border border-gray-200 bg-white flex items-center justify-center p-0.5 overflow-hidden shrink-0">
+                    <BankLogo bankName={selectedWithdrawal.bankName} size="xs" className="w-full h-full border-none shadow-none ring-0 p-0" />
+                  </div>
+                  <span className="text-[13px] font-bold text-gray-900 capitalize">{selectedWithdrawal.bankName}</span>
+                </div>
               </div>
-              <div className="flex justify-between py-1 border-b border-[#e1efe5]/60">
-                <span className="text-gray-500 font-medium">Account Name:</span>
-                <span className="font-medium text-gray-800">{toTitleCase(selectedWithdrawal.accountName)}</span>
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">ACCOUNT NUMBER</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[13px] font-bold text-gray-900 font-mono tracking-wider">{selectedWithdrawal.accountNumber}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (typeof navigator !== "undefined" && navigator.clipboard) {
+                        navigator.clipboard.writeText(selectedWithdrawal.accountNumber);
+                        toast.success("Account number copied!");
+                      }
+                    }}
+                    className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
+                    title="Copy account number"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
-              <div className="flex justify-between py-1">
-                <span className="text-gray-500 font-medium">Requested On:</span>
-                <span className="text-gray-700 font-normal">{formatDate(selectedWithdrawal.createdAt)}</span>
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">ACCOUNT NAME</span>
+                <span className="text-[13px] font-bold text-gray-900">{toTitleCase(selectedWithdrawal.accountName)}</span>
+              </div>
+
+              <div className="border-t border-dashed border-gray-200 my-1" />
+
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">REQUESTED ON</span>
+                <span className="text-[12px] font-medium text-gray-700">{formatDate(selectedWithdrawal.createdAt)}</span>
               </div>
               {selectedWithdrawal.reference && (
-                <div className="flex justify-between pt-1 border-t border-[#e1efe5]/60">
-                  <span className="text-gray-500 font-medium">Payout Reference:</span>
-                  <span className="text-xs font-medium text-[#15803D]">{selectedWithdrawal.reference}</span>
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">PAYOUT REFERENCE</span>
+                  <span className="text-[12px] font-bold text-[#009A60] font-mono tracking-wide">{selectedWithdrawal.reference}</span>
                 </div>
               )}
               {selectedWithdrawal.rejectionReason && (
-                <div className="bg-red-50 p-3 rounded-xl border border-red-100 mt-2">
-                  <p className="font-medium text-red-700">Rejection Reason:</p>
-                  <p className="text-red-600 mt-0.5 font-normal">{selectedWithdrawal.rejectionReason}</p>
+                <div className="bg-[#FFF5F5] rounded-xl border border-red-200/80 p-3.5 mt-2 space-y-1">
+                  <div className="flex items-center gap-1.5 text-red-600">
+                    <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                    <span className="text-[12px] font-bold">Rejection Reason:</span>
+                  </div>
+                  <p className="text-[12px] text-red-600 font-normal leading-relaxed pl-5">
+                    {selectedWithdrawal.rejectionReason}
+                  </p>
                 </div>
               )}
             </div>
 
-            <div className="pt-3 border-t border-gray-100 flex justify-end">
-              <Button
-                variant="outline"
-                size="sm"
+            {/* Dynamic Status Banner */}
+            {selectedWithdrawal.status === "REJECTED" ? (
+              <div className="flex items-center gap-3 pt-1 px-1">
+                <div className="w-8 h-8 rounded-full bg-red-50 border border-red-200 flex items-center justify-center text-red-600 shrink-0">
+                  <XCircle className="w-4 h-4 text-red-600" />
+                </div>
+                <div>
+                  <h5 className="text-[13px] font-bold text-gray-900 leading-tight">Request Rejected</h5>
+                  <p className="text-[11px] text-gray-400 font-normal mt-0.5">Funds were unlocked & returned to your available balance</p>
+                </div>
+              </div>
+            ) : selectedWithdrawal.status === "PENDING" ? (
+              <div className="flex items-center gap-3 pt-1 px-1">
+                <div className="w-8 h-8 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600 shrink-0">
+                  <Clock className="w-4 h-4 text-amber-600" />
+                </div>
+                <div>
+                  <h5 className="text-[13px] font-bold text-gray-900 leading-tight">Pending Super Admin Review</h5>
+                  <p className="text-[11px] text-gray-400 font-normal mt-0.5">Your request is queued for disbursement processing</p>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-3 pt-1 px-1">
+                <div className="w-8 h-8 rounded-full bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center text-[#009A60] shrink-0">
+                  <Check className="w-4 h-4 text-[#009A60] stroke-[2.5]" />
+                </div>
+                <div>
+                  <h5 className="text-[13px] font-bold text-gray-900 leading-tight">Audit Completed</h5>
+                  <p className="text-[11px] text-gray-400 font-normal mt-0.5">Verified against bank settlement logs</p>
+                </div>
+              </div>
+            )}
+
+            {/* Footer Close Button */}
+            <div className="flex items-center justify-between gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="h-10 px-4 rounded-xl bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
+              >
+                <Printer className="w-3.5 h-3.5 text-gray-500" />
+                <span>Print Audit</span>
+              </button>
+              <button
+                type="button"
                 onClick={() => setSelectedWithdrawal(null)}
-                className="h-9 px-4 rounded-xl text-xs font-medium"
+                className="h-10 px-7 rounded-xl bg-white border border-gray-200 hover:bg-gray-50 text-gray-800 text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
               >
                 Close
-              </Button>
+              </button>
             </div>
           </div>
         )}

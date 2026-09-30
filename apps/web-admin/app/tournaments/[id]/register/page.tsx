@@ -15,7 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { registerForTournament } from "@/lib/api/registrations"
 import { Tournament, getTournament } from "@/lib/api/tournaments"
 import { useAuth } from "@/lib/auth/AuthContext"
-import { getGolfCategory, formatTitleCase, formatCurrency, formatTournamentFee } from "@/lib/utils"
+import { getGolfCategory, formatTitleCase, formatCurrency, formatTournamentFee, broadcastAdminEvent } from "@/lib/utils"
 
 type Step = "details" | "payment" | "success"
 
@@ -64,6 +64,7 @@ export default function TournamentRegistrationPage() {
         playerType: playerCategory,
         paymentReference: tournament!.entryFee && tournament!.entryFee > 0 ? paymentRef : undefined
       })
+      broadcastAdminEvent("payment-received", { tournamentId: tournament!.id, entryFee: tournament!.entryFee });
       setStep("success")
     } catch (error: unknown) {
       toast.error(getErrorMessage(error) || "Registration failed")

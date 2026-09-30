@@ -204,10 +204,13 @@ export class EmailService {
       return '₦11m and above';
     }
 
+    const hasFraction = amount % 1 !== 0;
     return new Intl.NumberFormat(map[currency] || 'en-NG', {
       style: 'currency',
       currency,
-    }).format(amount);
+      minimumFractionDigits: hasFraction ? 2 : 0,
+      maximumFractionDigits: hasFraction ? 2 : 0,
+    }).format(amount).replace(/\.00(?=[a-zA-Z\s]|$)/, '');
   }
 
   private async send(

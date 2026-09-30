@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter, usePathname } from "next/navigation";
+import { BellIcon as SolidBell } from "@heroicons/react/24/solid";
 import {
   Bell,
   Check,
@@ -15,6 +16,8 @@ import {
   X,
   Banknote,
   Clock,
+  MapPin,
+  TreePine,
 } from "lucide-react";
 import {
   AppNotification,
@@ -58,7 +61,7 @@ export function NotificationDropdown() {
   const router = useRouter();
   const pathname = usePathname();
   const isSuperAdmin = user?.role === "SUPER_ADMIN";
-  const isOrganizerAdmin = user?.role === "CLUB_ADMIN";
+  const isOrganizerAdmin = user?.role === "CLUB_ADMIN" || user?.role === "MANAGER" || user?.role === "STAFF";
 
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
@@ -116,11 +119,20 @@ export function NotificationDropdown() {
 
       setNotifications(combinedItems);
       setUnreadCount(combinedItems.length);
-      setPendingWithdrawals(withdrawRes.items || []);
-      setPendingWithdrawalCount(withdrawRes.total || (withdrawRes.items ? withdrawRes.items.length : 0));
+      const rawWithdrawalItems = withdrawRes.items || [];
+      const strictlyPendingWithdrawals = rawWithdrawalItems.filter(
+        (w) => w.status === "PENDING"
+      );
+      setPendingWithdrawals(strictlyPendingWithdrawals);
 
-      const currentPendingCount = withdrawRes.total || (withdrawRes.items ? withdrawRes.items.length : 0);
-      prevPendingCountRef.current = currentPendingCount;
+      const truePendingCount =
+        typeof withdrawRes.total === "number" &&
+        !rawWithdrawalItems.some((w) => w.status !== "PENDING")
+          ? withdrawRes.total
+          : strictlyPendingWithdrawals.length;
+      setPendingWithdrawalCount(truePendingCount);
+
+      prevPendingCountRef.current = truePendingCount;
     } catch {
       // Ignore background errors
     } finally {
@@ -159,7 +171,7 @@ export function NotificationDropdown() {
     };
   }, [isOpen]);
 
-  // Subscribe to real-time broadcast admin events (such as pace-of-play alerts)
+  // Subscribe to real-time broadcast admin events (such as pace-of-play alerts and payment updates)
   useEffect(() => {
     const unsubscribe = subscribeAdminEvents((event) => {
       if (event.type === "tournament-inactivity-alert") {
@@ -178,12 +190,20 @@ export function NotificationDropdown() {
         saveStoredLiveAlerts(updated);
         setNotifications((prev) => prev.filter((n) => !n.id.includes("inact")));
         setUnreadCount((prev) => Math.max(0, prev - 1));
+      } else if (
+        event.type === "payment-received" ||
+        event.type === "withdrawal-updated" ||
+        event.type === "withdrawal-approved" ||
+        event.type === "withdrawal-rejected" ||
+        event.type === "withdrawal-requested"
+      ) {
+        fetchAllData(false);
       }
     });
     return () => {
       unsubscribe();
     };
-  }, [isSuperAdmin, router]);
+  }, [isSuperAdmin, router, fetchAllData]);
 
   const handleMarkAllRead = async () => {
     if (unreadCount === 0 || isMarkingAll) return;
@@ -228,6 +248,11 @@ export function NotificationDropdown() {
       notif.type === "WITHDRAWAL_REJECTED"
     ) {
       router.push(payoutManagementUrl);
+    } else if (notif.type === "PAYMENT_RECEIVED") {
+      const paymentsUrl = isSuperAdmin
+        ? "/super-admin/payments/transactions"
+        : "/organizer-admin/payments/transactions";
+      router.push(paymentsUrl);
     } else if (notif.type === "TOURNAMENT_ALERT") {
       const tournId = notif.data?.tournamentId;
       const targetUrl = tournId
@@ -302,6 +327,12 @@ export function NotificationDropdown() {
             <AlertTriangle className="w-4 h-4" />
           </div>
         );
+      case "PAYMENT_RECEIVED":
+        return (
+          <div className="w-8 h-8 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center text-[#15803D] shrink-0">
+            <CreditCard className="w-4 h-4" />
+          </div>
+        );
       default:
         return (
           <div className="w-8 h-8 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-600 shrink-0">
@@ -321,13 +352,13 @@ export function NotificationDropdown() {
         onClick={() => setIsOpen((prev) => !prev)}
         aria-label="Open notifications"
         className={cn(
-          "relative w-10 h-10 rounded-xl border bg-white hover:bg-slate-50 flex items-center justify-center transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500/20 cursor-pointer shadow-2xs",
+          "relative w-10 h-10 rounded-xl border bg-white hover:bg-slate-50 flex items-center justify-center transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500/20 cursor-pointer shadow-sm",
           pendingWithdrawalCount > 0 && isSuperAdmin
             ? "border-amber-400 text-amber-700 bg-amber-50/40"
             : "border-[#e1efe5] text-zinc-700"
         )}
       >
-        <Bell className={cn("w-5 h-5", pendingWithdrawalCount > 0 && isSuperAdmin ? "text-amber-700" : "text-zinc-600")} />
+        <SolidBell className={cn("w-5 h-5 fill-current", pendingWithdrawalCount > 0 && isSuperAdmin ? "text-amber-700" : "text-[#15803D]")} />
         {totalCombinedBadge > 0 && (
           <span
             className={cn(
@@ -379,38 +410,92 @@ export function NotificationDropdown() {
 
             {/* Pinned Pending Payout Alert in Dropdown for Super Admin */}
             {isSuperAdmin && pendingWithdrawals.length > 0 && (
-              <div className="p-3.5 bg-amber-50/90 border-b border-amber-200">
-                <div className="flex items-start justify-between gap-2 mb-1.5">
-                  <div className="flex items-center gap-2">
-                    <span className="flex h-2 w-2 rounded-full bg-amber-600" />
-                    <span className="text-xs font-bold text-amber-950 uppercase tracking-wide">
-                      Pending Payouts Awaiting Action
+              <div className="p-3 bg-[#fcfaf5] border-b border-[#FDE68A]/50">
+                <div className="bg-[#FFFDF7] border border-[#FDE68A]/80 rounded-[20px] p-4 shadow-xs">
+                  {/* Header */}
+                  <div className="flex items-center justify-between gap-2 mb-3.5">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-10 h-10 rounded-[14px] bg-[#FDEEDC] flex items-center justify-center shrink-0 shadow-2xs">
+                        <svg
+                          className="w-5 h-5 text-[#B45309]"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <rect width="18" height="12" x="3" y="6" rx="2" />
+                          <circle cx="12" cy="12" r="2" />
+                          <path d="M6 12h.01M18 12h.01" />
+                          <path d="M15 2l3 3-3 3" />
+                          <path d="M9 22l-3-3 3-3" />
+                        </svg>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-[13px] font-bold text-slate-900 uppercase tracking-wide leading-tight">
+                          PENDING PAYOUTS
+                        </span>
+                        <span className="text-xs text-[#B45309] font-normal leading-tight mt-0.5">
+                          Awaiting your approval
+                        </span>
+                      </div>
+                    </div>
+                    <span className="text-[11px] font-semibold text-[#92400E] bg-white border border-[#FCD34D] px-2.5 py-0.5 rounded-full shadow-2xs whitespace-nowrap">
+                      {pendingWithdrawalCount} Action(s)
                     </span>
                   </div>
-                  <span className="text-[10px] font-semibold text-amber-800 bg-amber-200/80 px-1.5 py-0.5 rounded">
-                    {pendingWithdrawals.length} Action(s)
-                  </span>
+
+                  {/* List of Pending Payout Items */}
+                  <div className="space-y-2 mb-3.5">
+                    {pendingWithdrawals.slice(0, 2).map((w, index) => (
+                      <div
+                        key={w.id}
+                        className="bg-white rounded-xl px-4 py-3 flex items-center justify-between border border-amber-100/50 shadow-2xs"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          {w.club?.logo ? (
+                            <img
+                              src={w.club.logo}
+                              alt={w.club?.name || "Club"}
+                              className="w-7 h-7 rounded-lg object-cover shrink-0 border border-slate-200"
+                            />
+                          ) : (
+                            <div
+                              className={cn(
+                                "w-7 h-7 rounded-lg flex items-center justify-center shrink-0",
+                                index % 2 === 0
+                                  ? "bg-[#ECFDF5] text-[#059669]"
+                                  : "bg-[#F1F5F9] text-[#64748B]"
+                              )}
+                            >
+                              {index % 2 === 0 ? (
+                                <MapPin className="w-3.5 h-3.5 fill-current" />
+                              ) : (
+                                <TreePine className="w-3.5 h-3.5 fill-current" />
+                              )}
+                            </div>
+                          )}
+                          <span className="text-xs font-semibold text-slate-900 truncate max-w-[150px] sm:max-w-[170px]">
+                            {w.club?.name || "Organizer"}
+                          </span>
+                        </div>
+                        <span className="text-xs font-bold text-slate-900 shrink-0 ml-2">
+                          {formatCurrency(w.amount).replace(/\.00$/, "")}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Action Button */}
+                  <button
+                    type="button"
+                    onClick={handleTakePayoutAction}
+                    className="w-full py-2.5 bg-[#F59E0B] hover:bg-[#D97706] text-white font-semibold text-xs sm:text-[13px] rounded-xl transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer active:scale-[0.99]"
+                  >
+                    Review & Process Payouts →
+                  </button>
                 </div>
-                <div className="space-y-1.5 mb-2.5">
-                  {pendingWithdrawals.slice(0, 2).map((w) => (
-                    <div
-                      key={w.id}
-                      className="text-xs text-amber-900 flex items-center justify-between bg-white/80 px-2.5 py-1.5 rounded-lg border border-amber-200"
-                    >
-                      <span className="font-semibold">{formatCurrency(w.amount)}</span>
-                      <span className="text-amber-800 text-[11px] truncate max-w-[140px]">
-                        {w.club?.name || "Organizer"}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-                <button
-                  type="button"
-                  onClick={handleTakePayoutAction}
-                  className="w-full py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs rounded-lg transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
-                >
-                  Review & Process Payouts →
-                </button>
               </div>
             )}
 
