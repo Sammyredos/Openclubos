@@ -55,6 +55,9 @@ export interface ClubBankAccount {
   accountNumber: string;
   accountName: string;
   isDefault?: boolean;
+  status?: "VERIFIED" | "UNDER_REVIEW" | "PENDING_VERIFICATION" | string;
+  createdAt?: string;
+  verifiedAt?: string;
 }
 
 export interface NigerianBank {
@@ -77,14 +80,19 @@ import { getAuthToken } from './auth';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api';
 
-export async function getClubWallet(): Promise<ClubWalletSummary> {
+function getAuthHeaders(contentTypeJson = false): Record<string, string> {
   const token = getAuthToken();
   const headers: Record<string, string> = {};
   if (token) headers['Authorization'] = `Bearer ${token}`;
+  if (contentTypeJson) headers['Content-Type'] = 'application/json';
+  return headers;
+}
+
+export async function getClubWallet(): Promise<ClubWalletSummary> {
   try {
     const res = await fetch(`${API_BASE}/withdrawals/wallet`, {
       credentials: 'include',
-      headers,
+      headers: getAuthHeaders(),
     });
     if (res.ok) return res.json();
   } catch {}
@@ -101,17 +109,16 @@ export async function getClubWallet(): Promise<ClubWalletSummary> {
 
 export async function getMyWithdrawals(params?: { status?: string; take?: number; skip?: number } | any): Promise<{ items: WithdrawalRequestItem[]; total: number }> {
   try {
-    const token = getAuthToken();
-    const headers: Record<string, string> = {};
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-
     const query = new URLSearchParams();
     if (params?.status) query.set('status', params.status);
     if (params?.take) query.set('take', String(params.take));
     if (params?.skip) query.set('skip', String(params.skip));
     const qs = query.toString() ? `?${query.toString()}` : '';
 
-    const res = await fetch(`${API_BASE}/withdrawals/my${qs}`, { credentials: 'include', headers });
+    const res = await fetch(`${API_BASE}/withdrawals/my${qs}`, {
+      credentials: 'include',
+      headers: getAuthHeaders(),
+    });
     if (res.ok) {
       const data = await res.json();
       let items: WithdrawalRequestItem[] = Array.isArray(data) ? data : (data.items || []);
@@ -131,17 +138,16 @@ export async function getMyWithdrawals(params?: { status?: string; take?: number
 
 export async function getAllWithdrawals(params?: { status?: string; take?: number; skip?: number } | any): Promise<{ items: WithdrawalRequestItem[]; total: number }> {
   try {
-    const token = getAuthToken();
-    const headers: Record<string, string> = {};
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-
     const query = new URLSearchParams();
     if (params?.status) query.set('status', params.status);
     if (params?.take) query.set('take', String(params.take));
     if (params?.skip) query.set('skip', String(params.skip));
     const qs = query.toString() ? `?${query.toString()}` : '';
 
-    const res = await fetch(`${API_BASE}/withdrawals/all${qs}`, { credentials: 'include', headers });
+    const res = await fetch(`${API_BASE}/withdrawals/all${qs}`, {
+      credentials: 'include',
+      headers: getAuthHeaders(),
+    });
     if (res.ok) {
       const data = await res.json();
       let items: WithdrawalRequestItem[] = Array.isArray(data) ? data : (data.items || []);
@@ -161,7 +167,10 @@ export async function getAllWithdrawals(params?: { status?: string; take?: numbe
 
 export async function getAdminWithdrawalStats(): Promise<AdminWithdrawalStats> {
   try {
-    const res = await fetch(`${API_BASE}/withdrawals/admin/stats`, { credentials: 'include' });
+    const res = await fetch(`${API_BASE}/withdrawals/admin/stats`, {
+      credentials: 'include',
+      headers: getAuthHeaders(),
+    });
     if (res.ok) return res.json();
   } catch {}
   return {
@@ -182,7 +191,7 @@ export async function requestWithdrawal(
   const res = await fetch(`${API_BASE}/withdrawals/request`, {
     method: 'POST',
     credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getAuthHeaders(true),
     body: JSON.stringify(payload),
   });
   if (!res.ok) throw new Error('Failed to request withdrawal');
@@ -197,7 +206,7 @@ export async function approveWithdrawal(
   const res = await fetch(`${API_BASE}/withdrawals/${id}/approve`, {
     method: 'POST',
     credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getAuthHeaders(true),
     body: JSON.stringify(payload || {}),
   });
   if (!res.ok) throw new Error('Failed to approve withdrawal');
@@ -212,7 +221,7 @@ export async function rejectWithdrawal(
   const res = await fetch(`${API_BASE}/withdrawals/${id}/reject`, {
     method: 'POST',
     credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getAuthHeaders(true),
     body: JSON.stringify(payload || {}),
   });
   if (!res.ok) throw new Error('Failed to reject withdrawal');
@@ -221,7 +230,10 @@ export async function rejectWithdrawal(
 
 export async function getClubBankAccounts(): Promise<ClubBankAccount[]> {
   try {
-    const res = await fetch(`${API_BASE}/withdrawals/bank-accounts`, { credentials: 'include' });
+    const res = await fetch(`${API_BASE}/withdrawals/bank-accounts`, {
+      credentials: 'include',
+      headers: getAuthHeaders(),
+    });
     if (res.ok) return res.json();
   } catch {}
   return [];
@@ -231,7 +243,7 @@ export async function addClubBankAccount(data: Partial<ClubBankAccount>): Promis
   const res = await fetch(`${API_BASE}/withdrawals/bank-accounts`, {
     method: 'POST',
     credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getAuthHeaders(true),
     body: JSON.stringify(data),
   });
   if (!res.ok) throw new Error('Failed to add bank account');
@@ -242,7 +254,7 @@ export async function updateClubBankAccount(id: string, data: Partial<ClubBankAc
   const res = await fetch(`${API_BASE}/withdrawals/bank-accounts/${id}`, {
     method: 'PATCH',
     credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getAuthHeaders(true),
     body: JSON.stringify(data),
   });
   if (!res.ok) throw new Error('Failed to update bank account');
@@ -253,6 +265,7 @@ export async function deleteClubBankAccount(id: string): Promise<{ success: bool
   const res = await fetch(`${API_BASE}/withdrawals/bank-accounts/${id}`, {
     method: 'DELETE',
     credentials: 'include',
+    headers: getAuthHeaders(),
   });
   if (!res.ok) throw new Error('Failed to delete bank account');
   return res.json();
@@ -260,7 +273,10 @@ export async function deleteClubBankAccount(id: string): Promise<{ success: bool
 
 export async function getNigerianBanks(): Promise<NigerianBank[]> {
   try {
-    const res = await fetch(`${API_BASE}/withdrawals/banks`, { credentials: 'include' });
+    const res = await fetch(`${API_BASE}/withdrawals/banks`, {
+      credentials: 'include',
+      headers: getAuthHeaders(),
+    });
     if (res.ok) return res.json();
   } catch {}
   return [
@@ -295,7 +311,7 @@ export async function resolveNigerianBankAccount(
     const res = await fetch(`${API_BASE}/withdrawals/resolve-account`, {
       method: 'POST',
       credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(true),
       body: JSON.stringify({ accountNumber, bankCode }),
     });
     if (res.ok) {

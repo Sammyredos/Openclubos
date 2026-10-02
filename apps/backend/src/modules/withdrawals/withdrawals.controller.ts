@@ -150,8 +150,9 @@ export class WithdrawalsController {
 
   @Delete('bank-accounts/:id')
   @Roles(UserRole.CLUB_ADMIN, UserRole.MANAGER, UserRole.SUPER_ADMIN)
-  deleteBankAccount(@Request() req: any, @Param('id') id: string) {
-    return this.withdrawalsService.deleteBankAccount(req.user.clubId, id);
+  deleteBankAccount(@Request() req: any, @Param('id') id: string, @Query('clubId') queryClubId?: string) {
+    const effectiveClubId = req.user?.clubId || queryClubId;
+    return this.withdrawalsService.deleteBankAccount(effectiveClubId, id);
   }
 
   @Get('banks')

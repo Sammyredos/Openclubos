@@ -161,7 +161,7 @@ export function SuperAdminPaymentsView({ initialTab = "withdrawals" }: SuperAdmi
   const [withdrawalStatusTab, setWithdrawalStatusTab] = useState<"ALL" | "PENDING" | "SUCCESSFUL" | "REJECTED">("ALL");
   const [withdrawalStatusFilter, setWithdrawalStatusFilter] = useState("All Status");
   const [organizerFilter, setOrganizerFilter] = useState("All Organizers");
-  const withdrawalPerPage = 4;
+  const withdrawalPerPage = 10;
 
   // Export dropdown
   const [exportAnchorEl, setExportAnchorEl] = useState<HTMLElement | null>(null);
@@ -194,65 +194,14 @@ export function SuperAdminPaymentsView({ initialTab = "withdrawals" }: SuperAdmi
   const loadData = async () => {
     try {
       const [regData, statsData, allWithdrawalsData, wStats] = await Promise.all([
-        getRegistrations({ take: 100, orderBy: 'updatedAt' }),
-        getRegistrationStats(),
+        getRegistrations({ take: 1000, orderBy: 'updatedAt' }).catch(() => ({ total: 0, items: [] })),
+        getRegistrationStats().catch(() => ({ totalTransactions: 0, totalRevenue: 0, pendingAmount: 0, refundsAmount: 0, transactionsChange: 0, revenueChange: 0 })),
         getAllWithdrawals().catch(() => ({ total: 0, items: [] })),
         getAdminWithdrawalStats().catch(() => null),
       ]);
       setRegistrations(regData.items);
       setStats(statsData);
-      if (allWithdrawalsData.items && allWithdrawalsData.items.length > 0) {
-        setWithdrawals(allWithdrawalsData.items);
-      } else {
-        setWithdrawals([
-          {
-            id: "wd-01",
-            amount: 150000,
-            status: "PENDING",
-            createdAt: "2026-09-29T14:51:00Z",
-            bankName: "Guaranty Trust Bank",
-            accountNumber: "0123456789",
-            accountName: "Openclub Test",
-            club: { id: "c-02", name: "OpenClub Golf Club 2" },
-            requestedBy: { id: "u-01", firstName: "James", lastName: "Miller" },
-          },
-          {
-            id: "wd-02",
-            amount: 100000,
-            status: "COMPLETED",
-            createdAt: "2026-09-02T13:25:00Z",
-            bankName: "Access Bank",
-            accountNumber: "5858452252",
-            accountName: "Oakwood Ltd",
-            reference: "TXN-628445",
-            club: { id: "c-01", name: "Oakwood Country Club" },
-            requestedBy: { id: "u-02", firstName: "Sophia", lastName: "Hernandez" },
-          },
-          {
-            id: "wd-03",
-            amount: 50000,
-            status: "COMPLETED",
-            createdAt: "2026-08-29T16:20:00Z",
-            bankName: "Access Bank",
-            accountNumber: "5858452252",
-            accountName: "Oakwood Ltd",
-            reference: "TXN-939258",
-            club: { id: "c-01", name: "Oakwood Country Club" },
-            requestedBy: { id: "u-02", firstName: "Sophia", lastName: "Hernandez" },
-          },
-          {
-            id: "wd-04",
-            amount: 1000000,
-            status: "REJECTED",
-            createdAt: "2026-08-28T05:40:00Z",
-            bankName: "Opay",
-            accountNumber: "8167981896",
-            accountName: "Samuel Obadina",
-            club: { id: "c-01", name: "Oakwood Country Club" },
-            requestedBy: { id: "u-02", firstName: "Sophia", lastName: "Hernandez" },
-          },
-        ]);
-      }
+      setWithdrawals(allWithdrawalsData.items || []);
       if (wStats) setWithdrawalStats(wStats);
     } catch (err: any) {
       toast.error("Failed to load platform financial data");
@@ -410,55 +359,103 @@ export function SuperAdminPaymentsView({ initialTab = "withdrawals" }: SuperAdmi
       {/* 4 Stat Cards */}
       <div className="w-full bg-white rounded-lg shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] overflow-x-auto">
         <div className="flex items-center justify-between p-8 min-w-max gap-12 font-sans">
-
-          {/* Card 1: Pending Withdrawal Disbursal */}
-          <div className="flex flex-col justify-start items-start gap-3.5 flex-1 min-w-[220px]">
-            <div className="flex justify-start items-center gap-3.5">
-              <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Pending Payout Requests</div>
-              {withdrawalStats?.pendingCount && withdrawalStats.pendingCount > 0 ? (
-                <div className="px-2 py-1 bg-emerald-50 rounded-lg flex justify-center items-center gap-1 shrink-0 whitespace-nowrap">
-                  <Clock className="w-3.5 h-3.5 text-[#15803D]" />
-                  <div className="text-[#15803D] text-xs font-medium">{withdrawalStats.pendingCount} Pending</div>
+          {activeTab === "transactions" ? (
+            <>
+              {/* Card 1: Gross Revenue */}
+              <div className="flex flex-col justify-start items-start gap-3.5 flex-1 min-w-[220px]">
+                <div className="flex justify-start items-center gap-3.5">
+                  <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Gross Revenue</div>
+                  {stats.revenueChange !== 0 && <TrendBadge value={stats.revenueChange} />}
                 </div>
-              ) : null}
-            </div>
-            <div className="text-[#15803D] text-3xl font-bold">{formatCurrency(withdrawalStats?.pendingAmount || 0)}</div>
-            <div className="text-zinc-500 text-sm font-normal">Awaiting disbursement</div>
-          </div>
+                <div className="text-[#15803D] text-3xl font-bold">{formatCurrency(stats.totalRevenue)}</div>
+                <div className="text-zinc-500 text-sm font-normal">All Time</div>
+              </div>
 
-          <div className="w-px h-16 bg-slate-200" />
+              <div className="w-px h-16 bg-slate-200" />
 
-          {/* Card 2: Total Disbursed Payouts */}
-          <div className="flex flex-col justify-start items-start gap-3.5 flex-1 min-w-[220px]">
-            <div className="flex justify-start items-center gap-3.5">
-              <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Total Paid Out to Clubs</div>
-            </div>
-            <div className="text-[#15803D] text-3xl font-bold">{formatCurrency(withdrawalStats?.totalDisbursed || 0)}</div>
-            <div className="text-zinc-500 text-sm font-normal">Settled bank wires</div>
-          </div>
+              {/* Card 2: Total Transactions */}
+              <div className="flex flex-col justify-start items-start gap-3.5 flex-1 min-w-[220px]">
+                <div className="flex justify-start items-center gap-3.5">
+                  <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Total Transactions</div>
+                  {stats.transactionsChange !== 0 && <TrendBadge value={stats.transactionsChange} />}
+                </div>
+                <div className="text-[#15803D] text-3xl font-bold">{formatNumber(stats.totalTransactions)}</div>
+                <div className="text-zinc-500 text-sm font-normal">Confirmed entries</div>
+              </div>
 
-          <div className="w-px h-16 bg-slate-200" />
+              <div className="w-px h-16 bg-slate-200" />
 
-          {/* Card 3: Active Organizers Holding Funds */}
-          <div className="flex flex-col justify-start items-start gap-3.5 flex-1 min-w-[220px]">
-            <div className="flex justify-start items-center gap-3.5">
-              <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Club Wallet Holdings</div>
-            </div>
-            <div className="text-[#15803D] text-3xl font-bold">{formatCurrency(withdrawalStats?.totalActiveHold || 0)}</div>
-            <div className="text-zinc-500 text-sm font-normal">Combined organizer balances</div>
-          </div>
+              {/* Card 3: Pending Payments */}
+              <div className="flex flex-col justify-start items-start gap-3.5 flex-1 min-w-[220px]">
+                <div className="flex justify-start items-center gap-3.5">
+                  <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Pending Payments</div>
+                </div>
+                <div className="text-[#15803D] text-3xl font-bold">{formatCurrency(stats.pendingAmount)}</div>
+                <div className="text-zinc-500 text-sm font-normal">Awaiting confirmation</div>
+              </div>
 
-          <div className="w-px h-16 bg-slate-200" />
+              <div className="w-px h-16 bg-slate-200" />
 
-          {/* Card 4: Platform Total Revenue */}
-          <div className="flex flex-col justify-start items-start gap-3.5 flex-1 min-w-[220px]">
-            <div className="flex justify-start items-center gap-3.5">
-              <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Gross Club Revenue</div>
-            </div>
-            <div className="text-[#15803D] text-3xl font-bold">{formatCurrency(stats.totalRevenue)}</div>
-            <div className="text-zinc-500 text-sm font-normal">All Time</div>
-          </div>
+              {/* Card 4: Refunded Entries */}
+              <div className="flex flex-col justify-start items-start gap-3.5 flex-1 min-w-[220px]">
+                <div className="flex justify-start items-center gap-3.5">
+                  <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Refunded Entries</div>
+                </div>
+                <div className="text-[#15803D] text-3xl font-bold">{formatCurrency(stats.refundsAmount)}</div>
+                <div className="text-zinc-500 text-sm font-normal">Cancelled / Reversed</div>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Card 1: Pending Withdrawal Disbursal */}
+              <div className="flex flex-col justify-start items-start gap-3.5 flex-1 min-w-[220px]">
+                <div className="flex justify-start items-center gap-3.5">
+                  <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Pending Payout Requests</div>
+                  {withdrawalStats?.pendingCount && withdrawalStats.pendingCount > 0 ? (
+                    <div className="px-2 py-1 bg-emerald-50 rounded-lg flex justify-center items-center gap-1 shrink-0 whitespace-nowrap">
+                      <Clock className="w-3.5 h-3.5 text-[#15803D]" />
+                      <div className="text-[#15803D] text-xs font-medium">{withdrawalStats.pendingCount} Pending</div>
+                    </div>
+                  ) : null}
+                </div>
+                <div className="text-[#15803D] text-3xl font-bold">{formatCurrency(withdrawalStats?.pendingAmount || 0)}</div>
+                <div className="text-zinc-500 text-sm font-normal">Awaiting disbursement</div>
+              </div>
 
+              <div className="w-px h-16 bg-slate-200" />
+
+              {/* Card 2: Total Disbursed Payouts */}
+              <div className="flex flex-col justify-start items-start gap-3.5 flex-1 min-w-[220px]">
+                <div className="flex justify-start items-center gap-3.5">
+                  <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Total Paid Out to Clubs</div>
+                </div>
+                <div className="text-[#15803D] text-3xl font-bold">{formatCurrency(withdrawalStats?.totalDisbursed || 0)}</div>
+                <div className="text-zinc-500 text-sm font-normal">Settled bank wires</div>
+              </div>
+
+              <div className="w-px h-16 bg-slate-200" />
+
+              {/* Card 3: Active Organizers Holding Funds */}
+              <div className="flex flex-col justify-start items-start gap-3.5 flex-1 min-w-[220px]">
+                <div className="flex justify-start items-center gap-3.5">
+                  <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Club Wallet Holdings</div>
+                </div>
+                <div className="text-[#15803D] text-3xl font-bold">{formatCurrency(withdrawalStats?.totalActiveHold || 0)}</div>
+                <div className="text-zinc-500 text-sm font-normal">Combined organizer balances</div>
+              </div>
+
+              <div className="w-px h-16 bg-slate-200" />
+
+              {/* Card 4: Platform Total Revenue */}
+              <div className="flex flex-col justify-start items-start gap-3.5 flex-1 min-w-[220px]">
+                <div className="flex justify-start items-center gap-3.5">
+                  <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Gross Club Revenue</div>
+                </div>
+                <div className="text-[#15803D] text-3xl font-bold">{formatCurrency(stats.totalRevenue)}</div>
+                <div className="text-zinc-500 text-sm font-normal">All Time</div>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -1052,7 +1049,13 @@ export function SuperAdminPaymentsView({ initialTab = "withdrawals" }: SuperAdmi
                   {/* Table Footer with Pagination */}
                   <div className="p-4 border-t border-[#e1efe5] flex items-center justify-between">
                     <div className="text-xs text-gray-500 font-normal">
-                      Showing {`${Math.min(filteredRegistrations.length, (page - 1) * perPage + 1)} to ${Math.min(filteredRegistrations.length, page * perPage)} of ${filteredRegistrations.length} transactions`}
+                      Showing{" "}
+                      <strong className="font-medium text-gray-900">
+                        {filteredRegistrations.length === 0
+                          ? "0"
+                          : `${(page - 1) * perPage + 1}–${Math.min(page * perPage, filteredRegistrations.length)}`}
+                      </strong>{" "}
+                      of {filteredRegistrations.length} transactions
                     </div>
                     {filteredRegistrations.length > perPage && (
                       <Pagination
@@ -1451,26 +1454,33 @@ export function SuperAdminPaymentsView({ initialTab = "withdrawals" }: SuperAdmi
       <Modal
         isOpen={rejectingWithdrawal !== null}
         onClose={() => !isProcessingAction && setRejectingWithdrawal(null)}
-        title="Reject Withdrawal Request"
-        className="max-w-lg"
+        title={
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-red-50 border border-red-200 flex items-center justify-center text-red-600 shrink-0 shadow-2xs">
+              <AlertTriangle className="w-4.5 h-4.5 text-red-600" />
+            </div>
+            <span className="text-lg font-bold text-gray-900 tracking-tight">Reject Withdrawal Request</span>
+          </div>
+        }
+        className="max-w-md rounded-[28px] sm:rounded-[32px] overflow-hidden"
       >
         {rejectingWithdrawal && (
           <div className="space-y-4 font-sans text-left text-sm">
-            <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-xs text-red-800 flex items-start gap-2">
+            <div className="bg-red-50/80 border border-red-200/80 rounded-2xl p-4 text-xs text-red-800 flex items-start gap-3">
               <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
-              <p className="font-normal">
+              <p className="font-normal leading-relaxed">
                 Rejecting this request will immediately <strong>unlock and return {formatCurrency(rejectingWithdrawal.amount)}</strong> back to the organizer's available balance.
               </p>
             </div>
 
             {/* Encapsulated Rejection Form Card */}
-            <div className="bg-[#f5faf6] rounded-xl border border-[#e1efe5] p-4 space-y-3">
+            <div className="bg-[#f5faf6] rounded-2xl border border-[#e1efe5] p-4 space-y-3">
               <div className="flex items-center gap-2 pb-2 border-b border-[#e1efe5]">
                 <div className="w-6 h-6 rounded-full bg-red-100 text-red-600 flex items-center justify-center">
                   <AlertTriangle className="w-3.5 h-3.5" />
                 </div>
                 <div>
-                  <h4 className="text-xs font-medium text-gray-900 leading-tight">Reason for Rejection <span className="text-red-500">*</span></h4>
+                  <h4 className="text-xs font-bold text-gray-900 leading-tight">Reason for Rejection <span className="text-red-500">*</span></h4>
                   <p className="text-[11px] text-gray-500 font-normal">This note will be visible to the organizer</p>
                 </div>
               </div>
@@ -1480,29 +1490,28 @@ export function SuperAdminPaymentsView({ initialTab = "withdrawals" }: SuperAdmi
                 value={rejectionReason}
                 onChange={(e) => setRejectionReason(e.target.value)}
                 rows={3}
-                className="w-full rounded-lg border border-[#e1efe5] bg-white p-3 text-xs font-normal focus:outline-none focus:ring-2 focus:ring-red-500 resize-none"
+                className="w-full rounded-xl border border-[#e1efe5] bg-white p-3 text-xs font-medium text-[#0F172A] placeholder:text-slate-400 focus:outline-hidden focus:border-red-500 focus:ring-2 focus:ring-red-500/20 resize-none transition-all"
                 required
               />
             </div>
 
-            <div className="flex items-center justify-end gap-3 pt-3 border-t border-gray-100">
-              <Button
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+              <button
                 type="button"
-                variant="outline"
                 disabled={isProcessingAction}
                 onClick={() => setRejectingWithdrawal(null)}
-                className="h-10 rounded-xl text-xs font-medium px-4"
+                className="h-10 rounded-xl text-xs font-bold px-4 text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
               >
                 Cancel
-              </Button>
-              <Button
+              </button>
+              <button
                 type="button"
                 onClick={handleReject}
                 disabled={isProcessingAction || !rejectionReason.trim()}
-                className="h-10 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-medium px-5"
+                className="h-10 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-5 shadow-xs transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isProcessingAction ? "Rejecting..." : "Reject & Refund Funds"}
-              </Button>
+              </button>
             </div>
           </div>
         )}

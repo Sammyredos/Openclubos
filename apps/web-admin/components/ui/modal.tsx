@@ -13,6 +13,9 @@ interface ModalProps {
   footer?: React.ReactNode;
   className?: string;
   size?: "md" | "lg" | "xl";
+  headerClassName?: string;
+  contentClassName?: string;
+  hideHeaderBorder?: boolean;
 }
 
 export function Modal({
@@ -23,6 +26,9 @@ export function Modal({
   footer,
   className,
   size = "md",
+  headerClassName,
+  contentClassName,
+  hideHeaderBorder = false,
 }: ModalProps) {
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -49,17 +55,27 @@ export function Modal({
           className
         )}
       >
-        <div className="flex items-center justify-between px-6 py-5 border-b border-[#e1efe5] bg-white">
-          <h3 className="text-lg font-semibold text-[#0B1B1E] tracking-tight">{title}</h3>
+        <div
+          className={cn(
+            "flex items-center justify-between px-6 py-5 bg-white",
+            !hideHeaderBorder && "border-b border-[#e1efe5]",
+            headerClassName
+          )}
+        >
+          {typeof title === "string" ? (
+            <h3 className="text-lg font-semibold text-[#0B1B1E] tracking-tight">{title}</h3>
+          ) : (
+            <div className="flex items-center flex-1 min-w-0">{title}</div>
+          )}
           <button
             onClick={onClose}
-            className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-gray-800 transition-colors"
+            className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-gray-800 transition-colors ml-3 shrink-0 cursor-pointer"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        <div className="px-6 py-6 overflow-y-auto scrollbar-hide max-h-[calc(100vh-200px)]">
+        <div className={cn("px-6 py-6 overflow-y-auto scrollbar-hide max-h-[calc(100vh-200px)]", contentClassName)}>
           {children}
         </div>
 

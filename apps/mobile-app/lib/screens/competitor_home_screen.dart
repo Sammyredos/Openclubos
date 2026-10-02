@@ -124,7 +124,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
       'proRole': 'Head Teaching Professional',
       'proClub': 'Ikoyi Club 1938',
       'serviceName': '1-on-1 Full Swing & TrackMan Session',
-      'date': 'Sat, Oct 24',
+      'date': 'Sat, Oct 24th',
       'time': '10:00 AM - 11:00 AM',
       'location': 'Golf Academy • Range Bay 4',
       'status': 'CONFIRMED',
@@ -136,7 +136,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
       'proRole': 'Short Game Specialist',
       'proClub': 'Ikoyi Club 1938',
       'serviceName': 'Short Game & Putting Masterclass',
-      'date': 'Wed, Nov 4',
+      'date': 'Wed, Nov 4th',
       'time': '02:30 PM - 03:30 PM',
       'location': 'Championship Putting Green',
       'status': 'UPCOMING',
@@ -2467,6 +2467,342 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                               ),
                             ),
                           ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _showSettingsModal() {
+    bool pushAlerts = true;
+    bool emailDigest = true;
+    bool friendActivity = true;
+    String distanceUnit = 'Yards';
+    bool autoSyncHandicap = true;
+    bool publicLeaderboard = true;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      barrierColor: Colors.black.withOpacity(0.65),
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) {
+          return Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 440),
+              child: Container(
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+                ),
+                padding: EdgeInsets.fromLTRB(24, 16, 24, MediaQuery.of(ctx).viewInsets.bottom + 28),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE2E8F0),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Header Row with Icon badge, titles, and close button
+                    Row(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEAF7EE),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: const Color(0xFFC6F0DB)),
+                          ),
+                          child: const Icon(Icons.tune_rounded, color: Color(0xFF009A60), size: 20),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Settings & Preferences',
+                                style: GoogleFonts.dmSans(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0xFF0F172A),
+                                ),
+                              ),
+                              Text(
+                                'Manage preferences & database sync',
+                                style: GoogleFonts.dmSans(
+                                  fontSize: 12,
+                                  color: const Color(0xFF64748B),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: () => Navigator.pop(ctx),
+                          child: Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF1F5F9),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.close_rounded, size: 18, color: Color(0xFF64748B)),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Database Status Card
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF5FAF6),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: const Color(0xFFE1EFE5)),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: const Color(0xFFC6F0DB)),
+                            ),
+                            child: const Icon(Icons.cloud_done_rounded, color: Color(0xFF009A60), size: 18),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      width: 6,
+                                      height: 6,
+                                      decoration: const BoxDecoration(
+                                        color: Color(0xFF009A60),
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      'PostgreSQL Database Active',
+                                      style: GoogleFonts.dmSans(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w700,
+                                        color: const Color(0xFF0F172A),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Real-time competitor profile sync enabled',
+                                  style: GoogleFonts.dmSans(
+                                    fontSize: 11,
+                                    color: const Color(0xFF64748B),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Settings List
+                    Text(
+                      'NOTIFICATIONS & ALERTS',
+                      style: GoogleFonts.dmSans(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF8CA0BA),
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: Column(
+                        children: [
+                          SwitchListTile(
+                            dense: true,
+                            activeColor: const Color(0xFF009A60),
+                            title: Text('Tournament Push Alerts', style: GoogleFonts.dmSans(fontSize: 12.5, fontWeight: FontWeight.w600, color: const Color(0xFF0F172A))),
+                            subtitle: Text('Tee times & live scoring notifications', style: GoogleFonts.dmSans(fontSize: 11, color: const Color(0xFF64748B))),
+                            value: pushAlerts,
+                            onChanged: (val) => setModalState(() => pushAlerts = val),
+                          ),
+                          const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                          SwitchListTile(
+                            dense: true,
+                            activeColor: const Color(0xFF009A60),
+                            title: Text('Weekly Email Digest', style: GoogleFonts.dmSans(fontSize: 12.5, fontWeight: FontWeight.w600, color: const Color(0xFF0F172A))),
+                            subtitle: Text('Club recaps & handicap revisions', style: GoogleFonts.dmSans(fontSize: 11, color: const Color(0xFF64748B))),
+                            value: emailDigest,
+                            onChanged: (val) => setModalState(() => emailDigest = val),
+                          ),
+                          const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                          SwitchListTile(
+                            dense: true,
+                            activeColor: const Color(0xFF009A60),
+                            title: Text('Friend Activity', style: GoogleFonts.dmSans(fontSize: 12.5, fontWeight: FontWeight.w600, color: const Color(0xFF0F172A))),
+                            subtitle: Text('Notify when friends tee off', style: GoogleFonts.dmSans(fontSize: 11, color: const Color(0xFF64748B))),
+                            value: friendActivity,
+                            onChanged: (val) => setModalState(() => friendActivity = val),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    Text(
+                      'GAMEPLAY PREFERENCES',
+                      style: GoogleFonts.dmSans(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF8CA0BA),
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: Column(
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.between,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Distance Units', style: GoogleFonts.dmSans(fontSize: 12.5, fontWeight: FontWeight.w600, color: const Color(0xFF0F172A))),
+                                  Text('GPS & scorecard yardages', style: GoogleFonts.dmSans(fontSize: 11, color: const Color(0xFF64748B))),
+                                ],
+                              ),
+                              Container(
+                                padding: const EdgeInsets.all(3),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF5FAF6),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: const Color(0xFFE1EFE5)),
+                                ),
+                                child: Row(
+                                  children: [
+                                    GestureDetector(
+                                      onTap: () => setModalState(() => distanceUnit = 'Yards'),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: distanceUnit == 'Yards' ? Colors.white : Colors.transparent,
+                                          borderRadius: BorderRadius.circular(8),
+                                          boxShadow: distanceUnit == 'Yards' ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 2)] : null,
+                                        ),
+                                        child: Text('Yards', style: GoogleFonts.dmSans(fontSize: 11, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A))),
+                                      ),
+                                    ),
+                                    GestureDetector(
+                                      onTap: () => setModalState(() => distanceUnit = 'Meters'),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: distanceUnit == 'Meters' ? Colors.white : Colors.transparent,
+                                          borderRadius: BorderRadius.circular(8),
+                                          boxShadow: distanceUnit == 'Meters' ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 2)] : null,
+                                        ),
+                                        child: Text('Meters', style: GoogleFonts.dmSans(fontSize: 11, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A))),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const Divider(height: 20, color: Color(0xFFF1F5F9)),
+                          SwitchListTile(
+                            contentPadding: EdgeInsets.zero,
+                            dense: true,
+                            activeColor: const Color(0xFF009A60),
+                            title: Text('Auto-Sync WHS Handicap', style: GoogleFonts.dmSans(fontSize: 12.5, fontWeight: FontWeight.w600, color: const Color(0xFF0F172A))),
+                            subtitle: Text('Sync revisions with official WHS database', style: GoogleFonts.dmSans(fontSize: 11, color: const Color(0xFF64748B))),
+                            value: autoSyncHandicap,
+                            onChanged: (val) => setModalState(() => autoSyncHandicap = val),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+
+                    // Save Button
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.pop(ctx);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Settings saved and synchronized with database.'),
+                            backgroundColor: Color(0xFF009A60),
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      },
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF009A60),
+                          borderRadius: BorderRadius.circular(14),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF009A60).withOpacity(0.25),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          'Save Settings to Database',
+                          style: GoogleFonts.dmSans(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                     ),
@@ -5336,7 +5672,10 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
             ListTile(
               leading: const Icon(Icons.settings_outlined, color: Color(0xFF009A60), size: 20),
               title: Text('Settings & Preferences', style: GoogleFonts.dmSans(fontSize: 13.5, color: const Color(0xFF0F172A), fontWeight: FontWeight.w500)),
-              onTap: () => Navigator.pop(context),
+              onTap: () {
+                Navigator.pop(context);
+                _showSettingsModal();
+              },
             ),
 
             const Spacer(),

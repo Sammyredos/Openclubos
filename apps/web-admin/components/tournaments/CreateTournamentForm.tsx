@@ -1093,6 +1093,21 @@ export function CreateTournamentForm({ redirectPath, tournamentId }: FormProps) 
                           label: "Match Play",
                           desc: "Two players (or teams) compete hole-by-hole. Whoever wins the most holes wins the match.",
                         },
+                        {
+                          value: "BEST_BALL",
+                          label: "Four-Ball (Best Ball)",
+                          desc: "Two-player teams where each golfer plays their own ball throughout. The lower score of the partners on each hole counts as the team score.",
+                        },
+                        {
+                          value: "SCRAMBLE",
+                          label: "Scramble",
+                          desc: "Team members each tee off, select the best shot, and all play their next stroke from that spot until the hole is completed.",
+                        },
+                        {
+                          value: "STABLEFORD",
+                          label: "Stableford",
+                          desc: "Points are awarded on each hole relative to par (e.g. Eagle: 4, Birdie: 3, Par: 2, Bogey: 1). Highest aggregate points total wins.",
+                        },
                       ].map(({ value, label, desc }) => {
                         const active = formData.format === value;
                         return (

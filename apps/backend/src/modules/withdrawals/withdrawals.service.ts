@@ -31,52 +31,99 @@ export class WithdrawalsService {
   ) {}
 
   /**
-   * Retrieves or initializes a club's wallet with starting test liquidity.
+   * Retrieves and dynamically reconciles a club's wallet with real tournament entry fees and settled payouts.
    */
   async getWallet(clubId: string) {
-    let wallet = await this.prisma.clubWallet.findUnique({
-      where: { clubId },
+    // 1. Calculate real tournament entry fee earnings for this club
+    const paidRegistrations = await this.prisma.registration.findMany({
+      where: {
+        tournament: { clubId },
+        paymentStatus: 'PAID',
+      },
+      select: {
+        tournament: { select: { entryFee: true } },
+      },
     });
+    const calculatedRevenue = paidRegistrations.reduce(
+      (sum: number, r: any) => sum + (r.tournament?.entryFee ? Number(r.tournament.entryFee) : 0),
+      0,
+    );
 
-    if (!wallet) {
-      wallet = await this.prisma.clubWallet.create({
-        data: {
-          clubId,
-          currency: 'NGN',
-          balance: 2500000, // ₦2.5m starter balance for smooth testing & demo
-          lockedBalance: 0,
-          totalWithdrawn: 350000,
-        },
-      });
-      this.logger.log(`Initialized test wallet for club ${clubId}`);
-    }
+    // 2. Calculate real completed (disbursed) payouts for this club
+    const completedWithdrawals = await this.prisma.withdrawalRequest.findMany({
+      where: { clubId, status: WithdrawalStatus.COMPLETED },
+      select: { amount: true },
+    });
+    const calculatedWithdrawn = completedWithdrawals.reduce(
+      (sum: number, w: any) => sum + Number(w.amount),
+      0,
+    );
+
+    // 3. Calculate real pending withdrawals currently locked in escrow
+    const pendingWithdrawals = await this.prisma.withdrawalRequest.findMany({
+      where: { clubId, status: WithdrawalStatus.PENDING },
+      select: { amount: true },
+    });
+    const calculatedPending = pendingWithdrawals.reduce(
+      (sum: number, w: any) => sum + Number(w.amount),
+      0,
+    );
+
+    // 4. Check for any manual wallet adjustments
+    const manualAdjustments = await this.prisma.walletTransaction.findMany({
+      where: {
+        wallet: { clubId },
+        type: WalletTransactionType.MANUAL_ADJUSTMENT,
+      },
+      select: { amount: true },
+    });
+    const adjustmentsSum = manualAdjustments.reduce(
+      (sum: number, t: any) => sum + Number(t.amount),
+      0,
+    );
+
+    const totalRevenue = calculatedRevenue + adjustmentsSum;
+    const availableBalance = Math.max(0, totalRevenue - calculatedWithdrawn - calculatedPending);
+
+    // 5. Upsert and reconcile the club's wallet record in Postgres
+    const wallet = await this.prisma.clubWallet.upsert({
+      where: { clubId },
+      create: {
+        clubId,
+        currency: 'NGN',
+        balance: availableBalance,
+        lockedBalance: calculatedPending,
+        totalWithdrawn: calculatedWithdrawn,
+      },
+      update: {
+        balance: availableBalance,
+        lockedBalance: calculatedPending,
+        totalWithdrawn: calculatedWithdrawn,
+      },
+    });
 
     return {
       id: wallet.id,
       clubId: wallet.clubId,
       currency: wallet.currency,
-      balance: wallet.balance,
-      availableBalance: wallet.balance,
-      lockedBalance: wallet.lockedBalance,
-      pendingBalance: wallet.lockedBalance,
-      totalWithdrawn: wallet.totalWithdrawn,
-      totalRevenue: wallet.balance + wallet.lockedBalance + wallet.totalWithdrawn,
+      balance: availableBalance,
+      availableBalance,
+      lockedBalance: calculatedPending,
+      pendingBalance: calculatedPending,
+      totalWithdrawn: calculatedWithdrawn,
+      totalRevenue,
       createdAt: wallet.createdAt,
       updatedAt: wallet.updatedAt,
     };
   }
 
   /**
-   * Super Admin overview stats across all club wallets and withdrawal requests.
+   * Super Admin overview stats across all club wallets and withdrawal requests with 100% real figures.
    */
   async getAdminStats() {
-    // Ensure test data exists if system is fresh
-    await this.ensureTestWithdrawalExists();
+    await this.cleanupLegacyTestData();
 
-    const [wallets, pendingReqs, completedReqs] = await Promise.all([
-      this.prisma.clubWallet.findMany({
-        select: { balance: true, lockedBalance: true, totalWithdrawn: true },
-      }),
+    const [pendingReqs, completedReqs, paidRegistrations] = await Promise.all([
       this.prisma.withdrawalRequest.findMany({
         where: { status: WithdrawalStatus.PENDING },
         select: { amount: true },
@@ -85,16 +132,28 @@ export class WithdrawalsService {
         where: { status: WithdrawalStatus.COMPLETED },
         select: { amount: true },
       }),
+      this.prisma.registration.findMany({
+        where: { paymentStatus: 'PAID' },
+        select: { tournament: { select: { entryFee: true } } },
+      }),
     ]);
 
-    const totalActiveHold = wallets.reduce((sum: number, w: { balance: number }) => sum + w.balance, 0);
-    const totalDisbursed = wallets.reduce((sum: number, w: { totalWithdrawn: number }) => sum + w.totalWithdrawn, 0);
-
     const pendingCount = pendingReqs.length;
-    const pendingAmount = pendingReqs.reduce((sum: number, r: { amount: number }) => sum + r.amount, 0);
+    const pendingAmount = pendingReqs.reduce((sum: number, r: { amount: number }) => sum + Number(r.amount), 0);
 
     const processedCount = completedReqs.length;
-    const processedAmount = completedReqs.reduce((sum: number, r: { amount: number }) => sum + r.amount, 0);
+    const totalDisbursed = completedReqs.reduce((sum: number, r: { amount: number }) => sum + Number(r.amount), 0);
+    const processedAmount = totalDisbursed;
+
+    const totalRevenue = paidRegistrations.reduce(
+      (sum: number, r: any) => sum + (r.tournament?.entryFee ? Number(r.tournament.entryFee) : 0),
+      0,
+    );
+
+    // Real Total Club Wallet Holdings:
+    // Net liability / combined organizer balances currently held by the platform
+    // (Gross Revenue from paid tournament entry fees - Total Payouts successfully disbursed)
+    const totalActiveHold = Math.max(0, totalRevenue - totalDisbursed);
 
     return {
       pendingCount,
@@ -103,6 +162,7 @@ export class WithdrawalsService {
       processedAmount,
       totalDisbursed,
       totalActiveHold,
+      totalRevenue,
     };
   }
 
@@ -151,7 +211,7 @@ export class WithdrawalsService {
     take?: number;
     skip?: number;
   }) {
-    await this.ensureTestWithdrawalExists();
+    await this.cleanupLegacyTestData();
 
     const where: any = {};
     if (query?.status) {
@@ -538,25 +598,13 @@ export class WithdrawalsService {
   /**
    * Retrieves bank accounts for a club. Seeds a default test bank account if none exists.
    */
-  async getBankAccounts(clubId: string) {
-    let accounts = await this.prisma.clubBankAccount.findMany({
+  async getBankAccounts(clubId?: string) {
+    if (!clubId) return [];
+
+    const accounts = await this.prisma.clubBankAccount.findMany({
       where: { clubId },
       orderBy: [{ isDefault: 'desc' }, { createdAt: 'desc' }],
     });
-
-    if (accounts.length === 0) {
-      const defaultAccount = await this.prisma.clubBankAccount.create({
-        data: {
-          clubId,
-          bankName: 'Guaranty Trust Bank (GTBank)',
-          accountNumber: '0123456789',
-          accountName: 'OpenClub Test Account',
-          isDefault: true,
-        },
-      });
-      accounts = [defaultAccount];
-      this.logger.log(`Seeded test bank account for club ${clubId}`);
-    }
 
     return accounts.map((a: any) => ({
       id: a.id,
@@ -643,9 +691,13 @@ export class WithdrawalsService {
   /**
    * Deletes a bank account.
    */
-  async deleteBankAccount(clubId: string, id: string) {
+  async deleteBankAccount(clubId: string | undefined, id: string) {
+    const where: any = { id };
+    if (clubId) {
+      where.clubId = clubId;
+    }
     const account = await this.prisma.clubBankAccount.findFirst({
-      where: { id, clubId },
+      where,
     });
     if (!account) {
       throw new NotFoundException('Bank account not found.');
@@ -653,13 +705,16 @@ export class WithdrawalsService {
 
     await this.prisma.clubBankAccount.delete({ where: { id } });
 
-    // If deleted account was default, set another account as default if available
-    const remaining = await this.prisma.clubBankAccount.findMany({ where: { clubId } });
-    if (remaining.length > 0 && !remaining.some((a: any) => a.isDefault)) {
-      await this.prisma.clubBankAccount.update({
-        where: { id: remaining[0].id },
-        data: { isDefault: true },
-      });
+    const targetClubId = clubId || account.clubId;
+    if (targetClubId) {
+      // If deleted account was default, set another account as default if available
+      const remaining = await this.prisma.clubBankAccount.findMany({ where: { clubId: targetClubId } });
+      if (remaining.length > 0 && !remaining.some((a: any) => a.isDefault)) {
+        await this.prisma.clubBankAccount.update({
+          where: { id: remaining[0].id },
+          data: { isDefault: true },
+        });
+      }
     }
 
     return { success: true };
@@ -716,93 +771,17 @@ export class WithdrawalsService {
   }
 
   /**
-   * Ensures that a pending test withdrawal exists only on fresh database setups.
-   * Cleans up any phantom duplicate test requests created by legacy seeding.
+   * Cleans up any phantom mock test requests created by legacy seeding.
    */
-  private async ensureTestWithdrawalExists() {
+  private async cleanupLegacyTestData() {
     try {
-      // 1. Clean up any phantom duplicate pending test requests if a paid-out test request already exists
-      const duplicatePendingTest = await this.prisma.withdrawalRequest.findMany({
+      await this.prisma.withdrawalRequest.deleteMany({
         where: {
-          status: WithdrawalStatus.PENDING,
           notes: 'Test payout request ready for Super Admin approval',
         },
       });
-
-      if (duplicatePendingTest.length > 0) {
-        const hasCompletedTest = await this.prisma.withdrawalRequest.findFirst({
-          where: {
-            status: WithdrawalStatus.COMPLETED,
-            amount: 150000,
-            accountNumber: '0123456789',
-          },
-        });
-
-        if (hasCompletedTest) {
-          await this.prisma.withdrawalRequest.deleteMany({
-            where: {
-              id: { in: duplicatePendingTest.map((d: any) => d.id) },
-            },
-          });
-          this.logger.log('Cleaned up phantom duplicate test withdrawal requests');
-          return;
-        }
-      }
-
-      // 2. Only seed if the system has ZERO withdrawal requests ever
-      const totalCount = await this.prisma.withdrawalRequest.count();
-      if (totalCount > 0) return;
-
-      const club = await this.prisma.club.findFirst();
-      if (!club) return;
-
-      let wallet = await this.prisma.clubWallet.findUnique({
-        where: { clubId: club.id },
-      });
-
-      if (!wallet) {
-        wallet = await this.prisma.clubWallet.create({
-          data: {
-            clubId: club.id,
-            balance: 2350000,
-            lockedBalance: 150000,
-            totalWithdrawn: 350000,
-            currency: 'NGN',
-          },
-        });
-      } else if (wallet.balance >= 150000) {
-        wallet = await this.prisma.clubWallet.update({
-          where: { id: wallet.id },
-          data: {
-            balance: { decrement: 150000 },
-            lockedBalance: { increment: 150000 },
-          },
-        });
-      }
-
-      const user =
-        (await this.prisma.user.findFirst({ where: { clubId: club.id } })) ||
-        (await this.prisma.user.findFirst());
-
-      if (user) {
-        await this.prisma.withdrawalRequest.create({
-          data: {
-            clubId: club.id,
-            walletId: wallet.id,
-            userId: user.id,
-            amount: 150000,
-            currency: 'NGN',
-            bankName: 'Guaranty Trust Bank (GTBank)',
-            accountNumber: '0123456789',
-            accountName: 'OpenClub Test Account',
-            status: WithdrawalStatus.PENDING,
-            notes: 'Test payout request ready for Super Admin approval',
-          },
-        });
-        this.logger.log('Seeded initial test withdrawal request for Super Admin testing');
-      }
     } catch (err: any) {
-      this.logger.warn(`Could not seed test withdrawal: ${err.message}`);
+      this.logger.warn(`Could not clean up legacy test data: ${err.message}`);
     }
   }
 

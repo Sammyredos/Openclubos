@@ -83,8 +83,9 @@ import {
   Ban,
   MoreHorizontal,
   Trash2,
+  Database,
 } from "lucide-react";
-import { formatNumber, formatTitleCase, subscribeAdminEvents, broadcastAdminEvent, getCurrencySymbol, formatTournamentFee } from "@/lib/utils";
+import { formatNumber, formatTitleCase, subscribeAdminEvents, broadcastAdminEvent, getCurrencySymbol, formatTournamentFee, formatWithOrdinal } from "@/lib/utils";
 import { forfeitTournamentRound } from "@/lib/api/scores";
 import { getGroupings, type GroupingData } from "@/lib/api/tournaments";
 import { COURSE_BANNER_URLS, COURSE_BANNER_PERMUTATION, resolveTournamentBanner, formatFeaturedTournamentTitle } from "@/lib/tournament-banners";
@@ -827,6 +828,23 @@ export default function MobilePreviewPage() {
   const [showTournamentFilterModal, setShowTournamentFilterModal] = useState(false);
   const [tournamentFormatFilter, setTournamentFormatFilter] = useState<string>("All");
   const [tournamentFeeFilter, setTournamentFeeFilter] = useState<string>("All");
+  const [tournamentClubFilter, setTournamentClubFilter] = useState<string>("All");
+  const [isHostClubDropdownOpen, setIsHostClubDropdownOpen] = useState(false);
+  const [hostClubSearchQuery, setHostClubSearchQuery] = useState("");
+  const [tournamentSortOrder, setTournamentSortOrder] = useState<"date" | "fee_asc" | "fee_desc" | "name">("date");
+  const [isSyncingTournaments, setIsSyncingTournaments] = useState(false);
+  const [lastTournamentDbSync, setLastTournamentDbSync] = useState<Date | null>(null);
+
+  // Settings & Preferences Modal state (triggered from Profile drawer Settings & Preferences)
+  const [showUserSettingsModal, setShowUserSettingsModal] = useState(false);
+  const [userPrefPushNotifications, setUserPrefPushNotifications] = useState(true);
+  const [userPrefEmailDigest, setUserPrefEmailDigest] = useState(true);
+  const [userPrefFriendActivity, setUserPrefFriendActivity] = useState(true);
+  const [userPrefDistanceUnit, setUserPrefDistanceUnit] = useState<"yards" | "meters">("yards");
+  const [userPrefAutoSyncHandicap, setUserPrefAutoSyncHandicap] = useState(true);
+  const [userPrefPublicProfile, setUserPrefPublicProfile] = useState(true);
+  const [userPrefAllowFriendRequests, setUserPrefAllowFriendRequests] = useState(true);
+  const [isSavingUserPreferences, setIsSavingUserPreferences] = useState(false);
   const [selectedTournamentInfo, setSelectedTournamentInfo] = useState<{
     name: string;
     club: string;
@@ -926,7 +944,7 @@ export default function MobilePreviewPage() {
       proClub: "Ikoyi Club 1938",
       proAvatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
       serviceName: "1-on-1 Full Swing & TrackMan Session",
-      date: "Sat, Oct 24",
+      date: "Sat, Oct 24th",
       time: "10:00 AM - 11:00 AM",
       location: "Golf Academy • Range Bay 4",
       status: "CONFIRMED",
@@ -939,7 +957,7 @@ export default function MobilePreviewPage() {
       proClub: "Ikoyi Club 1938",
       proAvatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80",
       serviceName: "Short Game & Putting Masterclass",
-      date: "Wed, Nov 4",
+      date: "Wed, Nov 4th",
       time: "02:30 PM - 03:30 PM",
       location: "Championship Putting Green",
       status: "UPCOMING",
@@ -4090,73 +4108,90 @@ export default function MobilePreviewPage() {
   };
 
   // Load live tournaments from PostgreSQL database via public API
-  useEffect(() => {
-    let isMounted = true;
-    async function loadOrganizerTournaments() {
-      try {
+  const fetchTournamentsFromDatabase = useCallback(async (isManualRefresh: boolean = false) => {
+    try {
+      if (isManualRefresh) {
+        setIsSyncingTournaments(true);
+      } else {
         setIsLoadingTournaments(true);
-        const backendBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
-        const res = await fetch(`${backendBase}/tournaments/public`, {
-          cache: 'no-store',
-        }).catch(() => null);
-
-        if (res && res.ok) {
-          const data = await res.json().catch(() => null);
-          if (isMounted && Array.isArray(data) && data.length > 0) {
-            const mapped: RealTournament[] = data.map((t: any, idx: number) => {
-              const isFree = t.requiresPayment === false || !t.entryFee || Number(t.entryFee) === 0;
-              const symbol = getCurrencySymbol(t.currency);
-              const formattedPurse = (t.prizePool && Number(t.prizePool) > 0)
-                ? `${symbol}${formatNumber(Number(t.prizePool))}`
-                : (isFree ? "—" : `${symbol}${formatNumber(Number(t.entryFee) * 50)}`);
-              const formattedFee = formatTournamentFee(t.entryFee, t.currency, {
-                requiresPayment: t.requiresPayment !== false,
-              });
-
-              return {
-                id: t.id || `tournament_${idx}`,
-                name: t.name || "Championship Tournament",
-                status: t.status === "ONGOING" ? "LIVE" : (t.status || "UPCOMING"),
-                organizerClub: t.club?.name || t.venue || "Tournament Club",
-                organizerCity: t.club?.city || t.location || "Lagos, Nigeria",
-                courseName: t.course?.name || "Championship Course",
-                coursePar: t.course?.par || (t.holes === 9 ? 36 : 72),
-                courseHoles: t.holes || 18,
-                format: t.format ? t.format.replace(/_/g, " ") : "Stroke Play",
-                dates: t.startDate ? new Date(t.startDate).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "Upcoming",
-                purse: formattedPurse,
-                entryFee: formattedFee,
-                fieldCount: t._count?.registrations ?? t.maxPlayers ?? 0,
-                cutLine: t.enableCut ? `Top ${t.cutLine || 30} + Ties` : "None",
-                weather: "74°F Sunny • 6mph NW",
-                stimp: "12.5 Stimp",
-                isFeatured: Boolean(t.isFeatured),
-                bannerUrl: t.bannerUrl || null,
-                divisions: Array.isArray(t.divisions) && t.divisions.length > 0 ? t.divisions.join(" & ") : "Championship",
-                gender: t.genderRestriction === "MALE_ONLY" ? "Male" : t.genderRestriction === "FEMALE_ONLY" ? "Ladies" : undefined,
-                hcpLimit: t.hasHandicapRestriction ? `HCP ${t.minHandicap ?? 0}–${t.maxHandicap ?? 36}` : "No Limit",
-                deadline: t.registrationCloseAt ? new Date(t.registrationCloseAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : (t.startDate ? new Date(t.startDate).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "Open"),
-                startDate: t.startDate || undefined,
-                endDate: t.endDate || undefined,
-                teeStartTime: t.teeStartTime || undefined,
-              };
-            });
-            setLiveTournaments(mapped);
-          } else if (isMounted) {
-            setLiveTournaments([]);
-          }
-        } else if (isMounted) {
-          setLiveTournaments([]);
-        }
-      } catch {
-        if (isMounted) setLiveTournaments([]);
-      } finally {
-        if (isMounted) setIsLoadingTournaments(false);
       }
+      const backendBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+      const res = await fetch(`${backendBase}/tournaments/public`, {
+        cache: 'no-store',
+      }).catch(() => null);
+
+      if (res && res.ok) {
+        const data = await res.json().catch(() => null);
+        if (Array.isArray(data) && data.length > 0) {
+          const mapped: RealTournament[] = data.map((t: any, idx: number) => {
+            const isFree = t.requiresPayment === false || !t.entryFee || Number(t.entryFee) === 0;
+            const symbol = getCurrencySymbol(t.currency);
+            const formattedPurse = (t.prizePool && Number(t.prizePool) > 0)
+              ? `${symbol}${formatNumber(Number(t.prizePool))}`
+              : (isFree ? "—" : `${symbol}${formatNumber(Number(t.entryFee) * 50)}`);
+            const formattedFee = formatTournamentFee(t.entryFee, t.currency, {
+              requiresPayment: t.requiresPayment !== false,
+            });
+
+            return {
+              id: t.id || `tournament_${idx}`,
+              name: t.name || "Championship Tournament",
+              status: t.status === "ONGOING" ? "LIVE" : (t.status || "UPCOMING"),
+              organizerClub: t.club?.name || t.venue || "Tournament Club",
+              organizerCity: t.club?.city || t.location || "Lagos, Nigeria",
+              courseName: t.course?.name || "Championship Course",
+              coursePar: t.course?.par || (t.holes === 9 ? 36 : 72),
+              courseHoles: t.holes || 18,
+              format: t.format ? t.format.replace(/_/g, " ") : "Stroke Play",
+              dates: t.startDate ? new Date(t.startDate).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "Upcoming",
+              purse: formattedPurse,
+              entryFee: formattedFee,
+              fieldCount: t._count?.registrations ?? t.maxPlayers ?? 0,
+              cutLine: t.enableCut ? `Top ${t.cutLine || 30} + Ties` : "None",
+              weather: "74°F Sunny • 6mph NW",
+              stimp: "12.5 Stimp",
+              isFeatured: Boolean(t.isFeatured),
+              bannerUrl: t.bannerUrl || null,
+              divisions: Array.isArray(t.divisions) && t.divisions.length > 0 ? t.divisions.join(" & ") : "Championship",
+              gender: t.genderRestriction === "MALE_ONLY" ? "Male" : t.genderRestriction === "FEMALE_ONLY" ? "Ladies" : undefined,
+              hcpLimit: t.hasHandicapRestriction ? `HCP ${t.minHandicap ?? 0}–${t.maxHandicap ?? 36}` : "No Limit",
+              deadline: t.registrationCloseAt ? new Date(t.registrationCloseAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : (t.startDate ? new Date(t.startDate).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "Open"),
+              startDate: t.startDate || undefined,
+              endDate: t.endDate || undefined,
+              teeStartTime: t.teeStartTime || undefined,
+            };
+          });
+          setLiveTournaments(mapped);
+          setLastTournamentDbSync(new Date());
+          if (isManualRefresh) {
+            showToast(`Synchronized ${mapped.length} tournaments from database.`, "success", "DATABASE SYNCED");
+          }
+        } else {
+          setLiveTournaments([]);
+          if (isManualRefresh) {
+            showToast("No active tournaments found in database.", "alert", "DATABASE EMPTY");
+          }
+        }
+      } else {
+        setLiveTournaments([]);
+        if (isManualRefresh) {
+          showToast("Unable to reach tournament database.", "error", "DATABASE OFFLINE");
+        }
+      }
+    } catch {
+      setLiveTournaments([]);
+      if (isManualRefresh) {
+        showToast("Database synchronization failed.", "error", "SYNC FAILED");
+      }
+    } finally {
+      setIsLoadingTournaments(false);
+      setIsSyncingTournaments(false);
     }
-    loadOrganizerTournaments();
-    return () => { isMounted = false; };
   }, []);
+
+  useEffect(() => {
+    fetchTournamentsFromDatabase(false);
+  }, [fetchTournamentsFromDatabase]);
 
   // Load real course holes from database for the active tournament
   useEffect(() => {
@@ -7464,8 +7499,8 @@ class TournamentsView extends StatelessWidget {
                         category: "Ongoing",
                         fee: "₦150,000 Fee",
                         feeAmount: 150000,
-                        date: "Nov 12, 2024",
-                        dateFull: "Nov 12 - 14, 2024",
+                        date: "Nov 12th, 2024",
+                        dateFull: "Nov 12th – 14th, 2024",
                         format: "Individual Strokeplay • 36 Holes",
                         formatType: "Strokeplay",
                         purse: "₦12,500,000 Total Purse",
@@ -7483,8 +7518,8 @@ class TournamentsView extends StatelessWidget {
                         category: "Invitational",
                         fee: "Registration Closed",
                         feeAmount: 100000,
-                        date: "Oct 05, 2024",
-                        dateFull: "Oct 05, 2024",
+                        date: "Oct 5th, 2024",
+                        dateFull: "Oct 5th, 2024",
                         format: "Matchplay Invitational • 18 Holes",
                         formatType: "Matchplay",
                         purse: "₦8,000,000 Total Purse",
@@ -7502,10 +7537,10 @@ class TournamentsView extends StatelessWidget {
                         category: "Invitational",
                         fee: "₦85,000 Fee",
                         feeAmount: 85000,
-                        date: "Dec 15, 2024",
-                        dateFull: "Dec 15, 2024",
+                        date: "Dec 15th, 2024",
+                        dateFull: "Dec 15th, 2024",
                         format: "Four-Ball Better Ball • 18 Holes",
-                        formatType: "Four-Ball / Scramble",
+                        formatType: "Four-Ball",
                         purse: "₦5,000,000 In Trophies & Gifts",
                         holes: 18,
                         cutLine: "One Day Invitational",
@@ -7521,8 +7556,8 @@ class TournamentsView extends StatelessWidget {
                         category: "Major",
                         fee: "₦120,000 Fee",
                         feeAmount: 120000,
-                        date: "Jan 18, 2025",
-                        dateFull: "Jan 18 - 20, 2025",
+                        date: "Jan 18th, 2025",
+                        dateFull: "Jan 18th – 20th, 2025",
                         format: "Individual Strokeplay • 54 Holes",
                         formatType: "Strokeplay",
                         purse: "₦15,000,000 Total Purse",
@@ -7540,10 +7575,10 @@ class TournamentsView extends StatelessWidget {
                         category: "Ongoing",
                         fee: "₦50,000 Fee",
                         feeAmount: 50000,
-                        date: "Nov 28, 2024",
-                        dateFull: "Nov 28, 2024",
+                        date: "Nov 28th, 2024",
+                        dateFull: "Nov 28th, 2024",
                         format: "Four-Man Scramble • 18 Holes",
-                        formatType: "Four-Ball / Scramble",
+                        formatType: "Scramble",
                         purse: "₦3,500,000 In Prizes",
                         holes: 18,
                         cutLine: "Open Entry",
@@ -7555,68 +7590,95 @@ class TournamentsView extends StatelessWidget {
                     ];
 
                     // Merge dynamic real tournaments from database
-                    const dynamicFromDb = liveTournaments.map((t, idx) => ({
-                      id: t.id,
-                      name: t.name,
-                      club: t.organizerClub || t.courseName || "Ikoyi Club 1938",
-                      category: t.isFeatured ? "Major" : "Ongoing",
-                      fee: t.entryFee || "Free",
-                      feeAmount: parseInt((t.entryFee || "0").replace(/[^0-9]/g, ""), 10) || 0,
-                      date: t.deadline || "Open Entry",
-                      dateFull: t.deadline || "Open Entry",
-                      format: `${t.divisions || "Championship"} • 18 Holes`,
-                      formatType: "Strokeplay",
-                      purse: "Official OpenclubOS Purse",
-                      holes: 18,
-                      cutLine: "Standard Cut",
-                      bannerUrl: resolveTournamentBanner(idx, t.bannerUrl),
-                      isFeatured: t.isFeatured,
-                      status: "Open",
-                      isOpen: true,
-                    }));
+                    const dynamicFromDb = liveTournaments.map((t, idx) => {
+                      const fmtStr = (t.format || "").toLowerCase();
+                      const formatType = fmtStr.includes("match")
+                        ? "Matchplay"
+                        : fmtStr.includes("stableford")
+                        ? "Stableford"
+                        : fmtStr.includes("scramble")
+                        ? "Scramble"
+                        : fmtStr.includes("four") || fmtStr.includes("best_ball") || fmtStr.includes("best ball")
+                        ? "Four-Ball"
+                        : "Strokeplay";
+
+                      return {
+                        id: t.id,
+                        name: t.name,
+                        club: t.organizerClub || t.courseName || "Ikoyi Club 1938",
+                        category: t.isFeatured ? "Major" : (t.status === "LIVE" ? "Ongoing" : "Ongoing"),
+                        fee: t.entryFee || "Free",
+                        feeAmount: parseInt((t.entryFee || "0").replace(/[^0-9]/g, ""), 10) || 0,
+                        date: formatWithOrdinal(t.deadline || "Open Entry"),
+                        dateFull: formatWithOrdinal(t.deadline || "Open Entry"),
+                        format: `${t.divisions || "Championship"} • ${t.courseHoles || 18} Holes`,
+                        formatType: formatType,
+                        purse: t.purse || "Official OpenclubOS Purse",
+                        holes: t.courseHoles || 18,
+                        cutLine: t.cutLine || "Standard Cut",
+                        bannerUrl: resolveTournamentBanner(idx, t.bannerUrl),
+                        isFeatured: t.isFeatured,
+                        status: t.status === "LIVE" ? "Live" : "Open",
+                        isOpen: true,
+                      };
+                    });
 
                     const combinedTournaments = Array.from(
                       new Map([...baseTournamentsList, ...dynamicFromDb].map((t) => [t.name.toLowerCase(), t])).values()
                     );
 
-                    // Filter by search query and filter criteria
-                    const filteredTournaments = combinedTournaments.filter((t) => {
-                      // 1. Search Query
-                      if (tournamentSearchQuery.trim()) {
-                        const q = tournamentSearchQuery.toLowerCase().trim();
-                        const matchName = t.name.toLowerCase().includes(q);
-                        const matchClub = t.club.toLowerCase().includes(q);
-                        const matchFormat = t.format.toLowerCase().includes(q);
-                        const matchDate = t.date.toLowerCase().includes(q);
-                        const matchFee = t.fee.toLowerCase().includes(q);
-                        if (!matchName && !matchClub && !matchFormat && !matchDate && !matchFee) return false;
-                      }
+                    // Filter by search query, categories, formats, fees, host club, and sort order
+                    const filteredTournaments = combinedTournaments
+                      .filter((t) => {
+                        // 1. Search Query
+                        if (tournamentSearchQuery.trim()) {
+                          const q = tournamentSearchQuery.toLowerCase().trim();
+                          const matchName = t.name.toLowerCase().includes(q);
+                          const matchClub = t.club.toLowerCase().includes(q);
+                          const matchFormat = t.format.toLowerCase().includes(q);
+                          const matchDate = t.date.toLowerCase().includes(q);
+                          const matchFee = t.fee.toLowerCase().includes(q);
+                          if (!matchName && !matchClub && !matchFormat && !matchDate && !matchFee) return false;
+                        }
 
-                      // 2. Category Filter
-                      if (tournamentFilter !== "All") {
-                        if (tournamentFilter === "Ongoing" && t.category !== "Ongoing") return false;
-                        if (tournamentFilter === "Major" && t.category !== "Major" && !t.isFeatured) return false;
-                        if (tournamentFilter === "Invitational" && t.category !== "Invitational") return false;
-                      }
+                        // 2. Category Filter
+                        if (tournamentFilter !== "All") {
+                          if (tournamentFilter === "Ongoing" && t.category !== "Ongoing") return false;
+                          if (tournamentFilter === "Major" && t.category !== "Major" && !t.isFeatured) return false;
+                          if (tournamentFilter === "Invitational" && t.category !== "Invitational") return false;
+                        }
 
-                      // 3. Format Filter
-                      if (tournamentFormatFilter !== "All") {
-                        if (tournamentFormatFilter === "Strokeplay" && !t.format.toLowerCase().includes("strokeplay")) return false;
-                        if (tournamentFormatFilter === "Matchplay" && !t.format.toLowerCase().includes("matchplay")) return false;
-                        if (tournamentFormatFilter === "Four-Ball / Scramble" && !t.format.toLowerCase().includes("four-ball") && !t.format.toLowerCase().includes("scramble")) return false;
-                      }
+                        // 3. Format Filter
+                        if (tournamentFormatFilter !== "All") {
+                          if (tournamentFormatFilter === "Strokeplay" && !t.format.toLowerCase().includes("strokeplay") && !t.format.toLowerCase().includes("stroke play")) return false;
+                          if (tournamentFormatFilter === "Matchplay" && !t.format.toLowerCase().includes("matchplay") && !t.format.toLowerCase().includes("match play")) return false;
+                          if (tournamentFormatFilter === "Four-Ball" && !t.format.toLowerCase().includes("four-ball") && !t.format.toLowerCase().includes("four ball") && !t.format.toLowerCase().includes("best ball") && !t.format.toLowerCase().includes("best_ball")) return false;
+                          if (tournamentFormatFilter === "Scramble" && !t.format.toLowerCase().includes("scramble")) return false;
+                          if (tournamentFormatFilter === "Stableford" && !t.format.toLowerCase().includes("stableford")) return false;
+                        }
 
-                      // 4. Fee Filter
-                      if (tournamentFeeFilter !== "All") {
-                        if (tournamentFeeFilter === "Free" && t.feeAmount > 0 && !t.fee.toLowerCase().includes("free")) return false;
-                        if (tournamentFeeFilter === "Under ₦100,000" && t.feeAmount >= 100000) return false;
-                        if (tournamentFeeFilter === "₦100,000+" && t.feeAmount < 100000) return false;
-                      }
+                        // 4. Fee Filter
+                        if (tournamentFeeFilter !== "All") {
+                          if (tournamentFeeFilter === "Free" && t.feeAmount > 0 && !t.fee.toLowerCase().includes("free")) return false;
+                          if (tournamentFeeFilter === "Under ₦100,000" && t.feeAmount >= 100000) return false;
+                          if (tournamentFeeFilter === "₦100,000+" && t.feeAmount < 100000) return false;
+                        }
 
-                      return true;
-                    });
+                        // 5. Host Club Filter
+                        if (tournamentClubFilter !== "All" && t.club !== tournamentClubFilter) {
+                          return false;
+                        }
 
-                    const isCustomFilterActive = tournamentFilter !== "All" || tournamentFormatFilter !== "All" || tournamentFeeFilter !== "All";
+                        return true;
+                      })
+                      .sort((a, b) => {
+                        if (tournamentSortOrder === "fee_asc") return a.feeAmount - b.feeAmount;
+                        if (tournamentSortOrder === "fee_desc") return b.feeAmount - a.feeAmount;
+                        if (tournamentSortOrder === "name") return a.name.localeCompare(b.name);
+                        return 0;
+                      });
+
+                    const isCustomFilterActive = tournamentFilter !== "All" || tournamentFormatFilter !== "All" || tournamentFeeFilter !== "All" || tournamentClubFilter !== "All" || tournamentSortOrder !== "date";
 
                     return (
                       <div className="flex-1 flex flex-col bg-[#F4F6F3] min-h-0 relative select-none font-['DM_Sans',sans-serif]">
@@ -7639,8 +7701,8 @@ class TournamentsView extends StatelessWidget {
                                 type="button"
                                 onClick={() => setShowTournamentFilterModal(true)}
                                 className="h-8 w-8 rounded-full bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center text-[#009A60] hover:bg-[#d8f3e3] shadow-2xs transition-all cursor-pointer relative shrink-0"
-                                title="Filter Tournaments"
-                                aria-label="Filter"
+                                title="Tournament Filter"
+                                aria-label="Tournament Filter"
                               >
                                 <SlidersHorizontal className="h-4 w-4 text-[#009A60]" />
                                 {isCustomFilterActive && (
@@ -7764,8 +7826,8 @@ class TournamentsView extends StatelessWidget {
                                   <div className="inline-flex items-center self-start bg-[#00A86B] text-white text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full mb-2 shadow-xs">
                                     FEATURED EVENT
                                   </div>
-                                  <h3 className="text-[20px] font-black text-white leading-[1.18] tracking-tight drop-shadow-md mb-2">
-                                    Ikoyi Open<br />Championship 2024
+                                  <h3 className="text-[15px] font-extrabold text-white leading-tight tracking-tight drop-shadow-md mb-2">
+                                    Ikoyi Open Championship 2024
                                   </h3>
                                   <div className="flex items-center gap-4 text-[11.5px] font-semibold text-white/95">
                                     <div className="flex items-center gap-1.5">
@@ -7774,7 +7836,7 @@ class TournamentsView extends StatelessWidget {
                                     </div>
                                     <div className="flex items-center gap-1.5">
                                       <Calendar className="w-3.5 h-3.5 text-[#00E575] shrink-0" />
-                                      <span>Oct 24 - 27</span>
+                                      <span>Oct 24th – 27th</span>
                                     </div>
                                   </div>
                                 </div>
@@ -7812,7 +7874,7 @@ class TournamentsView extends StatelessWidget {
                                     setTournamentFeeFilter("All");
                                     setVirtualKeyboard((k) => (k ? { ...k, queryValue: "" } : null));
                                   }}
-                                  className="px-4 py-2 rounded-xl bg-[#009A60] hover:bg-[#008251] text-white text-[11.5px] font-bold uppercase tracking-wider transition-all shadow-2xs cursor-pointer"
+                                  className="px-4 py-2 rounded-xl bg-[#009A60] hover:bg-[#008251] text-white text-[12px] font-bold capitalize tracking-normal transition-all shadow-2xs cursor-pointer"
                                 >
                                   Clear Search & Filters
                                 </button>
@@ -7850,7 +7912,7 @@ class TournamentsView extends StatelessWidget {
                                             {tournament.fee}
                                           </span>
                                           <span className="text-[11.5px] text-[#8CA0BA] font-medium">
-                                            {tournament.date}
+                                            {formatWithOrdinal(tournament.date)}
                                           </span>
                                         </div>
                                       </div>
@@ -7874,9 +7936,9 @@ class TournamentsView extends StatelessWidget {
                                               bannerUrl: tournament.bannerUrl,
                                             })
                                           }
-                                          className="flex-1 h-[42px] rounded-xl bg-[#F8FAFC] hover:bg-slate-100 active:scale-98 text-[#0F172A] font-bold text-[11px] uppercase tracking-wider flex items-center justify-center border border-slate-200/60 transition-all cursor-pointer"
+                                          className="flex-1 h-[42px] rounded-xl bg-[#F8FAFC] hover:bg-slate-100 active:scale-98 text-[#0F172A] font-bold text-[12.5px] capitalize tracking-normal flex items-center justify-center border border-slate-200/60 transition-all cursor-pointer"
                                         >
-                                          VIEW INFO
+                                          View Info
                                         </button>
                                         <button
                                           type="button"
@@ -7884,14 +7946,14 @@ class TournamentsView extends StatelessWidget {
                                             showToast(`Opening entry registration for ${tournament.name}...`, "success", "TOURNAMENT ENTRY");
                                             setTimeout(() => switchScreen("register"), 600);
                                           }}
-                                          className="flex-1 h-[42px] rounded-xl bg-[#009A60] hover:bg-[#008251] active:scale-98 text-white font-bold text-[11px] uppercase tracking-wider flex items-center justify-center shadow-xs transition-all cursor-pointer"
+                                          className="flex-1 h-[42px] rounded-xl bg-[#009A60] hover:bg-[#008251] active:scale-98 text-white font-bold text-[12.5px] capitalize tracking-normal flex items-center justify-center shadow-xs transition-all cursor-pointer"
                                         >
-                                          REGISTER NOW
+                                          Register Now
                                         </button>
                                       </div>
                                     ) : (
                                       <div className="mt-3 py-1.5 px-3 rounded-xl bg-slate-50 border border-slate-200/60 text-center">
-                                        <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                                        <span className="text-[11px] font-bold text-slate-500 capitalize tracking-normal">
                                           Official Registration Closed
                                         </span>
                                       </div>
@@ -7946,8 +8008,8 @@ class TournamentsView extends StatelessWidget {
                                   className="w-[54px] h-[54px] rounded-full bg-[#009A60] hover:bg-[#008251] active:scale-95 transition-all border-[3px] border-white flex flex-col items-center justify-center cursor-pointer shadow-xs"
                                   title="Play Golf"
                                 >
-                                  <span className="text-[9.5px] font-black text-white tracking-wider leading-none">PLAY</span>
-                                  <span className="text-[9.5px] font-black text-white tracking-wider leading-none mt-0.5">GOLF</span>
+                                  <span className="text-[9.5px] font-black text-white tracking-normal leading-none capitalize">Play</span>
+                                  <span className="text-[9.5px] font-black text-white tracking-normal leading-none mt-0.5 capitalize">Golf</span>
                                 </button>
                               </div>
                             </div>
@@ -7978,43 +8040,55 @@ class TournamentsView extends StatelessWidget {
                           </div>
                         </div>
 
-                        {/* Tournament Filter Sheet / Modal */}
+                        {/* Tournament Settings & Filter Bottom Sheet Modal (Matching QR Code Geometry) */}
                         {showTournamentFilterModal && (
                           <div
-                            className="absolute inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-end sm:items-center justify-center animate-in fade-in duration-200 p-0 sm:p-4"
+                            className="absolute inset-0 z-50 bg-black/60 backdrop-blur-xs flex flex-col justify-end animate-in fade-in duration-150"
                             onClick={() => setShowTournamentFilterModal(false)}
                           >
                             <div
-                              className="w-full max-w-sm mx-auto bg-white rounded-t-[28px] sm:rounded-2xl p-5 shadow-2xl border border-slate-100 animate-in slide-in-from-bottom duration-200"
+                              className="relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl p-5 pb-6 animate-in slide-in-from-bottom duration-200 max-h-[88%] flex flex-col w-full max-w-sm mx-auto"
                               onClick={(e) => e.stopPropagation()}
                             >
-                              <div className="w-10 h-1 rounded-full bg-slate-300 mx-auto mb-3 sm:hidden" />
-                              
-                              {/* Header */}
-                              <div className="flex items-center justify-between mb-4">
-                                <div>
-                                  <h3 className="text-base font-bold text-[#0F172A]">Filter Tournaments</h3>
-                                  <p className="text-xs text-[#64748B] font-medium">Refine by category, format, or fee</p>
+                              {/* Drag Handle */}
+                              <div className="w-10 h-1 bg-slate-200 rounded-full mx-auto mb-3.5 shrink-0" />
+
+                              {/* Sheet Header matching Player Classification design */}
+                              <div className="flex items-start justify-between pb-3 border-b border-[#f1f5f9] mb-3.5 shrink-0">
+                                <div className="pr-3">
+                                  <h3 className="text-base font-bold text-[#0F172A] leading-snug">
+                                    Tournament Filter
+                                  </h3>
+                                  <p className="text-xs text-[#5B6B7F] font-normal mt-0.5 leading-snug">
+                                    Refine by category, format, fee or host club
+                                  </p>
                                 </div>
                                 <button
                                   type="button"
                                   onClick={() => {
-                                    setTournamentFilter("All");
-                                    setTournamentFormatFilter("All");
-                                    setTournamentFeeFilter("All");
+                                    setShowTournamentFilterModal(false);
+                                    setIsHostClubDropdownOpen(false);
                                   }}
-                                  className="text-xs font-bold text-[#009A60] hover:text-[#007f4e] cursor-pointer"
+                                  className="h-8 w-8 rounded-full bg-[#f5faf6] border border-[#e1efe5] flex items-center justify-center text-slate-500 hover:text-slate-800 transition-colors cursor-pointer shrink-0 mt-0.5"
+                                  title="Close"
                                 >
-                                  Reset All
+                                  <X className="w-4 h-4 text-slate-500" />
                                 </button>
                               </div>
 
-                              <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1 no-scrollbar text-xs">
-                                {/* Category */}
+                              {/* Sheet Body: Scrollable Content */}
+                              <div className="overflow-y-auto max-h-[440px] scrollbar-hide space-y-4 py-2 text-xs">
+
+                                {/* Category Filter */}
                                 <div>
-                                  <label className="text-[11px] font-extrabold uppercase tracking-wider text-[#8CA0BA] block mb-2">
-                                    Event Category
-                                  </label>
+                                  <div className="flex items-center justify-between mb-2">
+                                    <label className="text-[11px] font-extrabold uppercase tracking-wider text-[#8CA0BA]">
+                                      Event Category
+                                    </label>
+                                    <span className="text-[10px] font-bold text-[#009A60]">
+                                      {tournamentFilter === "All" ? "All categories" : tournamentFilter}
+                                    </span>
+                                  </div>
                                   <div className="grid grid-cols-2 gap-2">
                                     {(["All", "Ongoing", "Major", "Invitational"] as const).map((cat) => {
                                       const active = tournamentFilter === cat;
@@ -8036,13 +8110,18 @@ class TournamentsView extends StatelessWidget {
                                   </div>
                                 </div>
 
-                                {/* Format */}
+                                {/* Playing Format */}
                                 <div>
-                                  <label className="text-[11px] font-extrabold uppercase tracking-wider text-[#8CA0BA] block mb-2">
-                                    Playing Format
-                                  </label>
+                                  <div className="flex items-center justify-between mb-2">
+                                    <label className="text-[11px] font-extrabold uppercase tracking-wider text-[#8CA0BA]">
+                                      Playing Format
+                                    </label>
+                                    <span className="text-[10px] font-bold text-[#009A60]">
+                                      {tournamentFormatFilter === "All" ? "All formats" : tournamentFormatFilter}
+                                    </span>
+                                  </div>
                                   <div className="grid grid-cols-2 gap-2">
-                                    {["All", "Strokeplay", "Matchplay", "Four-Ball / Scramble"].map((fmt) => {
+                                    {["All", "Strokeplay", "Matchplay", "Four-Ball", "Scramble", "Stableford"].map((fmt) => {
                                       const active = tournamentFormatFilter === fmt;
                                       return (
                                         <button
@@ -8062,11 +8141,16 @@ class TournamentsView extends StatelessWidget {
                                   </div>
                                 </div>
 
-                                {/* Entry Fee */}
+                                {/* Entry Fee Range */}
                                 <div>
-                                  <label className="text-[11px] font-extrabold uppercase tracking-wider text-[#8CA0BA] block mb-2">
-                                    Entry Fee Range
-                                  </label>
+                                  <div className="flex items-center justify-between mb-2">
+                                    <label className="text-[11px] font-extrabold uppercase tracking-wider text-[#8CA0BA]">
+                                      Entry Fee Range
+                                    </label>
+                                    <span className="text-[10px] font-bold text-[#009A60]">
+                                      {tournamentFeeFilter === "All" ? "All fees" : tournamentFeeFilter}
+                                    </span>
+                                  </div>
                                   <div className="grid grid-cols-2 gap-2">
                                     {["All", "Free", "Under ₦100,000", "₦100,000+"].map((fee) => {
                                       const active = tournamentFeeFilter === fee;
@@ -8087,20 +8171,201 @@ class TournamentsView extends StatelessWidget {
                                     })}
                                   </div>
                                 </div>
+
+                                {/* Host Golf Club */}
+                                <div>
+                                  <div className="flex items-center justify-between mb-2">
+                                    <label className="text-[11px] font-extrabold uppercase tracking-wider text-[#8CA0BA]">
+                                      Host Golf Club
+                                    </label>
+                                    <span className="text-[10px] font-bold text-[#009A60]">
+                                      {tournamentClubFilter === "All" ? "All clubs" : tournamentClubFilter}
+                                    </span>
+                                  </div>
+                                  <div className="relative">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setIsHostClubDropdownOpen((prev) => !prev);
+                                        setHostClubSearchQuery("");
+                                      }}
+                                      className={`w-full h-11 bg-[#f5faf6] border rounded-xl px-3 text-xs font-semibold text-[#0F172A] flex items-center justify-between transition-all cursor-pointer select-none active:scale-[0.99] ${
+                                        isHostClubDropdownOpen
+                                          ? "border-[#009A60] ring-2 ring-[#009A60]/20 shadow-xs"
+                                          : "border-[#e1efe5] hover:border-slate-300"
+                                      }`}
+                                    >
+                                      <span className="truncate">
+                                        {tournamentClubFilter === "All"
+                                          ? `All Host Clubs (${Array.from(new Set(combinedTournaments.map(t => t.club).filter(Boolean))).length} Total)`
+                                          : tournamentClubFilter}
+                                      </span>
+                                      <ChevronDown
+                                        className={`w-4 h-4 text-slate-400 shrink-0 transition-transform duration-200 ${
+                                          isHostClubDropdownOpen ? "rotate-180 text-[#009A60]" : ""
+                                        }`}
+                                      />
+                                    </button>
+
+                                    {/* Searchable Options Dropdown */}
+                                    {isHostClubDropdownOpen && (
+                                      <div className="mt-1.5 p-2 bg-white rounded-xl border border-[#e1efe5] shadow-lg space-y-2 animate-in fade-in-50 slide-in-from-top-1 duration-150">
+                                        {/* Search Input Inside the Option Select */}
+                                        <div className="relative">
+                                          <Search className="w-3.5 h-3.5 text-[#8CA0BA] absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                                          <input
+                                            type="text"
+                                            value={hostClubSearchQuery}
+                                            onChange={(e) => setHostClubSearchQuery(e.target.value)}
+                                            placeholder="Search host golf clubs..."
+                                            autoFocus
+                                            className="w-full h-8 pl-8 pr-7 bg-[#f5faf6] border border-[#e1efe5] rounded-lg text-xs font-medium text-[#0F172A] placeholder:text-[#8CA0BA] focus:outline-hidden focus:border-[#009A60] focus:ring-1 focus:ring-[#009A60]/20 transition-all"
+                                          />
+                                          {hostClubSearchQuery && (
+                                            <button
+                                              type="button"
+                                              onClick={() => setHostClubSearchQuery("")}
+                                              className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+                                            >
+                                              <X className="w-3 h-3" />
+                                            </button>
+                                          )}
+                                        </div>
+
+                                        {/* Options List */}
+                                        <div className="max-h-40 overflow-y-auto space-y-1 pr-1 scrollbar-thin">
+                                          {/* "All Host Clubs" Option */}
+                                          {(!hostClubSearchQuery.trim() ||
+                                            "all host clubs".includes(hostClubSearchQuery.toLowerCase().trim())) && (
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                setTournamentClubFilter("All");
+                                                setIsHostClubDropdownOpen(false);
+                                                setHostClubSearchQuery("");
+                                              }}
+                                              className={`w-full px-2.5 py-2 rounded-lg text-xs text-left font-semibold flex items-center justify-between transition-colors cursor-pointer ${
+                                                tournamentClubFilter === "All"
+                                                  ? "bg-[#EAF7EE] text-[#009A60] border border-[#C6F0DB]"
+                                                  : "text-slate-700 hover:bg-[#f5faf6]"
+                                              }`}
+                                            >
+                                              <span className="truncate">
+                                                All Host Clubs ({Array.from(new Set(combinedTournaments.map(t => t.club).filter(Boolean))).length} Total)
+                                              </span>
+                                              {tournamentClubFilter === "All" && (
+                                                <Check className="w-3.5 h-3.5 text-[#009A60] shrink-0 ml-1.5" />
+                                              )}
+                                            </button>
+                                          )}
+
+                                          {/* Filtered Club Options */}
+                                          {Array.from(new Set(combinedTournaments.map((t) => t.club).filter(Boolean)))
+                                            .filter((club) =>
+                                              club.toLowerCase().includes(hostClubSearchQuery.toLowerCase().trim())
+                                            )
+                                            .map((club) => {
+                                              const isSelected = tournamentClubFilter === club;
+                                              return (
+                                                <button
+                                                  key={club}
+                                                  type="button"
+                                                  onClick={() => {
+                                                    setTournamentClubFilter(club);
+                                                    setIsHostClubDropdownOpen(false);
+                                                    setHostClubSearchQuery("");
+                                                  }}
+                                                  className={`w-full px-2.5 py-2 rounded-lg text-xs text-left flex items-center justify-between transition-colors cursor-pointer ${
+                                                    isSelected
+                                                      ? "bg-[#EAF7EE] text-[#009A60] font-bold border border-[#C6F0DB]"
+                                                      : "text-slate-700 font-medium hover:bg-[#f5faf6]"
+                                                  }`}
+                                                >
+                                                  <span className="truncate">{club}</span>
+                                                  {isSelected && (
+                                                    <Check className="w-3.5 h-3.5 text-[#009A60] shrink-0 ml-1.5" />
+                                                  )}
+                                                </button>
+                                              );
+                                            })}
+
+                                          {/* Empty state when no clubs match */}
+                                          {Array.from(new Set(combinedTournaments.map((t) => t.club).filter(Boolean))).filter((club) =>
+                                            club.toLowerCase().includes(hostClubSearchQuery.toLowerCase().trim())
+                                          ).length === 0 &&
+                                            hostClubSearchQuery.trim() && (
+                                              <div className="py-3 px-2 text-center text-[11px] text-slate-400">
+                                                No clubs found matching &ldquo;{hostClubSearchQuery}&rdquo;
+                                              </div>
+                                            )}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* Sort Tournaments By */}
+                                <div>
+                                  <label className="text-[11px] font-extrabold uppercase tracking-wider text-[#8CA0BA] block mb-2">
+                                    Sort Tournaments By
+                                  </label>
+                                  <div className="grid grid-cols-2 gap-2">
+                                    {[
+                                      { id: "date", label: "Upcoming Date" },
+                                      { id: "name", label: "Tournament Name" },
+                                      { id: "fee_asc", label: "Fee: Low to High" },
+                                      { id: "fee_desc", label: "Fee: High to Low" },
+                                    ].map((sortItem) => {
+                                      const active = tournamentSortOrder === sortItem.id;
+                                      return (
+                                        <button
+                                          key={sortItem.id}
+                                          type="button"
+                                          onClick={() => setTournamentSortOrder(sortItem.id as any)}
+                                          className={`py-2 px-3 rounded-xl text-xs font-bold transition-all border text-center cursor-pointer ${
+                                            active
+                                              ? "bg-[#009A60] text-white border-[#009A60] shadow-xs"
+                                              : "bg-[#f5faf6] text-[#475569] border-[#e1efe5] hover:border-slate-300"
+                                          }`}
+                                        >
+                                          {sortItem.label}
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
                               </div>
 
                               {/* Footer Buttons */}
-                              <div className="flex gap-2.5 pt-4 mt-2 border-t border-slate-100">
+                              <div className="flex gap-2.5 pt-3 mt-2 border-t border-slate-100 shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setTournamentFilter("All");
+                                    setTournamentFormatFilter("All");
+                                    setTournamentFeeFilter("All");
+                                    setTournamentClubFilter("All");
+                                    setTournamentSortOrder("date");
+                                    setIsHostClubDropdownOpen(false);
+                                    setHostClubSearchQuery("");
+                                    showToast("Filters reset to default", "success", "FILTERS RESET");
+                                  }}
+                                  className="py-3 px-4 rounded-xl border border-[#e1efe5] bg-white hover:bg-slate-50 active:scale-98 text-slate-700 font-bold text-xs shadow-2xs transition-all cursor-pointer shrink-0"
+                                >
+                                  Reset All
+                                </button>
                                 <button
                                   type="button"
                                   onClick={() => {
                                     setShowTournamentFilterModal(false);
-                                    showToast("Tournament filters applied", "success", "FILTERS APPLIED");
+                                    setIsHostClubDropdownOpen(false);
+                                    setHostClubSearchQuery("");
+                                    showToast(`Showing ${filteredTournaments.length} tournaments`, "success", "FILTERS APPLIED");
                                   }}
-                                  className="w-full py-3 rounded-xl bg-[#009A60] hover:bg-[#008251] active:scale-98 text-white font-bold text-xs shadow-xs transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                                  className="flex-1 py-3 rounded-xl bg-[#009A60] hover:bg-[#008251] active:scale-98 text-white font-bold text-xs shadow-xs transition-all cursor-pointer flex items-center justify-center gap-1.5"
                                 >
                                   <Check className="w-3.5 h-3.5" />
-                                  <span>Apply Filters ({filteredTournaments.length} Matches)</span>
+                                  <span>Apply Filters</span>
                                 </button>
                               </div>
                             </div>
@@ -8139,7 +8404,7 @@ class TournamentsView extends StatelessWidget {
                               <div className="space-y-2.5 my-4 text-xs">
                                 <div className="flex justify-between py-1.5 border-b border-slate-100">
                                   <span className="text-slate-500 font-medium">Dates</span>
-                                  <span className="font-semibold text-slate-800">{selectedTournamentInfo.date}</span>
+                                  <span className="font-semibold text-slate-800">{formatWithOrdinal(selectedTournamentInfo.date)}</span>
                                 </div>
                                 <div className="flex justify-between py-1.5 border-b border-slate-100">
                                   <span className="text-slate-500 font-medium">Format</span>
@@ -15758,7 +16023,7 @@ class TournamentsView extends StatelessWidget {
                       type="button"
                       onClick={() => {
                         setShowMenuDrawer(false);
-                        showToast("Settings & Preferences opened.", "success", "SETTINGS");
+                        setShowUserSettingsModal(true);
                       }}
                       className="w-full text-left p-2.5 rounded-xl hover:bg-slate-50 text-slate-700 hover:text-slate-900 flex items-center gap-2.5 cursor-pointer font-medium transition-colors"
                     >
@@ -15795,6 +16060,295 @@ class TournamentsView extends StatelessWidget {
                     >
                       <LogOut className="h-4 w-4 text-rose-600" />
                       <span>Sign Out</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* --- BOTTOM SHEET: SETTINGS & PREFERENCES (MATCHING QR CODE GEOMETRY) --- */}
+            {showUserSettingsModal && (
+              <div
+                className="absolute inset-0 z-50 bg-black/60 backdrop-blur-xs flex flex-col justify-end animate-in fade-in duration-150"
+                onClick={() => setShowUserSettingsModal(false)}
+              >
+                <div
+                  className="relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl p-5 pb-6 animate-in slide-in-from-bottom duration-200 max-h-[88%] flex flex-col w-full max-w-sm mx-auto"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {/* Drag Handle */}
+                  <div className="w-10 h-1 bg-slate-200 rounded-full mx-auto mb-3.5 shrink-0" />
+
+                  {/* Sheet Header matching QR Code Display */}
+                  <div className="flex items-center justify-between pb-3.5 border-b border-slate-100 shrink-0">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-10 h-10 rounded-xl bg-[#EAF7EE] flex items-center justify-center shrink-0 shadow-xs border border-[#C6F0DB]">
+                        <Sliders className="h-5 w-5 text-[#009A60]" />
+                      </div>
+                      <div className="min-w-0">
+                        <h4 className="text-base font-bold text-slate-900 leading-tight truncate">
+                          Settings & Preferences
+                        </h4>
+                        <p className="text-xs text-slate-500 font-medium leading-tight mt-0.5 truncate">
+                          Manage preferences and sync with database
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowUserSettingsModal(false)}
+                      className="h-8 w-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors cursor-pointer shrink-0"
+                      title="Close"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {/* Sheet Body: Scrollable Content */}
+                  <div className="overflow-y-auto max-h-[440px] scrollbar-hide space-y-4 py-2 text-xs">
+                    {/* Connected Database User Banner */}
+                    <div className="bg-[#f5faf6] border border-[#e1efe5] rounded-2xl p-3 flex items-center justify-between gap-3 shadow-2xs">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-9 h-9 rounded-full bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center text-[#009A60] font-bold text-xs shrink-0">
+                          {getTwoInitials(currentDisplayName)}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-bold text-[#0F172A] truncate">{currentDisplayName}</span>
+                            <span className="px-1.5 py-0.2 rounded-full bg-[#EAF7EE] text-[#009A60] text-[9px] font-bold border border-[#C6F0DB]">Verified</span>
+                          </div>
+                          <p className="text-[11px] text-slate-500 font-medium truncate mt-0.5">
+                            {authenticatedPlayer?.club || "Ikoyi Club 1938"} • HCP {authenticatedPlayer?.handicap ?? "0.0"}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 text-[10px] font-bold text-[#009A60] bg-white border border-[#C6F0DB] px-2 py-1 rounded-lg shrink-0">
+                        <Check className="w-3 h-3 text-[#009A60]" />
+                        <span>DB Active</span>
+                      </div>
+                    </div>
+
+                    {/* Section 1: Notifications */}
+                    <div className="space-y-2.5">
+                      <label className="text-[11px] font-extrabold uppercase tracking-wider text-[#8CA0BA] block">
+                        Notifications & Alerts
+                      </label>
+                      <div className="bg-white border border-slate-200/80 rounded-2xl p-3 space-y-3">
+                        {/* Push Notifications */}
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="text-xs font-bold text-[#0F172A]">Tournament Push Alerts</div>
+                            <div className="text-[11px] text-slate-500 font-medium">Tee times, pairings & live scoring updates</div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setUserPrefPushNotifications(!userPrefPushNotifications)}
+                            className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors cursor-pointer ${
+                              userPrefPushNotifications ? "bg-[#009A60]" : "bg-slate-200"
+                            }`}
+                          >
+                            <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
+                              userPrefPushNotifications ? "translate-x-5" : "translate-x-0"
+                            }`} />
+                          </button>
+                        </div>
+
+                        {/* Email Updates */}
+                        <div className="flex items-center justify-between pt-2.5 border-t border-slate-100">
+                          <div>
+                            <div className="text-xs font-bold text-[#0F172A]">Weekly Email Digest</div>
+                            <div className="text-[11px] text-slate-500 font-medium">Results, handicap revisions & club news</div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setUserPrefEmailDigest(!userPrefEmailDigest)}
+                            className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors cursor-pointer ${
+                              userPrefEmailDigest ? "bg-[#009A60]" : "bg-slate-200"
+                            }`}
+                          >
+                            <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
+                              userPrefEmailDigest ? "translate-x-5" : "translate-x-0"
+                            }`} />
+                          </button>
+                        </div>
+
+                        {/* Friend Activity */}
+                        <div className="flex items-center justify-between pt-2.5 border-t border-slate-100">
+                          <div>
+                            <div className="text-xs font-bold text-[#0F172A]">Golf Friend Activity</div>
+                            <div className="text-[11px] text-slate-500 font-medium">Notify when friends check in on course</div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setUserPrefFriendActivity(!userPrefFriendActivity)}
+                            className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors cursor-pointer ${
+                              userPrefFriendActivity ? "bg-[#009A60]" : "bg-slate-200"
+                            }`}
+                          >
+                            <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
+                              userPrefFriendActivity ? "translate-x-5" : "translate-x-0"
+                            }`} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Section 2: Golf Gameplay Preferences */}
+                    <div className="space-y-2.5">
+                      <label className="text-[11px] font-extrabold uppercase tracking-wider text-[#8CA0BA] block">
+                        Golf Gameplay
+                      </label>
+                      <div className="bg-white border border-slate-200/80 rounded-2xl p-3 space-y-3">
+                        {/* Distance Units (Segmented control matching rules) */}
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="text-xs font-bold text-[#0F172A]">Distance Units</div>
+                            <div className="text-[11px] text-slate-500 font-medium">Hole yardages & GPS tracking</div>
+                          </div>
+                          <div className="flex rounded-xl bg-[#f5faf6] border border-[#e1efe5] p-0.5">
+                            <button
+                              type="button"
+                              onClick={() => setUserPrefDistanceUnit("yards")}
+                              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                                userPrefDistanceUnit === "yards"
+                                  ? "bg-white text-[#0F172A] shadow-xs border border-[#e1efe5]"
+                                  : "text-slate-500 hover:text-slate-900 border border-transparent"
+                              }`}
+                            >
+                              Yards
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setUserPrefDistanceUnit("meters")}
+                              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                                userPrefDistanceUnit === "meters"
+                                  ? "bg-white text-[#0F172A] shadow-xs border border-[#e1efe5]"
+                                  : "text-slate-500 hover:text-slate-900 border border-transparent"
+                              }`}
+                            >
+                              Meters
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Auto-Sync Handicap Index */}
+                        <div className="flex items-center justify-between pt-2.5 border-t border-slate-100">
+                          <div>
+                            <div className="text-xs font-bold text-[#0F172A]">Auto-Sync Handicap Index</div>
+                            <div className="text-[11px] text-slate-500 font-medium">Synchronize with official WHS/GHIN database</div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setUserPrefAutoSyncHandicap(!userPrefAutoSyncHandicap)}
+                            className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors cursor-pointer ${
+                              userPrefAutoSyncHandicap ? "bg-[#009A60]" : "bg-slate-200"
+                            }`}
+                          >
+                            <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
+                              userPrefAutoSyncHandicap ? "translate-x-5" : "translate-x-0"
+                            }`} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Section 3: Privacy & Visibility */}
+                    <div className="space-y-2.5">
+                      <label className="text-[11px] font-extrabold uppercase tracking-wider text-[#8CA0BA] block">
+                        Privacy & Visibility
+                      </label>
+                      <div className="bg-white border border-slate-200/80 rounded-2xl p-3 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="text-xs font-bold text-[#0F172A]">Public Leaderboard Profile</div>
+                            <div className="text-[11px] text-slate-500 font-medium">Show name on public scoreboards</div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setUserPrefPublicProfile(!userPrefPublicProfile)}
+                            className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors cursor-pointer ${
+                              userPrefPublicProfile ? "bg-[#009A60]" : "bg-slate-200"
+                            }`}
+                          >
+                            <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
+                              userPrefPublicProfile ? "translate-x-5" : "translate-x-0"
+                            }`} />
+                          </button>
+                        </div>
+
+                        <div className="flex items-center justify-between pt-2.5 border-t border-slate-100">
+                          <div>
+                            <div className="text-xs font-bold text-[#0F172A]">Allow Golf Friend Requests</div>
+                            <div className="text-[11px] text-slate-500 font-medium">Let members find & connect with you</div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setUserPrefAllowFriendRequests(!userPrefAllowFriendRequests)}
+                            className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors cursor-pointer ${
+                              userPrefAllowFriendRequests ? "bg-[#009A60]" : "bg-slate-200"
+                            }`}
+                          >
+                            <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
+                              userPrefAllowFriendRequests ? "translate-x-5" : "translate-x-0"
+                            }`} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Footer Save Button */}
+                  <div className="pt-3 mt-2 border-t border-slate-100 shrink-0">
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        setIsSavingUserPreferences(true);
+                        try {
+                          const backendBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+                          if (authenticatedPlayer?.id) {
+                            await fetch(`${backendBase}/users/profile`, {
+                              method: 'PATCH',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({
+                                id: authenticatedPlayer.id,
+                                settings: {
+                                  pushNotifications: userPrefPushNotifications,
+                                  emailDigest: userPrefEmailDigest,
+                                  friendActivity: userPrefFriendActivity,
+                                  distanceUnit: userPrefDistanceUnit,
+                                  autoSyncHandicap: userPrefAutoSyncHandicap,
+                                  publicProfile: userPrefPublicProfile,
+                                  allowFriendRequests: userPrefAllowFriendRequests,
+                                }
+                              })
+                            }).catch(() => null);
+                          }
+                          if (typeof window !== "undefined") {
+                            localStorage.setItem("openclub_user_settings", JSON.stringify({
+                              pushNotifications: userPrefPushNotifications,
+                              emailDigest: userPrefEmailDigest,
+                              friendActivity: userPrefFriendActivity,
+                              distanceUnit: userPrefDistanceUnit,
+                              autoSyncHandicap: userPrefAutoSyncHandicap,
+                              publicProfile: userPrefPublicProfile,
+                              allowFriendRequests: userPrefAllowFriendRequests,
+                            }));
+                          }
+                          showToast("Preferences saved to database successfully.", "success", "SETTINGS SAVED");
+                          setShowUserSettingsModal(false);
+                        } finally {
+                          setIsSavingUserPreferences(false);
+                        }
+                      }}
+                      disabled={isSavingUserPreferences}
+                      className="w-full py-3 rounded-xl bg-[#009A60] hover:bg-[#008251] active:scale-98 text-white font-bold text-xs shadow-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
+                    >
+                      {isSavingUserPreferences ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Check className="w-3.5 h-3.5" />
+                      )}
+                      <span>{isSavingUserPreferences ? "Saving to Database..." : "Save Settings to Database"}</span>
                     </button>
                   </div>
                 </div>

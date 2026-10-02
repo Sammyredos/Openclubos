@@ -39,13 +39,21 @@ function getErrorMessage(e: unknown) {
   return null;
 }
 
+function getAuthHeaders(extra?: HeadersInit): Record<string, string> {
+  const token = getAuthToken();
+  return {
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(extra as Record<string, string>),
+  };
+}
+
 export async function invitePlayerToTournament(data: { tournamentId: string; email: string }) {
   
   const res = await fetch(`${API_BASE}/registrations/invite`, { credentials: 'include',
     method: 'POST',
-    headers: {
+    headers: getAuthHeaders({
       'Content-Type': 'application/json',
-    },
+    }),
     body: JSON.stringify(data),
   });
   if (!res.ok) {
@@ -71,9 +79,9 @@ export async function registerForTournament(data: {
   
   const res = await fetch(`${API_BASE}/registrations`, { credentials: 'include',
     method: 'POST',
-    headers: {
+    headers: getAuthHeaders({
       'Content-Type': 'application/json',
-    },
+    }),
     body: JSON.stringify(data),
   });
 
@@ -119,8 +127,7 @@ export async function getRegistrations(params?: {
 
   const qs = searchParams.toString();
   const res = await fetch(`${API_BASE}/registrations${qs ? `?${qs}` : ''}`, { credentials: 'include',
-    headers: {
-    },
+    headers: getAuthHeaders(),
   });
 
   if (!res.ok) {
@@ -138,8 +145,7 @@ export async function getRegistrationStats(params?: { clubId?: string }) {
 
   const qs = searchParams.toString();
   const res = await fetch(`${API_BASE}/registrations/stats${qs ? `?${qs}` : ''}`, { credentials: 'include',
-    headers: {
-    },
+    headers: getAuthHeaders(),
   });
 
   if (!res.ok) {
@@ -157,9 +163,9 @@ export async function updateRegistrationStatus(
   
   const res = await fetch(`${API_BASE}/registrations/${registrationId}/status`, { credentials: 'include',
     method: 'PATCH',
-    headers: {
+    headers: getAuthHeaders({
       'Content-Type': 'application/json',
-    },
+    }),
     body: JSON.stringify({ status }),
   });
 
@@ -175,9 +181,9 @@ export async function addRegistrationStrokes(registrationId: string, delta: numb
   
   const res = await fetch(`${API_BASE}/registrations/${registrationId}/strokes`, { credentials: 'include',
     method: 'PATCH',
-    headers: {
+    headers: getAuthHeaders({
       'Content-Type': 'application/json',
-    },
+    }),
     body: JSON.stringify({ delta }),
   });
 
@@ -193,8 +199,7 @@ export async function clearRegistrationStrokes(registrationId: string): Promise<
   
   const res = await fetch(`${API_BASE}/registrations/${registrationId}/strokes/clear`, { credentials: 'include',
     method: 'PATCH',
-    headers: {
-    },
+    headers: getAuthHeaders(),
   });
 
   if (!res.ok) {
@@ -209,8 +214,7 @@ export async function deleteRegistration(registrationId: string) {
   
   const res = await fetch(`${API_BASE}/registrations/${registrationId}`, { credentials: 'include',
     method: 'DELETE',
-    headers: {
-    },
+    headers: getAuthHeaders(),
   });
 
   if (!res.ok) {
@@ -225,9 +229,9 @@ export async function confirmRegistrationPayment(registrationId: string, payment
   
   const res = await fetch(`${API_BASE}/registrations/${registrationId}/payment`, { credentials: 'include',
     method: 'PATCH',
-    headers: {
+    headers: getAuthHeaders({
       'Content-Type': 'application/json',
-    },
+    }),
     body: JSON.stringify({ paymentReference }),
   });
 

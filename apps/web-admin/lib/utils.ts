@@ -445,4 +445,27 @@ export function toTitleCase(input?: string | null): string {
 }
 
 export const formatTitleCase = toTitleCase;
+
+export function getOrdinalSuffix(day: number): string {
+  const s = ["th", "st", "nd", "rd"];
+  const v = day % 100;
+  return s[(v - 20) % 10] || s[v] || s[0];
+}
+
+export function formatWithOrdinal(str?: string | null): string {
+  if (!str) return "";
+  return str.replace(/\b(\d{1,2})(st|nd|rd|th)?\b/g, (match, day, existingSuffix, offset, fullStr) => {
+    const prevChar = offset > 0 ? fullStr[offset - 1] : "";
+    const nextChar = offset + match.length < fullStr.length ? fullStr[offset + match.length] : "";
+    if (prevChar === ":" || nextChar === ":") return match;
+    if (prevChar === "₦" || prevChar === "$" || prevChar === "€" || prevChar === "£") return match;
+    const num = parseInt(day, 10);
+    if (num >= 1 && num <= 31) {
+      return `${num}${getOrdinalSuffix(num)}`;
+    }
+    return match;
+  });
+}
+
+export const formatDateWithOrdinal = formatWithOrdinal;
 

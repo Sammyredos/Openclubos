@@ -37,7 +37,9 @@ import {
   CheckCircle,
   Loader2,
   Copy,
-  XCircle
+  XCircle,
+  Lock,
+  AlertCircle
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -217,6 +219,8 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
 
   // Export dropdown
   const [exportAnchorEl, setExportAnchorEl] = useState<HTMLElement | null>(null);
+  const [accountToDelete, setAccountToDelete] = useState<ClubBankAccount | null>(null);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
   const loadBankAccounts = async () => {
     if (!user?.clubId) return;
@@ -235,9 +239,18 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
           setAccountNumber(def.accountNumber);
           setAccountName(def.accountName);
         }
+      } else {
+        setSelectedBankAccountId("");
+        setBankName("");
+        setAccountNumber("");
+        setAccountName("");
       }
     } catch {
       setBankAccounts([]);
+      setSelectedBankAccountId("");
+      setBankName("");
+      setAccountNumber("");
+      setAccountName("");
     }
   };
 
@@ -248,8 +261,8 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
     }
     try {
       const [regData, statsData, walletData, withdrawalsData, accountsData, banksData] = await Promise.all([
-        getRegistrations({ clubId: user.clubId, take: 100, orderBy: 'updatedAt' }),
-        getRegistrationStats({ clubId: user.clubId }),
+        getRegistrations({ clubId: user.clubId, take: 1000, orderBy: 'updatedAt' }).catch(() => ({ total: 0, items: [] })),
+        getRegistrationStats({ clubId: user.clubId }).catch(() => ({ totalTransactions: 0, totalRevenue: 0, pendingAmount: 0, refundsAmount: 0, transactionsChange: 0, revenueChange: 0 })),
         getClubWallet().catch(() => null),
         getMyWithdrawals().catch(() => ({ total: 0, items: [] })),
         getClubBankAccounts().catch(() => []),
@@ -448,13 +461,22 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
     }
   };
 
-  const handleDeleteAccount = async (accId: string) => {
+  const handleDeleteAccount = (acc: ClubBankAccount) => {
+    setAccountToDelete(acc);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!accountToDelete) return;
+    setIsDeletingAccount(true);
     try {
-      await deleteClubBankAccount(accId);
+      await deleteClubBankAccount(accountToDelete.id);
       toast.success("Bank account removed.");
       await loadBankAccounts();
+      setAccountToDelete(null);
     } catch (err: any) {
       toast.error(err.message || "Failed to remove bank account.");
+    } finally {
+      setIsDeletingAccount(false);
     }
   };
 
@@ -571,55 +593,103 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
       {/* 4 Stat Cards */}
       <div className="w-full bg-white rounded-lg shadow-[0px_0px_4px_0px_rgba(0,0,0,0.15)] overflow-x-auto">
         <div className="flex items-center justify-between p-8 min-w-max gap-12 font-sans">
-
-          {/* Card 1: Available Balance */}
-          <div className="flex flex-col justify-start items-start gap-3.5 flex-1 min-w-[220px]">
-            <div className="flex justify-start items-center gap-3.5">
-              <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Available for Withdrawal</div>
-            </div>
-            <div className="text-[#15803D] text-3xl font-bold">{formatCurrency(wallet?.availableBalance || 0)}</div>
-            <div className="text-zinc-500 text-sm font-normal">Ready for instant payout</div>
-          </div>
-
-          <div className="w-px h-16 bg-slate-200" />
-
-          {/* Card 2: Locked Balance */}
-          <div className="flex flex-col justify-start items-start gap-3.5 flex-1 min-w-[220px]">
-            <div className="flex justify-start items-center gap-3.5">
-              <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">In-Flight / Locked</div>
-              {wallet?.lockedBalance && wallet.lockedBalance > 0 ? (
-                <div className="px-2 py-1 bg-emerald-50 rounded-lg flex justify-center items-center gap-1 shrink-0 whitespace-nowrap">
-                  <Clock className="w-3.5 h-3.5 text-[#15803D]" />
-                  <div className="text-[#15803D] text-xs font-medium">In Review</div>
+          {activeTab === "transactions" ? (
+            <>
+              {/* Card 1: Gross Revenue */}
+              <div className="flex flex-col justify-start items-start gap-3.5 flex-1 min-w-[220px]">
+                <div className="flex justify-start items-center gap-3.5">
+                  <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Gross Revenue</div>
+                  {stats.revenueChange !== 0 && <TrendBadge value={stats.revenueChange} />}
                 </div>
-              ) : null}
-            </div>
-            <div className="text-[#15803D] text-3xl font-bold">{formatCurrency(wallet?.lockedBalance || 0)}</div>
-            <div className="text-zinc-500 text-sm font-normal">Pending review</div>
-          </div>
+                <div className="text-[#15803D] text-3xl font-bold">{formatCurrency(stats.totalRevenue || (wallet?.totalRevenue || 0))}</div>
+                <div className="text-zinc-500 text-sm font-normal">All Time</div>
+              </div>
 
-          <div className="w-px h-16 bg-slate-200" />
+              <div className="w-px h-16 bg-slate-200" />
 
-          {/* Card 3: Total Withdrawn */}
-          <div className="flex flex-col justify-start items-start gap-3.5 flex-1 min-w-[220px]">
-            <div className="flex justify-start items-center gap-3.5">
-              <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Total Paid Out</div>
-            </div>
-            <div className="text-[#15803D] text-3xl font-bold">{formatCurrency(wallet?.totalWithdrawn || 0)}</div>
-            <div className="text-zinc-500 text-sm font-normal">Settled to bank</div>
-          </div>
+              {/* Card 2: Total Transactions */}
+              <div className="flex flex-col justify-start items-start gap-3.5 flex-1 min-w-[220px]">
+                <div className="flex justify-start items-center gap-3.5">
+                  <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Total Transactions</div>
+                  {stats.transactionsChange !== 0 && <TrendBadge value={stats.transactionsChange} />}
+                </div>
+                <div className="text-[#15803D] text-3xl font-bold">{formatNumber(stats.totalTransactions)}</div>
+                <div className="text-zinc-500 text-sm font-normal">Confirmed entries</div>
+              </div>
 
-          <div className="w-px h-16 bg-slate-200" />
+              <div className="w-px h-16 bg-slate-200" />
 
-          {/* Card 4: Gross Revenue */}
-          <div className="flex flex-col justify-start items-start gap-3.5 flex-1 min-w-[220px]">
-            <div className="flex justify-start items-center gap-3.5">
-              <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Gross Revenue</div>
-            </div>
-            <div className="text-[#15803D] text-3xl font-bold">{formatCurrency(stats.totalRevenue || (wallet?.totalRevenue || 0))}</div>
-            <div className="text-zinc-500 text-sm font-normal">All Time</div>
-          </div>
+              {/* Card 3: Pending Payments */}
+              <div className="flex flex-col justify-start items-start gap-3.5 flex-1 min-w-[220px]">
+                <div className="flex justify-start items-center gap-3.5">
+                  <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Pending Payments</div>
+                </div>
+                <div className="text-[#15803D] text-3xl font-bold">{formatCurrency(stats.pendingAmount)}</div>
+                <div className="text-zinc-500 text-sm font-normal">Awaiting confirmation</div>
+              </div>
 
+              <div className="w-px h-16 bg-slate-200" />
+
+              {/* Card 4: Refunded Entries */}
+              <div className="flex flex-col justify-start items-start gap-3.5 flex-1 min-w-[220px]">
+                <div className="flex justify-start items-center gap-3.5">
+                  <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Refunded Entries</div>
+                </div>
+                <div className="text-[#15803D] text-3xl font-bold">{formatCurrency(stats.refundsAmount)}</div>
+                <div className="text-zinc-500 text-sm font-normal">Cancelled / Reversed</div>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Card 1: Available Balance */}
+              <div className="flex flex-col justify-start items-start gap-3.5 flex-1 min-w-[220px]">
+                <div className="flex justify-start items-center gap-3.5">
+                  <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Available for Withdrawal</div>
+                </div>
+                <div className="text-[#15803D] text-3xl font-bold">{formatCurrency(wallet?.availableBalance || 0)}</div>
+                <div className="text-zinc-500 text-sm font-normal">Ready for instant payout</div>
+              </div>
+
+              <div className="w-px h-16 bg-slate-200" />
+
+              {/* Card 2: Locked Balance */}
+              <div className="flex flex-col justify-start items-start gap-3.5 flex-1 min-w-[220px]">
+                <div className="flex justify-start items-center gap-3.5">
+                  <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">In-Flight / Locked</div>
+                  {wallet?.lockedBalance && wallet.lockedBalance > 0 ? (
+                    <div className="px-2 py-1 bg-emerald-50 rounded-lg flex justify-center items-center gap-1 shrink-0 whitespace-nowrap">
+                      <Clock className="w-3.5 h-3.5 text-[#15803D]" />
+                      <div className="text-[#15803D] text-xs font-medium">In Review</div>
+                    </div>
+                  ) : null}
+                </div>
+                <div className="text-[#15803D] text-3xl font-bold">{formatCurrency(wallet?.lockedBalance || 0)}</div>
+                <div className="text-zinc-500 text-sm font-normal">Pending review</div>
+              </div>
+
+              <div className="w-px h-16 bg-slate-200" />
+
+              {/* Card 3: Total Withdrawn */}
+              <div className="flex flex-col justify-start items-start gap-3.5 flex-1 min-w-[220px]">
+                <div className="flex justify-start items-center gap-3.5">
+                  <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Total Paid Out</div>
+                </div>
+                <div className="text-[#15803D] text-3xl font-bold">{formatCurrency(wallet?.totalWithdrawn || 0)}</div>
+                <div className="text-zinc-500 text-sm font-normal">Settled to bank</div>
+              </div>
+
+              <div className="w-px h-16 bg-slate-200" />
+
+              {/* Card 4: Gross Revenue */}
+              <div className="flex flex-col justify-start items-start gap-3.5 flex-1 min-w-[220px]">
+                <div className="flex justify-start items-center gap-3.5">
+                  <div className="text-zinc-700 text-[15px] font-medium whitespace-nowrap">Gross Revenue</div>
+                </div>
+                <div className="text-[#15803D] text-3xl font-bold">{formatCurrency(stats.totalRevenue || (wallet?.totalRevenue || 0))}</div>
+                <div className="text-zinc-500 text-sm font-normal">All Time</div>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -777,12 +847,12 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
                       setIsAddingAccount(false);
                     }}
                     variant="outline"
-                    className="group h-10 border-slate-800 text-slate-800 hover:bg-slate-800 hover:text-white bg-transparent gap-2 rounded-lg px-3.5 text-[14px] font-normal transition-all cursor-pointer"
+                    className="h-10 bg-[#f5faf6] hover:bg-[#eaf7ee] border-[#e1efe5] hover:border-[#C6F0DB] text-slate-800 hover:text-slate-900 gap-2 rounded-lg px-4 text-[14px] font-semibold transition-all cursor-pointer shadow-xs"
                   >
-                    <Building2 className="w-4 h-4 text-slate-800 group-hover:text-white transition-colors" />
+                    <Building2 className="w-4 h-4 text-slate-700" />
                     <span>Add Bank Account</span>
                     {bankAccounts.length > 0 && (
-                      <span className="ml-0.5 px-1.5 py-0.5 text-[11px] font-medium bg-slate-100 text-slate-700 group-hover:bg-slate-700 group-hover:text-white rounded-full transition-colors">
+                      <span className="ml-1 px-1.5 py-0.5 text-[11px] font-bold bg-white border border-[#e1efe5] text-slate-700 rounded-full">
                         {bankAccounts.length}/2
                       </span>
                     )}
@@ -806,7 +876,7 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
                       }
                       setIsWithdrawModalOpen(true);
                     }}
-                    className="h-10 bg-[#15803D] hover:bg-[#166534] border border-openclub-800/30 text-white gap-2 rounded-lg px-4 text-[14px] font-normal"
+                    className="h-10 bg-[#15803D] hover:bg-[#166534] border border-openclub-800/30 text-white gap-2 rounded-lg px-4 text-[14px] font-medium cursor-pointer shadow-xs transition-colors"
                   >
                     <Banknote className="w-4 h-4" /> Request Withdrawal
                   </Button>
@@ -1074,10 +1144,17 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
                 {/* Table Footer with Pagination */}
                 <div className="p-4 border-t border-[#e1efe5] flex items-center justify-between">
                   <div className="text-xs text-gray-500 font-normal">
-                    Showing {activeTab === "transactions"
-                      ? `${Math.min(filteredRegistrations.length, (page - 1) * perPage + 1)} to ${Math.min(filteredRegistrations.length, page * perPage)} of ${filteredRegistrations.length} transactions`
-                      : `${Math.min(filteredWithdrawals.length, (withdrawalPage - 1) * perPage + 1)} to ${Math.min(filteredWithdrawals.length, withdrawalPage * perPage)} of ${filteredWithdrawals.length} withdrawals`
-                    }
+                    Showing{" "}
+                    <strong className="font-medium text-gray-900">
+                      {activeTab === "transactions"
+                        ? filteredRegistrations.length === 0
+                          ? "0"
+                          : `${(page - 1) * perPage + 1}–${Math.min(page * perPage, filteredRegistrations.length)}`
+                        : filteredWithdrawals.length === 0
+                          ? "0"
+                          : `${(withdrawalPage - 1) * perPage + 1}–${Math.min(withdrawalPage * perPage, filteredWithdrawals.length)}`}
+                    </strong>{" "}
+                    of {activeTab === "transactions" ? `${filteredRegistrations.length} transactions` : `${filteredWithdrawals.length} withdrawals`}
                   </div>
                   {activeTab === "transactions" ? (
                     filteredRegistrations.length > perPage && (
@@ -1107,61 +1184,70 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
       <Modal
         isOpen={isWithdrawModalOpen}
         onClose={() => !isSubmittingWithdrawal && setIsWithdrawModalOpen(false)}
-        title="Request Payout Withdrawal"
-        className="max-w-xl"
+        title={
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center text-[#009A60] shrink-0 shadow-2xs">
+              <Banknote className="w-4.5 h-4.5 text-[#009A60]" />
+            </div>
+            <span className="text-lg font-bold text-gray-900 tracking-tight">Request Payout Withdrawal</span>
+          </div>
+        }
+        className="max-w-md rounded-[28px] sm:rounded-[32px] overflow-hidden"
       >
-        <form onSubmit={handleWithdrawSubmit} className="space-y-5 font-sans text-left">
+        <form onSubmit={handleWithdrawSubmit} className="space-y-4 font-sans text-left">
           {/* Balance Banner */}
-          <div className="bg-[#f5faf6] border border-[#e1efe5] rounded-2xl p-4 sm:p-4.5 flex items-center justify-between shadow-xs">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-white border border-[#e1efe5] text-[#15803D] flex items-center justify-center shrink-0 shadow-xs">
-                <Wallet className="w-5 h-5 text-[#15803D]" />
+          <div className="bg-[#F5FAF6] border border-[#E1EFE5] rounded-2xl p-4 flex items-center justify-between shadow-xs">
+            <div className="flex items-center gap-3.5">
+              <div className="w-11 h-11 rounded-xl bg-white border border-[#E1EFE5] flex items-center justify-center text-[#009A60] shrink-0 shadow-2xs">
+                <Wallet className="w-5 h-5 text-[#009A60] fill-[#009A60]" />
               </div>
               <div>
-                <p className="text-[11px] text-gray-500 font-medium uppercase tracking-wider">Available Balance</p>
-                <p className="text-lg font-semibold text-[#15803D] leading-tight">{formatCurrency(availableBalance)}</p>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">AVAILABLE BALANCE</p>
+                <p className="text-2xl font-black text-gray-900 tracking-tight leading-tight">
+                  {formatCurrency(availableBalance).replace(/\.00$/, "")}
+                </p>
               </div>
             </div>
             <button
               type="button"
               onClick={() => setWithdrawAmount(availableBalance > 0 ? availableBalance.toLocaleString("en-US") : "0")}
-              className="h-8 px-3.5 inline-flex items-center justify-center gap-1.5 rounded-lg bg-[#15803D] text-white hover:bg-[#116731] transition-all text-xs font-normal shadow-xs active:scale-95 cursor-pointer"
+              className="h-8 px-3.5 inline-flex items-center justify-center rounded-xl bg-[#009A60] text-white hover:bg-[#008250] transition-all text-[11px] font-bold uppercase tracking-wider shadow-xs active:scale-95 cursor-pointer"
             >
-              Withdraw Max
+              WITHDRAW MAX
             </button>
           </div>
 
           {/* Amount Field */}
           <div className="space-y-1.5">
-            <label className="block text-xs font-medium text-gray-800">
-              Withdrawal Amount (₦) <span className="text-red-500">*</span>
+            <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-700">
+              WITHDRAWAL AMOUNT <span className="text-[#009A60] font-bold">(N)</span> <span className="text-red-500">*</span>
             </label>
             <div className="relative">
-              <Input
+              <input
                 type="text"
                 inputMode="decimal"
                 placeholder="e.g. 50,000"
                 value={withdrawAmount}
                 onChange={(e) => handleAmountChange(e.target.value)}
                 className={cn(
-                  "h-11 rounded-xl text-sm font-medium px-4 pr-16 bg-white border-[#e1efe5]",
-                  (isAmountOverBalance || isAmountBelowMin) && "border-red-500 focus:border-red-500"
+                  "w-full h-12 rounded-xl text-sm font-semibold px-4 pr-16 bg-[#F5FAF6] border border-[#E1EFE5] text-[#0F172A] placeholder:text-slate-400 focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 focus:outline-hidden transition-all",
+                  (isAmountOverBalance || isAmountBelowMin) && "border-red-500 focus:border-red-500 focus:ring-red-500/20"
                 )}
                 required
               />
-              <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-gray-400">
+              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 uppercase tracking-wider pointer-events-none">
                 NGN
               </span>
             </div>
 
             {isAmountOverBalance && (
-              <div className="flex items-center gap-1.5 text-xs text-red-600 mt-2 font-normal">
+              <div className="flex items-center gap-1.5 text-xs text-red-600 mt-1.5 font-medium">
                 <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
                 Amount exceeds your available balance of {formatCurrency(availableBalance)}
               </div>
             )}
             {isAmountBelowMin && (
-              <p className="text-xs text-red-600 mt-2 font-normal">
+              <p className="text-xs text-red-600 mt-1.5 font-medium">
                 Minimum withdrawal amount is ₦20,000
               </p>
             )}
@@ -1169,10 +1255,10 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
 
           {/* Destination Bank Account Selection */}
           {bankAccounts.length > 0 ? (
-            <div className="space-y-2.5 pt-1">
+            <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-medium text-gray-800">
-                  Select Destination Bank Account *
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-700">
+                  SELECT DESTINATION BANK ACCOUNT <span className="text-red-500">*</span>
                 </label>
                 <button
                   type="button"
@@ -1180,13 +1266,13 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
                     setIsWithdrawModalOpen(false);
                     setIsBankModalOpen(true);
                   }}
-                  className="text-[11px] text-[#15803D] hover:underline font-medium flex items-center gap-1 cursor-pointer"
+                  className="text-[11px] text-[#009A60] hover:underline font-bold flex items-center gap-1 cursor-pointer"
                 >
-                  <Building2 className="w-3 h-3" /> Manage Accounts ({bankAccounts.length}/2)
+                  <Building2 className="w-3.5 h-3.5" /> Manage Accounts ({bankAccounts.length}/2)
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 gap-2.5">
+              <div className="space-y-2.5">
                 {bankAccounts.map((acc) => {
                   const isSelected = selectedBankAccountId === acc.id;
                   return (
@@ -1194,25 +1280,27 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
                       key={acc.id}
                       onClick={() => handleSelectAccount(acc)}
                       className={cn(
-                        "cursor-pointer rounded-xl p-3.5 sm:p-4 border transition-all flex items-center justify-between",
+                        "cursor-pointer rounded-2xl p-3.5 border transition-all flex items-center justify-between shadow-xs",
                         isSelected
-                          ? "bg-emerald-50/70 border-[#15803D] ring-1 ring-[#15803D] shadow-xs"
-                          : "bg-white border-[#e1efe5] hover:border-gray-300"
+                          ? "bg-white border-2 border-[#009A60]"
+                          : "bg-white border border-[#E1EFE5] hover:border-slate-300"
                       )}
                     >
                       <div className="flex items-center gap-3 min-w-0">
-                        <BankLogo bankName={acc.bankName} size="md" />
+                        <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center p-1 shrink-0 overflow-hidden">
+                          <BankLogo bankName={acc.bankName} size="sm" className="w-full h-full border-none shadow-none ring-0 p-0" />
+                        </div>
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
-                            <span className="text-xs font-medium text-gray-900 capitalize truncate">{acc.bankName}</span>
+                            <span className="text-xs font-bold text-gray-900 capitalize truncate">{acc.bankName}</span>
                             {acc.isDefault && (
-                              <span className="text-[10px] uppercase font-medium bg-emerald-100 text-[#15803D] px-1.5 py-0.5 rounded">
-                                Default
+                              <span className="text-[9px] uppercase font-bold bg-[#EAF7EE] text-[#009A60] px-1.5 py-0.5 rounded tracking-wider">
+                                DEFAULT
                               </span>
                             )}
                           </div>
-                          <p className="text-xs font-normal text-gray-700 mt-0.5">
-                            {acc.accountNumber} <span className="text-gray-400 font-normal">•</span> <span className="font-normal text-gray-600 truncate">{toTitleCase(acc.accountName)}</span>
+                          <p className="text-xs font-medium text-slate-500 mt-0.5 truncate">
+                            {acc.accountNumber} <span className="text-slate-300 font-normal">•</span> {toTitleCase(acc.accountName)}
                           </p>
                         </div>
                       </div>
@@ -1220,13 +1308,13 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
                       <div className="shrink-0 ml-3">
                         <div
                           className={cn(
-                            "w-4 h-4 rounded-full border flex items-center justify-center",
+                            "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
                             isSelected
-                              ? "border-[#15803D] bg-[#15803D]"
-                              : "border-gray-300 bg-white"
+                              ? "border-[#009A60] bg-white"
+                              : "border-slate-300 bg-white"
                           )}
                         >
-                          {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                          {isSelected && <div className="w-2.5 h-2.5 rounded-full bg-[#009A60]" />}
                         </div>
                       </div>
                     </div>
@@ -1236,16 +1324,16 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
             </div>
           ) : (
             <div className="bg-[#f5faf6] rounded-2xl border border-[#e1efe5] p-5 text-center space-y-3.5 my-1">
-              <div className="w-10 h-10 rounded-xl bg-white border border-[#e1efe5] text-[#15803D] flex items-center justify-center mx-auto shadow-xs">
+              <div className="w-10 h-10 rounded-xl bg-white border border-[#e1efe5] text-[#009A60] flex items-center justify-center mx-auto shadow-xs">
                 <Building2 className="w-5 h-5" />
               </div>
               <div className="space-y-1">
-                <h4 className="text-xs font-semibold text-gray-900">No Payout Account Found</h4>
+                <h4 className="text-xs font-bold text-gray-900">No Payout Account Found</h4>
                 <p className="text-xs text-gray-500 leading-relaxed max-w-xs mx-auto">
                   You need to link a verified corporate bank account before requesting a payout.
                 </p>
               </div>
-              <Button
+              <button
                 type="button"
                 onClick={() => {
                   setIsWithdrawModalOpen(false);
@@ -1253,55 +1341,59 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
                   setIsAddingAccount(true);
                   setIsBankModalOpen(true);
                 }}
-                className="h-9.5 bg-[#15803D] hover:bg-[#116731] text-white text-xs font-semibold px-4.5 rounded-xl gap-1.5 mx-auto shadow-xs cursor-pointer"
+                className="h-10 bg-[#009A60] hover:bg-[#008250] text-white text-xs font-bold px-5 rounded-xl inline-flex items-center gap-1.5 mx-auto shadow-xs cursor-pointer transition-colors"
               >
-                <Plus className="w-3.5 h-3.5" /> Add Payout Account
-              </Button>
+                <Plus className="w-4 h-4" /> Add Payout Account
+              </button>
             </div>
           )}
 
-          <div className="space-y-1.5 pt-1">
-            <label className="block text-xs font-medium text-gray-700">Notes (Optional)</label>
-            <Input
+          <div className="space-y-1.5">
+            <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-700">
+              NOTES (OPTIONAL)
+            </label>
+            <input
+              type="text"
               placeholder="e.g. Tournament payout batch #1"
               value={withdrawNotes}
               onChange={(e) => setWithdrawNotes(e.target.value)}
-              className="h-10.5 rounded-xl text-xs font-normal bg-white border-[#e1efe5] px-3.5"
+              className="w-full h-14 rounded-2xl text-xs font-medium bg-[#F5FAF6] border border-[#E1EFE5] text-[#0F172A] px-4 placeholder:text-slate-400 focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 focus:outline-hidden transition-all"
             />
           </div>
 
           {/* Security Notice */}
-          <div className="bg-amber-50/80 border border-amber-200/70 rounded-xl p-3.5 text-[11px] text-amber-800 flex items-start gap-2.5 my-1 leading-relaxed">
-            <ShieldCheck className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-            <p className="font-normal">
+          <div className="bg-[#FFF9F2] border border-[#FFE7CC] rounded-2xl p-4 flex items-center gap-3.5 leading-relaxed">
+            <div className="w-6 h-6 rounded-full border border-amber-300 bg-amber-50 flex items-center justify-center shrink-0 text-amber-600">
+              <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
+            </div>
+            <p className="text-xs text-[#9A3412] font-medium leading-relaxed">
               Requested funds are locked atomically and reviewed securely. Payouts are typically disbursed within 24 business hours.
             </p>
           </div>
 
           {/* Action Buttons */}
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100 mt-2">
-            <Button
+          <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+            <button
               type="button"
-              variant="outline"
               disabled={isSubmittingWithdrawal}
               onClick={() => setIsWithdrawModalOpen(false)}
-              className="h-10 rounded-xl text-xs font-medium px-4.5 border-gray-200 text-gray-700 hover:bg-gray-50 cursor-pointer"
+              className="h-11 px-5 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
             >
               Cancel
-            </Button>
-            <Button
+            </button>
+            <button
               type="submit"
               disabled={!isWithdrawFormValid || isSubmittingWithdrawal}
-              className="h-10 rounded-xl bg-[#15803D] hover:bg-[#116731] text-white text-xs font-semibold px-5.5 gap-2 shadow-xs cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              className="h-11 rounded-xl bg-[#009A60] hover:bg-[#008250] text-white text-xs font-bold px-6 shadow-xs transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {isSubmittingWithdrawal ? (
                 <>
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" /> Submitting...
+                  <Loader2 className="w-4 h-4 animate-spin" /> Submitting...
                 </>
               ) : (
                 "Submit Request"
               )}
-            </Button>
+            </button>
           </div>
         </form>
       </Modal>
@@ -1313,18 +1405,23 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
           setIsBankModalOpen(false);
           setIsAddingAccount(false);
         }}
-        title="Payout Bank Accounts"
-        className="max-w-xl"
-      >
-        <div className="space-y-5 text-left font-sans text-sm">
-          <div className="flex items-center justify-between pb-3 border-b border-gray-100">
-            <div>
-              <p className="text-xs text-gray-500 font-normal">
-                Save up to 2 verified accounts for 1-click payout withdrawals.
-              </p>
+        title={
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center text-[#009A60] shrink-0 shadow-2xs">
+              <Landmark className="w-4.5 h-4.5 text-[#009A60]" />
             </div>
-            <span className="text-xs font-semibold px-2.5 py-1 bg-emerald-50 text-[#15803D] rounded-lg border border-emerald-200/50">
-              {bankAccounts.length} / 2 Added
+            <span className="text-lg font-bold text-gray-900 tracking-tight">Payout Bank Accounts</span>
+          </div>
+        }
+        className="max-w-md rounded-[28px] sm:rounded-[32px] overflow-hidden"
+      >
+        <div className="space-y-4 text-left font-sans text-sm">
+          <div className="flex items-start justify-between gap-4 pt-1 pb-1">
+            <p className="text-xs text-slate-500 font-normal leading-relaxed max-w-[250px]">
+              Save up to 2 verified accounts for <span className="font-bold text-gray-900">1-click payout withdrawals</span>.
+            </p>
+            <span className="text-[11px] font-bold px-3 py-1 bg-[#EAF7EE] text-[#009A60] rounded-full shrink-0 tracking-wider">
+              {bankAccounts.length} / 2 ADDED
             </span>
           </div>
 
@@ -1333,61 +1430,84 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
             {bankAccounts.map((acc) => (
               <div
                 key={acc.id}
-                className="bg-[#f5faf6] rounded-2xl border border-[#e1efe5] p-4 flex items-center justify-between shadow-xs"
+                className="bg-white rounded-2xl border border-[#E1EFE5] p-4.5 sm:p-5 space-y-4 shadow-xs"
               >
-                <div className="flex items-center gap-3.5 min-w-0">
-                  <BankLogo bankName={acc.bankName} size="md" />
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-medium text-gray-900 capitalize truncate">{acc.bankName}</span>
-                      {acc.isDefault && (
-                        <span className="text-[10px] font-medium bg-[#15803D] text-white px-1.5 py-0.5 rounded">
-                          Default
-                        </span>
-                      )}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                    <div className="w-11 h-11 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center p-1 shrink-0 overflow-hidden">
+                      <BankLogo bankName={acc.bankName} size="md" className="w-full h-full border-none shadow-none ring-0 p-0" />
                     </div>
-                    <p className="text-xs font-normal text-gray-700 mt-0.5">
-                      {acc.accountNumber}
-                    </p>
-                    <p className="text-[11px] text-gray-500 font-normal truncate max-w-[200px]">
-                      {toTitleCase(acc.accountName)}
-                    </p>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-bold text-gray-900 capitalize truncate max-w-[150px] sm:max-w-[190px]">{acc.bankName}</span>
+                        {acc.isDefault && (
+                          <span className="text-[9px] uppercase font-bold bg-[#009A60] text-white px-2 py-0.5 rounded-full tracking-wider shrink-0">
+                            DEFAULT
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs font-medium text-slate-400 mt-0.5">
+                        Verified Account
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 shrink-0 pt-0.5">
+                    {!acc.isDefault && (
+                      <button
+                        type="button"
+                        onClick={() => handleSetDefaultAccount(acc)}
+                        className="px-2 py-1 text-[10px] font-bold text-slate-500 hover:text-[#009A60] hover:bg-[#EAF7EE] rounded-lg border border-slate-200 hover:border-[#C6F0DB] transition-all cursor-pointer"
+                        title="Set as Default Account"
+                      >
+                        Make Default
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteAccount(acc)}
+                      className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                      title="Remove Account"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 shrink-0 ml-3">
-                  {!acc.isDefault && (
-                    <button
-                      type="button"
-                      onClick={() => handleSetDefaultAccount(acc)}
-                      className="px-2.5 py-1.5 text-[11px] font-semibold text-gray-600 hover:text-[#15803D] hover:bg-white rounded-lg border border-transparent hover:border-[#e1efe5] transition-colors cursor-pointer"
-                      title="Set as Default Account"
-                    >
-                      Make Default
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteAccount(acc.id)}
-                    className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-                    title="Remove Account"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                <div className="grid grid-cols-2 gap-4 pt-1">
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                      ACCOUNT NUMBER
+                    </span>
+                    <span className="text-sm font-bold text-gray-900 mt-1 block font-mono">
+                      {acc.accountNumber}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block text-right sm:text-left">
+                      ACCOUNT NAME
+                    </span>
+                    <span className="text-sm font-bold text-gray-900 mt-1 block truncate text-right sm:text-left" title={toTitleCase(acc.accountName)}>
+                      {toTitleCase(acc.accountName)}
+                    </span>
+                  </div>
                 </div>
               </div>
             ))}
           </div>
 
-          {/* Add Account Form / Button */}
+          {/* Add Account Form / Slot */}
           {isAddingAccount ? (
             <form onSubmit={handleSaveBankAccount} className="bg-[#f5faf6] rounded-2xl border border-[#e1efe5] p-4.5 sm:p-5 space-y-4 shadow-xs">
-              <div className="pb-2.5 border-b border-[#e1efe5]">
-                <h4 className="text-xs font-semibold text-gray-900">Add New Payout Account</h4>
+              <div className="pb-2.5 border-b border-[#e1efe5] flex items-center justify-between">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-gray-900">Add New Payout Account</h4>
+                <span className="text-[10px] font-bold text-[#009A60] bg-[#EAF7EE] px-2 py-0.5 rounded">
+                  {bankAccounts.length === 0 ? "SLOT 1 OF 2" : "SLOT 2 OF 2"}
+                </span>
               </div>
 
               <div className="space-y-1.5">
-                <label className="block text-xs font-medium text-gray-800">Select Bank *</label>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-700">Select Bank *</label>
                 {banksList.length > 0 ? (
                   <SearchableSelect
                     value={selectedBankCode}
@@ -1398,17 +1518,17 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
                       image: getBankLogoUrl(b.code || b.slug || b.name),
                     }))}
                     placeholder="Choose your bank..."
-                    triggerClassName="h-10 rounded-xl text-xs bg-white border-[#e1efe5] text-gray-900 px-3.5"
+                    triggerClassName="h-11 rounded-xl text-xs font-medium bg-white border-[#e1efe5] text-gray-900 px-3.5 focus:border-[#009A60]"
                   />
                 ) : (
-                  <Input
+                  <input
                     placeholder="e.g. GTBank, Zenith Bank, Access Bank"
                     value={accBankName}
                     onChange={(e) => {
                       setAccBankName(e.target.value);
                       setSelectedBankCode(e.target.value);
                     }}
-                    className="h-10 rounded-xl text-xs bg-white border-[#e1efe5] px-3.5"
+                    className="w-full h-11 rounded-xl text-xs font-medium bg-white border border-[#e1efe5] px-3.5 focus:border-[#009A60] focus:outline-hidden"
                     required
                   />
                 )}
@@ -1416,21 +1536,21 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
 
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <label className="block text-xs font-medium text-gray-800">10-Digit Account Number *</label>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-700">10-Digit Account Number *</label>
                   {isResolvingAccount && (
-                    <span className="text-[11px] font-medium text-[#15803D] flex items-center gap-1.5">
+                    <span className="text-[11px] font-medium text-[#009A60] flex items-center gap-1.5">
                       <Loader2 className="w-3 h-3 animate-spin" /> Verifying...
                     </span>
                   )}
                 </div>
-                <Input
+                <input
                   type="text"
                   inputMode="numeric"
                   placeholder="e.g. 0123456789"
                   value={accNumber}
                   onChange={(e) => handleAccountNumberChange(e.target.value)}
                   maxLength={10}
-                  className="h-10 rounded-xl text-xs font-normal bg-white border-[#e1efe5] px-3.5"
+                  className="w-full h-11 rounded-xl text-xs font-semibold bg-white border border-[#e1efe5] px-3.5 focus:border-[#009A60] focus:outline-hidden font-mono tracking-wider"
                   required
                 />
               </div>
@@ -1448,32 +1568,32 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2">
                       {isNameTally ? (
-                        <CheckCircle className="w-4 h-4 text-[#15803D] shrink-0" />
+                        <CheckCircle className="w-4 h-4 text-[#009A60] shrink-0" />
                       ) : (
                         <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
                       )}
                       <span
                         className={cn(
-                          "text-[10px] uppercase font-medium tracking-wider px-2 py-0.5 rounded-md",
+                          "text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md",
                           isNameTally
-                            ? "bg-emerald-100/90 text-[#15803D]"
-                            : "bg-amber-100/90 text-amber-800"
+                            ? "bg-emerald-100 text-[#009A60]"
+                            : "bg-amber-100 text-amber-800"
                         )}
                       >
                         {isNameTally ? "Verified Account Name" : "Account Name Mismatch"}
                       </span>
                     </div>
                     {isNameTally ? (
-                      <span className="text-[11px] font-medium text-[#15803D]">✓ Tallies with Club</span>
+                      <span className="text-[11px] font-bold text-[#009A60]">✓ Tallies with Club</span>
                     ) : (
-                      <span className="text-[11px] font-medium text-amber-700">Does not tally</span>
+                      <span className="text-[11px] font-bold text-amber-700">Does not tally</span>
                     )}
                   </div>
 
                   <div className="mt-2 pl-6 space-y-1">
                     <p
                       className={cn(
-                        "text-xs font-semibold truncate",
+                        "text-xs font-bold truncate",
                         isNameTally ? "text-gray-900" : "text-amber-950"
                       )}
                     >
@@ -1482,7 +1602,7 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
 
                     {!isNameTally && registeredClubName && (
                       <p className="text-[11px] text-amber-800 font-normal leading-relaxed">
-                        Notice: The account holder returned by the bank does not match your registered organization (<span className="font-medium text-amber-900">{registeredClubName}</span>). Please confirm this account is authorized for your disbursements.
+                        Notice: The account holder returned by the bank does not match your registered organization (<span className="font-semibold text-amber-900">{registeredClubName}</span>). Please confirm this account is authorized for your disbursements.
                       </p>
                     )}
                   </div>
@@ -1493,7 +1613,7 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
                 <div className="border border-rose-200 bg-rose-50/80 rounded-xl p-3.5 flex items-start gap-2.5 shadow-xs">
                   <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-rose-600" />
                   <div className="space-y-0.5 min-w-0">
-                    <p className="text-xs font-medium text-rose-900">
+                    <p className="text-xs font-bold text-rose-900">
                       Account Verification Failed
                     </p>
                     <p className="text-[11px] leading-relaxed text-rose-700">
@@ -1504,21 +1624,21 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
               )}
 
               <div className="space-y-1.5">
-                <label className="block text-xs font-medium text-gray-800">Account Holder Name *</label>
-                <Input
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-700">Account Holder Name *</label>
+                <input
                   placeholder={isResolvingAccount ? "Resolving verified name..." : "Auto-filled upon 10-digit NUBAN verification"}
                   value={accName}
                   onChange={(e) => setAccName(e.target.value)}
                   readOnly={user?.role !== "SUPER_ADMIN"}
                   className={cn(
-                    "h-10 rounded-xl text-xs border-[#e1efe5] transition-all px-3.5",
+                    "w-full h-11 rounded-xl text-xs border border-[#e1efe5] transition-all px-3.5 focus:outline-hidden",
                     user?.role !== "SUPER_ADMIN"
-                      ? "bg-slate-50 text-gray-800 font-medium cursor-not-allowed select-none"
-                      : "bg-white text-gray-900 font-medium"
+                      ? "bg-[#eaf7ee]/30 text-gray-800 font-semibold cursor-not-allowed select-none"
+                      : "bg-white text-gray-900 font-semibold focus:border-[#009A60]"
                   )}
                   required
                 />
-                <p className="text-[11px] text-gray-500 font-normal mt-1 leading-normal">
+                <p className="text-[11px] text-gray-400 font-normal mt-1 leading-normal">
                   Account holder name is securely verified and auto-populated from official banking switch records.
                 </p>
               </div>
@@ -1529,29 +1649,26 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
                     type="checkbox"
                     checked={accIsDefault}
                     onChange={(e) => setAccIsDefault(e.target.checked)}
-                    className="w-4 h-4 text-[#15803D] rounded border-gray-300 focus:ring-[#15803D]"
+                    className="w-4 h-4 text-[#009A60] rounded border-gray-300 focus:ring-[#009A60]"
                   />
-                  <span className="text-xs text-gray-700 font-medium">Set as default payout account</span>
+                  <span className="text-xs text-gray-700 font-semibold">Set as default payout account</span>
                 </label>
               )}
 
               <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-[#e1efe5]/80 mt-1">
-                <Button
+                <button
                   type="button"
-                  variant="outline"
-                  size="sm"
                   onClick={() => {
                     setIsAddingAccount(false);
                     setResolvedAccountName(null);
                     setResolveError(null);
                   }}
-                  className="h-9 rounded-xl text-xs font-medium px-4 border-gray-200 text-gray-700 hover:bg-white cursor-pointer"
+                  className="h-10 rounded-xl text-xs font-bold px-4 border border-gray-200 text-gray-700 hover:bg-white cursor-pointer transition-colors"
                 >
                   Cancel
-                </Button>
-                <Button
+                </button>
+                <button
                   type="submit"
-                  size="sm"
                   disabled={
                     isSavingAccount ||
                     (isResolvingAccount && user?.role !== "SUPER_ADMIN") ||
@@ -1560,17 +1677,16 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
                     !accName.trim() ||
                     (Boolean(resolveError) && user?.role !== "SUPER_ADMIN")
                   }
-                  className="h-9 rounded-xl bg-[#15803D] hover:bg-[#116731] text-white text-xs font-semibold px-5 shadow-xs cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="h-10 rounded-xl bg-[#009A60] hover:bg-[#008250] text-white text-xs font-bold px-5 shadow-xs cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   {isSavingAccount ? "Saving..." : (user?.role === "SUPER_ADMIN" && resolveError) ? "Save Account (Admin Override)" : "Save Account"}
-                </Button>
+                </button>
               </div>
             </form>
           ) : (
             bankAccounts.length < 2 && (
-              <Button
+              <button
                 type="button"
-                variant="outline"
                 onClick={() => {
                   setSelectedBankCode("");
                   setAccBankName("");
@@ -1581,28 +1697,127 @@ export function OrganizerPaymentsView({ initialTab = "transactions" }: Organizer
                   setAccIsDefault(bankAccounts.length === 0);
                   setIsAddingAccount(true);
                 }}
-                className="w-full h-11 border-dashed border-[#15803D]/50 text-[#15803D] hover:bg-emerald-50/60 rounded-xl text-xs font-semibold gap-2 transition-all cursor-pointer shadow-xs"
+                className="w-full border border-dashed border-slate-200 hover:border-[#009A60] bg-white hover:bg-[#F5FAF6]/50 rounded-2xl p-6 flex flex-col items-center justify-center text-center transition-all cursor-pointer group"
               >
-                <Plus className="w-4 h-4" /> Add Payout Account ({bankAccounts.length}/2)
-              </Button>
+                <div className="w-8 h-8 rounded-full border border-slate-200 group-hover:border-[#009A60] group-hover:bg-[#EAF7EE] flex items-center justify-center text-slate-400 group-hover:text-[#009A60] transition-all">
+                  <Plus className="w-4 h-4" />
+                </div>
+                <span className="text-sm font-bold text-gray-900 mt-2.5">
+                  Add Payout Account
+                </span>
+                <span className="text-[10px] font-bold tracking-wider text-slate-400 uppercase mt-0.5">
+                  {bankAccounts.length === 0 ? "2 SLOTS AVAILABLE" : "SLOT (2/2) AVAILABLE"}
+                </span>
+              </button>
             )
           )}
 
+          {/* Security Notice */}
+          <div className="bg-[#F0F7FF] border border-[#D0E5FF] rounded-2xl p-4 flex items-center gap-3">
+            <div className="w-5 h-5 rounded-full bg-[#2563EB] flex items-center justify-center text-white shrink-0 shadow-2xs">
+              <Info className="w-3.5 h-3.5 stroke-[2.5]" />
+            </div>
+            <p className="text-xs text-[#1D4ED8] font-medium leading-relaxed">
+              <span className="font-bold">Security Notice:</span> New accounts undergo a 24–hour verification period before they can be used for withdrawals.
+            </p>
+          </div>
+
           {/* Footer Actions */}
-          <div className="flex items-center justify-end pt-4 border-t border-gray-100 mt-2">
-            <Button
+          <div className="flex items-center justify-end pt-3">
+            <button
               type="button"
-              variant="outline"
               onClick={() => {
                 setIsBankModalOpen(false);
                 setIsAddingAccount(false);
               }}
-              className="h-10 rounded-xl text-xs font-medium px-5 border-gray-200 text-gray-700 hover:bg-gray-50 cursor-pointer"
+              className="h-10 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-900 text-xs font-bold px-6 shadow-2xs transition-colors cursor-pointer"
             >
-              Close
-            </Button>
+              Close Window
+            </button>
           </div>
         </div>
+      </Modal>
+
+      {/* MODAL: CONFIRM DELETE BANK ACCOUNT */}
+      <Modal
+        isOpen={accountToDelete !== null}
+        onClose={() => !isDeletingAccount && setAccountToDelete(null)}
+        title={
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-red-50 border border-red-200 flex items-center justify-center text-red-600 shrink-0 shadow-2xs">
+              <Trash2 className="w-4.5 h-4.5 text-red-600" />
+            </div>
+            <span className="text-lg font-bold text-gray-900 tracking-tight">Remove Bank Account</span>
+          </div>
+        }
+        className="max-w-md rounded-[28px] sm:rounded-[32px] overflow-hidden"
+      >
+        {accountToDelete && (
+          <div className="space-y-4 font-sans text-left text-sm">
+            {/* Account Card Summary */}
+            <div className="bg-[#f5faf6] rounded-2xl border border-[#e1efe5] p-4.5 space-y-3.5 shadow-xs">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-white border border-slate-100 flex items-center justify-center p-1 shrink-0 overflow-hidden shadow-2xs">
+                  <BankLogo bankName={accountToDelete.bankName} size="md" className="w-full h-full border-none shadow-none ring-0 p-0" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold text-gray-900 capitalize truncate">{accountToDelete.bankName}</span>
+                    {accountToDelete.isDefault && (
+                      <span className="text-[9px] uppercase font-bold bg-[#009A60] text-white px-2 py-0.5 rounded-full tracking-wider">
+                        DEFAULT
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs font-medium text-slate-500 mt-0.5 font-mono">
+                    {accountToDelete.accountNumber}
+                  </p>
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-[#e1efe5] flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Account Name</span>
+                <span className="text-xs font-bold text-gray-900 truncate max-w-[200px]">
+                  {toTitleCase(accountToDelete.accountName)}
+                </span>
+              </div>
+            </div>
+
+            {/* Warning Callout */}
+            <div className="bg-red-50/80 border border-red-200/80 rounded-2xl p-4 text-xs text-red-800 flex items-start gap-3">
+              <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+              <p className="font-normal leading-relaxed">
+                Are you sure you want to remove this payout bank account? Once removed, it will no longer be available for 1-click withdrawals until re-added.
+              </p>
+            </div>
+
+            {/* Footer Actions */}
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                disabled={isDeletingAccount}
+                onClick={() => setAccountToDelete(null)}
+                className="h-10 rounded-xl text-xs font-bold px-4 text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDelete}
+                disabled={isDeletingAccount}
+                className="h-10 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-5 shadow-xs transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {isDeletingAccount ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" /> Removing...
+                  </>
+                ) : (
+                  "Yes, Remove Account"
+                )}
+              </button>
+            </div>
+          </div>
+        )}
       </Modal>
 
       {/* DETAIL MODAL: VIEW RECEIPT */}

@@ -5,7 +5,6 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { Icons } from "@/components/ui/icons"
-import { BrandLogo } from "@/components/ui/brand-logo"
 import { Eye, EyeOff, AlertCircle } from "lucide-react"
 import { useAuth } from "@/lib/auth/AuthContext"
 import { loginRequest, resendVerificationRequest } from "@/lib/api/auth"
@@ -109,11 +108,10 @@ function LoginPageInner() {
         {/* LEFT COLUMN - Form */}
         <div className="w-full lg:w-1/2 flex flex-col justify-center p-8 lg:p-16 relative z-10">
           <div className="w-full max-w-[400px] mx-auto">
-            <div className="mb-6">
-              <BrandLogo size="md" variant="full" />
-            </div>
-            <h2 className="text-3xl font-bold tracking-tight mb-2 text-zinc-900">Welcome Back</h2>
-           
+            <h2 className="text-3xl font-bold tracking-tight text-zinc-900">Welcome Back</h2>
+            <p className="text-sm text-zinc-500 mt-2 mb-8">
+              Enter your Credentials to access your Organizer dashboard.
+            </p>
 
             {/* OAuth Button */}
             <button
