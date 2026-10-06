@@ -515,8 +515,8 @@ function LuxuryClubCrest({ className, name }: { className?: string; name?: strin
 
       {/* Golden Banner Ribbon */}
       <path d="M20 73 L26 66 L74 66 L80 73 L74 80 L26 80 Z" fill="#D4AF37" stroke="#AA820A" strokeWidth="1" />
-      <text x="50" y="74.5" textAnchor="middle" fontSize="6.2" fontWeight="900" fill="#0D1B2A" fontFamily="sans-serif" letterSpacing="0.08em">
-        LUXURY CLUB
+      <text x="50" y="74.5" textAnchor="middle" fontSize="6.2" fontWeight="700" fill="#0D1B2A" fontFamily="sans-serif" letterSpacing="0.08em">
+        {name ? (name.length > 14 ? name.split(" ").slice(0, 2).join(" ").toUpperCase() : name.toUpperCase()) : "GOLF CLUB"}
       </text>
     </svg>
   );
@@ -544,6 +544,52 @@ function formatCompactFee(amount?: number | string, currency: string = "NGN"): s
   }
   return `${symbol}${num.toLocaleString("en-US")}`;
 }
+
+/**
+ * Resolves tournament duration: "3 Days", "2 Days", "1 Day"
+ */
+function formatTournamentDuration(t: any): string {
+  if (!t) return "3 Days";
+  if (t.duration) return String(t.duration);
+  if (t.schedule && Array.isArray(t.schedule) && t.schedule.length > 0) {
+    const len = t.schedule.length;
+    return `${len} ${len === 1 ? "Day" : "Days"}`;
+  }
+  if (t.startDate && t.endDate) {
+    try {
+      const s = new Date(t.startDate).getTime();
+      const e = new Date(t.endDate).getTime();
+      if (!isNaN(s) && !isNaN(e) && e >= s) {
+        const diffDays = Math.round((e - s) / (1000 * 60 * 60 * 24)) + 1;
+        if (diffDays > 0 && diffDays <= 14) {
+          return `${diffDays} ${diffDays === 1 ? "Day" : "Days"}`;
+        }
+      }
+    } catch {
+      // fallback
+    }
+  }
+  if (typeof t.format === "string") {
+    if (t.format.includes("54 Holes")) return "3 Days";
+    if (t.format.includes("72 Holes")) return "4 Days";
+    if (t.format.includes("36 Holes")) return "2 Days";
+    if (t.format.includes("18 Holes")) return "1 Day";
+  }
+  if (typeof t.dateFull === "string" || typeof t.date === "string") {
+    const str = t.dateFull || t.date || "";
+    const match = str.match(/(\d+)(?:st|nd|rd|th)?\s*[–—-]\s*(\d+)(?:st|nd|rd|th)?/);
+    if (match) {
+      const d1 = parseInt(match[1], 10);
+      const d2 = parseInt(match[2], 10);
+      if (!isNaN(d1) && !isNaN(d2) && d2 >= d1) {
+        const diff = d2 - d1 + 1;
+        if (diff > 0 && diff <= 10) return `${diff} ${diff === 1 ? "Day" : "Days"}`;
+      }
+    }
+  }
+  return "3 Days";
+}
+
 
 const DEVICE_MODELS: Record<DeviceModelId, DeviceModelSpec> = {
   "iphone-16-pro": {
@@ -8434,82 +8480,116 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                                           onClick={() => openTournamentDetails(tournament)}
                                           className="bg-white rounded-[26px] p-4 shadow-[0_4px_20px_rgba(0,0,0,0.04)] border border-slate-100/90 relative overflow-hidden transition-all hover:shadow-[0_6px_24px_rgba(0,0,0,0.07)] cursor-pointer group"
                                         >
-                                          <div className="flex items-start gap-3.5">
-                                            {/* Left: Squircle logo container with top-right green star badge */}
-                                            <div className="relative shrink-0">
-                                              <div className="w-[60px] h-[60px] rounded-[20px] bg-[#f5faf6] border border-[#e1efe5] flex items-center justify-center p-1.5 shadow-2xs overflow-hidden">
-                                                {tournament.clubLogo ? (
-                                                  <img
-                                                    src={tournament.clubLogo}
-                                                    alt={tournament.club}
-                                                    className="w-full h-full object-contain rounded-xl"
-                                                    onError={(e) => {
-                                                      (e.currentTarget as HTMLElement).style.display = "none";
-                                                      const fb = e.currentTarget.parentElement?.querySelector(".crest-fallback") as HTMLElement | null;
-                                                      if (fb) fb.style.display = "block";
-                                                    }}
-                                                  />
-                                                ) : null}
-                                                <div className={`crest-fallback w-full h-full ${tournament.clubLogo ? "hidden" : "block"}`}>
-                                                  <LuxuryClubCrest className="w-full h-full" name={tournament.club} />
+                                          {(() => {
+                                            const clubLogoUrl =
+                                              tournament.clubLogo ||
+                                              (tournament.club?.toLowerCase().includes("oakwood") ? "/images/brand/oakwood-logo.svg" : null) ||
+                                              coursesList.find((c) => c.name && tournament.club && c.name.toLowerCase() === tournament.club.toLowerCase())?.logo ||
+                                              coursesList.find((c) => c.name && tournament.club && c.name.toLowerCase() === tournament.club.toLowerCase())?.logoUrl ||
+                                              null;
+
+                                            return (
+                                              <div className="flex items-start gap-3.5">
+                                                {/* Left: Squircle logo container displaying hosting club logo */}
+                                                <div className="relative shrink-0">
+                                                  <div className="w-[60px] h-[60px] rounded-[20px] bg-[#f5faf6] border border-[#e1efe5] flex items-center justify-center p-1.5 shadow-2xs overflow-hidden">
+                                                    {clubLogoUrl ? (
+                                                      <img
+                                                        src={clubLogoUrl}
+                                                        alt={tournament.club}
+                                                        className="w-full h-full object-contain rounded-xl"
+                                                        onError={(e) => {
+                                                          (e.currentTarget as HTMLElement).style.display = "none";
+                                                          const fb = e.currentTarget.parentElement?.querySelector(".crest-fallback") as HTMLElement | null;
+                                                          if (fb) fb.style.display = "block";
+                                                        }}
+                                                      />
+                                                    ) : null}
+                                                    <div className={`crest-fallback w-full h-full ${clubLogoUrl ? "hidden" : "block"}`}>
+                                                      <LuxuryClubCrest className="w-full h-full" name={tournament.club} />
+                                                    </div>
+                                                  </div>
+                                                </div>
+
+                                                {/* Right: Info Column */}
+                                                <div className="flex-1 min-w-0">
+                                                  {/* Tournament Title */}
+                                                  <h4 className="text-[15.5px] font-bold text-[#0F172A] tracking-tight leading-snug truncate group-hover:text-[#009A60] transition-colors mb-1">
+                                                    {formatTitleCase(tournament.name)}
+                                                  </h4>
+
+                                                  {/* Location with Pin */}
+                                                  <div className="flex items-center gap-1.5 text-[12px] font-semibold text-[#64748B] truncate mb-1">
+                                                    <MapPin className="w-3.5 h-3.5 text-[#64748B] shrink-0" />
+                                                    <span className="truncate">{tournament.club}</span>
+                                                  </div>
+
+                                                  {/* Date under Golf Course */}
+                                                  <div className="flex items-center gap-1.5 text-[12px] font-semibold text-[#64748B] truncate">
+                                                    <Calendar className="w-3.5 h-3.5 text-[#64748B] shrink-0" />
+                                                    <span className="truncate">
+                                                      {tournament.dateFull || tournament.date || formatShortDate(tournament.startDate || tournament.date, tournament.endDate)}
+                                                    </span>
+                                                  </div>
                                                 </div>
                                               </div>
-                                              <div className="w-5 h-5 rounded-full bg-white border border-[#C6F0DB] shadow-xs flex items-center justify-center text-[#009A60] absolute -top-1.5 -right-1.5 z-10 pointer-events-none">
-                                                <Star className="w-3 h-3 fill-[#009A60] text-[#009A60]" />
-                                              </div>
+                                            );
+                                          })()}
+
+                                          {/* Tier 1: Entry Fee, Handicap & Duration Telemetry Row */}
+                                          <div className="mt-3.5 pt-3 border-t border-slate-100 flex items-center justify-between">
+                                            {/* Entry Fee */}
+                                            <div className="shrink-0">
+                                              <span className="text-[11px] font-bold tracking-[0.14em] text-[#64748B] uppercase block leading-none mb-1.5 whitespace-nowrap">
+                                                ENTRY FEE
+                                              </span>
+                                              <span className="text-[15.5px] font-bold text-[#0F172A] tracking-tight block leading-none whitespace-nowrap">
+                                                {formatCompactFee(tournament.feeAmount, tournament.currency || "NGN")}
+                                              </span>
                                             </div>
 
-                                            {/* Right: Info Column */}
-                                            <div className="flex-1 min-w-0">
-                                              {/* Top Row: Category + Date */}
-                                              <div className="flex items-center justify-between gap-2 mb-1.5">
-                                                <span className="text-[10.5px] font-bold text-[#009A60] uppercase tracking-wider truncate">
-                                                  {tournament.category === "Major" ? "MAJOR EVENT" : (tournament.divisions || tournament.formatType || "CHAMPIONSHIP").toUpperCase()}
-                                                </span>
-                                                <span className="text-[11px] font-bold text-[#64748B] uppercase tracking-tight shrink-0">
-                                                  {formatShortDate(tournament.startDate || tournament.date, tournament.endDate)}
-                                                </span>
-                                              </div>
+                                            <div className="w-px h-6.5 bg-slate-200/80 self-center shrink-0" />
 
-                                              {/* Title */}
-                                              <h4 className="text-[15.5px] font-bold text-[#0F172A] tracking-tight leading-snug mb-1.5 truncate group-hover:text-[#009A60] transition-colors">
-                                                {formatTitleCase(tournament.name)}
-                                              </h4>
+                                            {/* Handicap */}
+                                            <div className="shrink-0">
+                                              <span className="text-[11px] font-bold tracking-[0.14em] text-[#64748B] uppercase block leading-none mb-1.5 whitespace-nowrap">
+                                                HANDICAP
+                                              </span>
+                                              <span
+                                                className="text-[14px] font-bold text-[#009A60] tracking-tight block leading-none truncate max-w-[105px] whitespace-nowrap"
+                                                title={tournament.hcpLimit || "No Limit"}
+                                              >
+                                                {tournament.hcpLimit || "No Limit"}
+                                              </span>
+                                            </div>
 
-                                              {/* Location with Pin */}
-                                              <div className="flex items-center gap-1.5 text-[12px] font-semibold text-[#64748B] truncate">
-                                                <MapPin className="w-3.5 h-3.5 text-[#64748B] shrink-0" />
-                                                <span className="truncate">{tournament.club}</span>
-                                              </div>
+                                            <div className="w-px h-6.5 bg-slate-200/80 self-center shrink-0" />
+
+                                            {/* Duration */}
+                                            <div className="shrink-0">
+                                              <span className="text-[11px] font-bold tracking-[0.14em] text-[#64748B] uppercase block leading-none mb-1.5 whitespace-nowrap">
+                                                DURATION
+                                              </span>
+                                              <span className="text-[14.5px] font-bold text-[#0F172A] tracking-tight block leading-none whitespace-nowrap">
+                                                {formatTournamentDuration(tournament)}
+                                              </span>
                                             </div>
                                           </div>
 
-                                          {/* Bottom Row: Entry Fee + Handicap + Action Button */}
-                                          <div className="mt-3.5 pt-3 border-t border-slate-100 flex items-center justify-between">
-                                            <div className="flex items-start gap-3.5 sm:gap-4 shrink-0">
-                                              <div className="shrink-0">
-                                                <span className="text-[11px] font-bold tracking-[0.14em] text-[#64748B] uppercase block leading-none mb-1.5 whitespace-nowrap">
-                                                  ENTRY FEE
-                                                </span>
-                                                <span className="text-[16px] font-bold text-[#0F172A] tracking-tight block leading-none whitespace-nowrap">
-                                                  {formatCompactFee(tournament.feeAmount, tournament.currency || "NGN")}
-                                                </span>
-                                              </div>
-
-                                              <div className="w-px h-6.5 bg-slate-200/80 self-center shrink-0" />
-
-                                              <div className="shrink-0">
-                                                <span className="text-[11px] font-bold tracking-[0.14em] text-[#64748B] uppercase block leading-none mb-1.5 whitespace-nowrap">
-                                                  HANDICAP
-                                                </span>
-                                                <span
-                                                  className="text-[14px] font-bold text-[#009A60] tracking-tight block leading-none truncate max-w-[110px] whitespace-nowrap"
-                                                  title={tournament.hcpLimit || "No Limit"}
-                                                >
-                                                  {tournament.hcpLimit || "No Limit"}
-                                                </span>
-                                              </div>
-                                            </div>
+                                          {/* Tier 2: Dedicated Action Buttons Row (View Info + Register) */}
+                                          <div className="mt-3 flex items-center gap-2">
+                                            <button
+                                              type="button"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                openTournamentDetails(tournament);
+                                              }}
+                                              className="flex-1 h-[38px] rounded-xl bg-slate-100 hover:bg-slate-200 active:scale-[0.98] text-slate-700 font-bold text-[12.5px] flex items-center justify-center gap-1.5 capitalize tracking-normal transition-all cursor-pointer"
+                                              title="View Tournament Information"
+                                            >
+                                              <Info className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                                              <span>View Info</span>
+                                            </button>
 
                                             {tournament.isOpen ? (
                                               <button
@@ -8519,21 +8599,19 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                                                   showToast(`Opening entry registration for ${tournament.name}...`, "success", "TOURNAMENT ENTRY");
                                                   setTimeout(() => switchScreen("register"), 600);
                                                 }}
-                                                className="bg-[#0B132B] hover:bg-slate-800 text-white font-bold text-[13px] px-5 py-2.5 rounded-xl capitalize shadow-xs active:scale-95 transition-all cursor-pointer shrink-0"
+                                                className="flex-[1.2] h-[38px] rounded-xl bg-[#009A60] hover:bg-[#008251] active:scale-[0.98] text-white font-bold text-[12.5px] flex items-center justify-center gap-1.5 capitalize shadow-xs transition-all cursor-pointer"
+                                                title="Register for Tournament"
                                               >
-                                                Register
+                                                <span>Register</span>
+                                                <ArrowRight className="w-3.5 h-3.5 text-white shrink-0" />
                                               </button>
                                             ) : (
-                                              <button
-                                                type="button"
-                                                onClick={(e) => {
-                                                  e.stopPropagation();
-                                                  openTournamentDetails(tournament);
-                                                }}
-                                                className="bg-slate-100 text-slate-700 font-bold text-[13px] px-5 py-2.5 rounded-xl capitalize cursor-pointer hover:bg-slate-200 transition-all shrink-0"
+                                              <div
+                                                className="flex-[1.2] h-[38px] rounded-xl bg-slate-100/90 border border-slate-200/60 text-slate-400 font-semibold text-[12px] flex items-center justify-center gap-1 capitalize select-none cursor-not-allowed"
+                                                title="Registration Closed"
                                               >
-                                                View Info
-                                              </button>
+                                                <span>Registration Closed</span>
+                                              </div>
                                             )}
                                           </div>
                                         </div>
