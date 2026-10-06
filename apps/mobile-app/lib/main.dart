@@ -49,7 +49,7 @@ class OpenclubApp extends StatelessWidget {
       theme: ThemeData(
         brightness: Brightness.dark,
         scaffoldBackgroundColor: const Color(0xFFF4F6F3),
-        textTheme: GoogleFonts.dmSansTextTheme(ThemeData.dark().textTheme),
+        textTheme: GoogleFonts.plusJakartaSansTextTheme(ThemeData.dark().textTheme),
         colorScheme: const ColorScheme.dark(
           primary: Color(0xFF10B981), // Masters Tournament Emerald
           secondary: Color(0xFFF59E0B), // Championship Gold
@@ -63,7 +63,7 @@ class OpenclubApp extends StatelessWidget {
           backgroundColor: Colors.transparent,
           elevation: 0,
           centerTitle: true,
-          titleTextStyle: GoogleFonts.dmSans(
+          titleTextStyle: GoogleFonts.plusJakartaSans(
             fontSize: 18,
             fontWeight: FontWeight.bold,
             letterSpacing: -0.2,

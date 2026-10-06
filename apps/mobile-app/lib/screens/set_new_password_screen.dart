@@ -232,7 +232,7 @@ class _SetNewPasswordScreenState extends ConsumerState<SetNewPasswordScreen> {
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 26,
-                        fontWeight: FontWeight.w900,
+                        fontWeight: FontWeight.w700,
                         color: kTextDark,
                         letterSpacing: -0.5,
                       ),

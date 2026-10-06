@@ -2,12 +2,12 @@ import type { Metadata } from "next";
 import { Toaster } from "sonner";
 import "./globals.css";
 import Providers from "./providers";
-import { DM_Sans } from 'next/font/google';
+import { Plus_Jakarta_Sans } from 'next/font/google';
 
-const dmSans = DM_Sans({
+const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ['latin'],
-  variable: '--font-dm-sans',
-  weight: ['300', '400', '500', '600', '700', '800', '900'],
+  variable: '--font-plus-jakarta-sans',
+  weight: ['300', '400', '500', '600', '700', '800'],
   display: 'swap',
 });
 
@@ -34,7 +34,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
-          href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300..800;1,300..800&display=swap"
           rel="stylesheet"
         />
         <link
@@ -42,7 +42,7 @@ export default function RootLayout({
           href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css"
         />
       </head>
-      <body className={`min-h-full flex flex-col font-sans ${dmSans.variable}`} suppressHydrationWarning>
+      <body className={`min-h-full flex flex-col font-sans ${plusJakartaSans.variable}`} suppressHydrationWarning>
         <Providers>{children}</Providers>
         <Toaster 
           richColors 

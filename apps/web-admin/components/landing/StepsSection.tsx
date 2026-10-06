@@ -70,7 +70,7 @@ export function StepsSection() {
         <div className="flex flex-col lg:flex-row items-start gap-20">
           {/* Left Column */}
           <div className="lg:w-1/3 w-full">
-            <h2 className="text-4xl font-black text-[#0F172A] mb-6 tracking-tight">
+            <h2 className="text-4xl font-bold text-[#0F172A] mb-6 tracking-tight">
               Precision in Motion
             </h2>
             <p className="text-[#5B6B7F] font-medium mb-12">
@@ -98,14 +98,14 @@ export function StepsSection() {
                   >
                     <div>
                       <span
-                        className={`text-[10px] font-black uppercase tracking-widest block mb-1 ${
+                        className={`text-[10px] font-bold uppercase tracking-widest block mb-1 ${
                           isActive ? "text-[#009A60]" : "text-[#5B6B7F]"
                         }`}
                       >
                         {tab.label}
                       </span>
                       <h4
-                        className={`font-extrabold ${
+                        className={`font-bold ${
                           isActive ? "text-[#0F172A]" : "text-[#0F172A]"
                         }`}
                       >
@@ -134,7 +134,7 @@ export function StepsSection() {
                   <Icon className="w-10 h-10 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-3xl font-black text-[#0F172A] mb-2">
+                  <h3 className="text-3xl font-bold text-[#0F172A] mb-2">
                     Phase {activePhase}: {data.title}
                   </h3>
                   <p className="text-[#5B6B7F] font-medium">{data.subtitle}</p>

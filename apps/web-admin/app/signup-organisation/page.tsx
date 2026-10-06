@@ -5,7 +5,6 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { Icons } from "@/components/ui/icons"
-import { BrandLogo } from "@/components/ui/brand-logo"
 import {
   Eye, EyeOff, Upload, X, ArrowRight, ArrowLeft, ChevronDown
 } from "lucide-react"
@@ -247,11 +246,11 @@ export default function SignupOrganisationPage() {
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-zinc-50 font-sans text-zinc-900 p-4 lg:p-8 overflow-x-hidden">
-      <div className="w-full max-w-7xl lg:min-h-[820px] bg-white rounded-[2rem] border border-zinc-100 flex flex-col lg:flex-row overflow-hidden relative shadow-[0_0_40px_rgba(0,0,0,0.05)]">
+      <div className="w-full max-w-[1100px] lg:min-h-[820px] bg-white rounded-[2rem] border border-zinc-100 flex flex-col lg:flex-row overflow-hidden relative shadow-[0_0_40px_rgba(0,0,0,0.05)]">
 
         {/* LEFT COLUMN - Form */}
         <div className="w-full lg:w-1/2 flex flex-col justify-center p-8 lg:p-16 relative z-10">
-          <div className="w-full max-w-[560px] mx-auto">
+          <div className="w-full max-w-[400px] mx-auto">
 
             {isSuccess ? (
               <div className="text-center">
@@ -272,22 +271,21 @@ export default function SignupOrganisationPage() {
             ) : (
               <>
                 <div className="mb-8">
-                  {step > 1 ? (
+                  {step > 1 && (
                     <button
                       onClick={handleBack}
                       className="mb-4 w-10 h-10 rounded-xl bg-white border border-zinc-200 hover:bg-zinc-50 flex items-center justify-center transition-all"
                     >
                       <ArrowLeft className="w-5 h-5 text-zinc-700" />
                     </button>
-                  ) : (
-                    <div className="mb-6">
-                      <BrandLogo size="md" variant="full" />
-                    </div>
                   )}
-                  <h2 className="text-3xl font-bold tracking-tight mb-2 text-zinc-900">Create an Organizer Account</h2>
-                  <p className="text-zinc-500 font-medium tracking-tight">Step {step} of 5</p>
+                  <h2 className="text-3xl font-bold tracking-tight text-zinc-900">Create an Organizer Account</h2>
+                  <p className="text-sm text-zinc-500 mt-2 mb-6">
+                    Enter your organization details to register and access your Organizer dashboard.
+                  </p>
+                  <p className="text-zinc-500 font-medium tracking-tight text-xs">Step {step} of 5</p>
 
-                  <div className="flex items-center gap-2 mt-6">
+                  <div className="flex items-center gap-2 mt-2">
                     {[1, 2, 3, 4, 5].map((i) => (
                       <div key={i} className={`h-1.5 flex-1 rounded-full transition-colors ${step >= i ? 'bg-emerald-600' : 'bg-zinc-100'}`} />
                     ))}

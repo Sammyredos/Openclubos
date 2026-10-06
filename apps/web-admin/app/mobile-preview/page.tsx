@@ -12,6 +12,7 @@ import {
   Sparkles,
   Award,
   Calendar,
+  CalendarPlus,
   DollarSign,
   UserCheck,
   LogOut,
@@ -49,6 +50,7 @@ import {
   UserPlus,
   MapPin,
   MapPinOff,
+  GraduationCap,
   Search,
   Camera,
   Upload,
@@ -71,6 +73,7 @@ import {
   Flame,
   Share2,
   Bookmark,
+  Heart,
   Banknote,
   Phone,
   RefreshCw,
@@ -84,8 +87,9 @@ import {
   MoreHorizontal,
   Trash2,
   Database,
+  Crown,
 } from "lucide-react";
-import { formatNumber, formatTitleCase, subscribeAdminEvents, broadcastAdminEvent, getCurrencySymbol, formatTournamentFee, formatWithOrdinal } from "@/lib/utils";
+import { formatNumber, formatTitleCase, subscribeAdminEvents, broadcastAdminEvent, getCurrencySymbol, formatTournamentFee, formatWithOrdinal, formatShortDate, formatDateRange } from "@/lib/utils";
 import { forfeitTournamentRound } from "@/lib/api/scores";
 import { getGroupings, type GroupingData } from "@/lib/api/tournaments";
 import { COURSE_BANNER_URLS, COURSE_BANNER_PERMUTATION, resolveTournamentBanner, formatFeaturedTournamentTitle } from "@/lib/tournament-banners";
@@ -100,14 +104,19 @@ interface RealTournament {
   status: "LIVE" | "UPCOMING" | "REGISTRATION_OPEN" | "COMPLETED";
   organizerClub: string;
   organizerCity: string;
+  clubLogo?: string | null;
   courseName: string;
   coursePar: number;
   courseHoles: number;
   format: string;
   dates: string;
   purse: string;
+  rawPurse?: number;
   entryFee: string;
+  rawFee?: number;
   fieldCount: number;
+  maxPlayers?: number;
+  currency?: string;
   cutLine: string;
   weather: string;
   stimp: string;
@@ -116,11 +125,15 @@ interface RealTournament {
   divisions?: string;
   gender?: string;
   hcpLimit?: string;
+  hasHandicapRestriction?: boolean;
+  minHandicap?: number | null;
+  maxHandicap?: number | null;
   deadline?: string;
   clubName?: string;
   startDate?: string;
   endDate?: string;
   teeStartTime?: string;
+  description?: string;
 }
 
 interface CourseHole {
@@ -168,7 +181,30 @@ interface AuthenticatedPlayer {
   classification?: string;
 }
 
-type ScreenId = "landing" | "scoring" | "attestation" | "hub" | "leaderboard" | "login" | "verify" | "register" | "forgot-password" | "check-inbox" | "reset-password" | "player-scorecard" | "add-friends" | "sync-contacts" | "notifications" | "tournaments";
+const ALL_COMPREHENSIVE_GOLF_CLUBS = [
+  "Ikoyi Club 1938",
+  "IBB International Golf Club",
+  "Lakowe Lakes Golf Estate",
+  "Smokin Hills Golf Resort",
+  "Port Harcourt Golf Club",
+  "Ikeja Golf Club",
+  "Abeokuta Golf Club",
+  "MicCom Golf Hotels & Resort",
+  "Kaduna Golf Club 1921",
+  "Ibadan Golf Club",
+  "Benin Golf Club",
+  "Python Golf Club",
+  "Kano Golf Club",
+  "Arsenal Golf Club Owerri",
+  "Rayfield Golf Club Jos",
+  "Tiger Golf Club Ibadan",
+  "Calabar Golf Club",
+  "Royal Golf Club",
+  "Airforce Golf Club",
+  "Oakwood Country Club",
+];
+
+type ScreenId = "landing" | "scoring" | "attestation" | "hub" | "leaderboard" | "login" | "verify" | "register" | "forgot-password" | "check-inbox" | "reset-password" | "player-scorecard" | "add-friends" | "sync-contacts" | "notifications" | "tournaments" | "tournament-filter" | "tournament-details";
 
 type DeviceModelId = "iphone-16-pro" | "galaxy-s24" | "pixel-9" | "iphone-notch" | "iphone-16-max" | "ipad-pro-11" | "ipad-mini" | "galaxy-tab-s9";
 type DeviceColorId = "natural-titanium" | "midnight" | "silver" | "desert-gold" | "emerald-pine";
@@ -442,6 +478,71 @@ function GroupPlayerAvatarItem({ player }: { player: GroupPlayer }) {
       )}
     </div>
   );
+}
+
+/**
+ * Luxury Club Crest SVG Badge
+ * Renders a high-end luxury golf club crest matching the design specification.
+ */
+function LuxuryClubCrest({ className, name }: { className?: string; name?: string }) {
+  return (
+    <svg viewBox="0 0 100 100" className={className || "w-full h-full"} fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="50" cy="50" r="46" fill="#0D1B2A" stroke="#D4AF37" strokeWidth="2.5" />
+      <circle cx="50" cy="50" r="41" fill="none" stroke="#D4AF37" strokeWidth="1" strokeDasharray="2 1.5" opacity="0.75" />
+      
+      {/* Laurel wreath left */}
+      <path d="M22 56 C20 46 25 36 34 30 C32 35 32 42 36 47 C34 50 31 53 28 58 Z" fill="#D4AF37" opacity="0.85" />
+      {/* Laurel wreath right */}
+      <path d="M78 56 C80 46 75 36 66 30 C68 35 68 42 64 47 C66 50 69 53 72 58 Z" fill="#D4AF37" opacity="0.85" />
+
+      {/* Crossed Golf Clubs */}
+      <line x1="32" y1="65" x2="68" y2="29" stroke="#E2C974" strokeWidth="2.5" strokeLinecap="round" />
+      <line x1="68" y1="65" x2="32" y2="29" stroke="#E2C974" strokeWidth="2.5" strokeLinecap="round" />
+      {/* Club Heads */}
+      <path d="M29 67 C27 69 31 71 34 68 Z" fill="#D4AF37" />
+      <path d="M71 67 C73 69 69 71 66 68 Z" fill="#D4AF37" />
+
+      {/* Central Star */}
+      <polygon points="50,22 52,26.5 57,27 53,30.5 54.5,35 50,32.5 45.5,35 47,30.5 43,27 48,26.5" fill="#FCE588" />
+
+      {/* Golf Ball with Dimples */}
+      <circle cx="50" cy="46" r="11" fill="#FFFFFF" stroke="#D4AF37" strokeWidth="1.2" />
+      <circle cx="47" cy="43" r="1.1" fill="#CBD5E1" />
+      <circle cx="53" cy="43" r="1.1" fill="#CBD5E1" />
+      <circle cx="50" cy="46" r="1.1" fill="#CBD5E1" />
+      <circle cx="47" cy="49" r="1.1" fill="#CBD5E1" />
+      <circle cx="53" cy="49" r="1.1" fill="#CBD5E1" />
+
+      {/* Golden Banner Ribbon */}
+      <path d="M20 73 L26 66 L74 66 L80 73 L74 80 L26 80 Z" fill="#D4AF37" stroke="#AA820A" strokeWidth="1" />
+      <text x="50" y="74.5" textAnchor="middle" fontSize="6.2" fontWeight="900" fill="#0D1B2A" fontFamily="sans-serif" letterSpacing="0.08em">
+        LUXURY CLUB
+      </text>
+    </svg>
+  );
+}
+
+
+/**
+ * Compact fee formatter obeying lowercase k/m/b rules: "₦150k", "₦45.9k", "Free"
+ */
+function formatCompactFee(amount?: number | string, currency: string = "NGN"): string {
+  const num = typeof amount === "number" ? amount : parseInt(String(amount || "0").replace(/[^0-9]/g, ""), 10);
+  if (!num || num === 0) return "Free";
+  const symbol = currency === "USD" ? "$" : currency === "GBP" ? "£" : currency === "EUR" ? "€" : "₦";
+  if (num >= 1_000_000_000) {
+    const val = (num / 1_000_000_000).toFixed(1).replace(/\.0$/, "");
+    return `${symbol}${val}b`;
+  }
+  if (num >= 1_000_000) {
+    const val = (num / 1_000_000).toFixed(1).replace(/\.0$/, "");
+    return `${symbol}${val}m`;
+  }
+  if (num >= 1_000) {
+    const val = (num / 1_000).toFixed(num % 1000 === 0 ? 0 : 1).replace(/\.0$/, "");
+    return `${symbol}${val}k`;
+  }
+  return `${symbol}${num.toLocaleString("en-US")}`;
 }
 
 const DEVICE_MODELS: Record<DeviceModelId, DeviceModelSpec> = {
@@ -735,7 +836,7 @@ export default function MobilePreviewPage() {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const s = params.get("screen") as ScreenId | null;
-      if (s && ["landing", "scoring", "attestation", "hub", "leaderboard", "login", "verify", "register", "forgot-password", "check-inbox", "reset-password", "player-scorecard", "add-friends", "sync-contacts", "notifications", "tournaments"].includes(s)) {
+      if (s && ["landing", "scoring", "attestation", "hub", "leaderboard", "login", "verify", "register", "forgot-password", "check-inbox", "reset-password", "player-scorecard", "add-friends", "sync-contacts", "notifications", "tournaments", "tournament-filter", "tournament-details"].includes(s)) {
         setActiveScreen(s);
       }
       const refCode = params.get("ref");
@@ -820,10 +921,12 @@ export default function MobilePreviewPage() {
   const [invitedContactPhones, setInvitedContactPhones] = useState<string[]>([]);
   const [copiedInviteLink, setCopiedInviteLink] = useState(false);
   const [showMenuDrawer, setShowMenuDrawer] = useState(false);
+  const [showFeaturedTournamentInfoModal, setShowFeaturedTournamentInfoModal] = useState(false);
+  const [selectedFeaturedTournamentForInfo, setSelectedFeaturedTournamentForInfo] = useState<any>(null);
 
   // --- Mobile Bottom Navigation State (5-item bar with flush PLAY GOLF button) ---
   const [activeBottomNavTab, setActiveBottomNavTab] = useState<"home" | "tournaments" | "challenges" | "deals">("home");
-  const [tournamentFilter, setTournamentFilter] = useState<"All" | "Ongoing" | "Major" | "Invitational">("All");
+  const [tournamentFilter, setTournamentFilter] = useState<"All" | "Ongoing" | "Upcoming" | "Completed">("All");
   const [tournamentSearchQuery, setTournamentSearchQuery] = useState("");
   const [showTournamentFilterModal, setShowTournamentFilterModal] = useState(false);
   const [tournamentFormatFilter, setTournamentFormatFilter] = useState<string>("All");
@@ -831,6 +934,13 @@ export default function MobilePreviewPage() {
   const [tournamentClubFilter, setTournamentClubFilter] = useState<string>("All");
   const [isHostClubDropdownOpen, setIsHostClubDropdownOpen] = useState(false);
   const [hostClubSearchQuery, setHostClubSearchQuery] = useState("");
+  const [filterLocation, setFilterLocation] = useState("Ikoyi, Lagos");
+  const [filterProximityKm, setFilterProximityKm] = useState(25);
+  const [filterWhen, setFilterWhen] = useState<"Anytime" | "This Weekend" | "Next 7 Days" | "Next 30 Days">("Anytime");
+  const [filterEventType, setFilterEventType] = useState<"Major Event" | "Social Golf" | "Clinic / Lesson" | "Elite Cup">("Major Event");
+  const [filterFeeMin, setFilterFeeMin] = useState(0);
+  const [filterFeeMax, setFilterFeeMax] = useState(250000);
+  const [filterHandicapRange, setFilterHandicapRange] = useState<"0 – 9" | "10 – 18" | "19 – 28+">("10 – 18");
   const [tournamentSortOrder, setTournamentSortOrder] = useState<"date" | "fee_asc" | "fee_desc" | "name">("date");
   const [isSyncingTournaments, setIsSyncingTournaments] = useState(false);
   const [lastTournamentDbSync, setLastTournamentDbSync] = useState<Date | null>(null);
@@ -846,16 +956,124 @@ export default function MobilePreviewPage() {
   const [userPrefAllowFriendRequests, setUserPrefAllowFriendRequests] = useState(true);
   const [isSavingUserPreferences, setIsSavingUserPreferences] = useState(false);
   const [selectedTournamentInfo, setSelectedTournamentInfo] = useState<{
+    id?: string;
     name: string;
     club: string;
     fee: string;
+    feeAmount?: number;
     date: string;
+    dateFull?: string;
     format: string;
+    formatType?: string;
     purse?: string;
     holes?: number;
     cutLine?: string;
     bannerUrl?: string;
+    par?: number;
+    hcpLimit?: number | string;
+    description?: string;
+    schedule?: Array<{ date: string; month: string; title: string; time: string }>;
+    organizer?: { name: string; tag: string; logo?: string };
+    statusBadgeText?: string;
+    isOpen?: boolean;
   } | null>(null);
+  const [tournamentDetailTab, setTournamentDetailTab] = useState<"OVERVIEW" | "RULES" | "PLAYERS" | "SPONSORS">("OVERVIEW");
+
+  const openTournamentDetails = (tournament: any) => {
+    const tIdx = liveTournaments.findIndex((t) => t.id === tournament.id);
+    if (tIdx >= 0) {
+      setSelectedTournamentIndex(tIdx);
+    }
+
+    const cleanFee = tournament.fee === "Registration Closed" && tournament.feeAmount
+      ? `₦${Number(tournament.feeAmount).toLocaleString()}`
+      : (tournament.fee || "Free").replace(/\s*Fee\s*$/i, "").trim();
+    const rawFmt = (tournament.formatType || tournament.format || "Stroke Play");
+    const cleanFormat = rawFmt.toLowerCase().includes("match")
+      ? "Match Play"
+      : rawFmt.toLowerCase().includes("four") || rawFmt.toLowerCase().includes("best")
+      ? "Four-Ball"
+      : rawFmt.toLowerCase().includes("scramble")
+      ? "Scramble"
+      : rawFmt.toLowerCase().includes("stableford")
+      ? "Stableford"
+      : "Stroke Play";
+
+    const dateStr = tournament.dateFull || tournament.date || tournament.deadline || "";
+    let month = "OCT";
+    let practiceDay = "23";
+    let day1 = "24";
+    let day2 = "25";
+    let day3 = "26";
+
+    const rawStart = tournament.startDate || tournament.dateFull || tournament.date || "";
+    const isoMatch = typeof rawStart === "string" ? rawStart.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/) : null;
+    if (isoMatch) {
+      const m = parseInt(isoMatch[2], 10);
+      const d = parseInt(isoMatch[3], 10);
+      const months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+      month = months[m - 1] || "OCT";
+      practiceDay = String(Math.max(1, d - 1));
+      day1 = String(d);
+      day2 = String(d + 1);
+      day3 = String(d + 2);
+    } else {
+      const monthMatch = String(dateStr).match(/(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)/i);
+      if (monthMatch) month = monthMatch[1].toUpperCase();
+      const daysMatch = String(dateStr).match(/\b(\d{1,2})(?:st|nd|rd|th)?\b/g);
+      if (daysMatch && daysMatch.length > 0) {
+        const d1Num = parseInt(daysMatch[0], 10);
+        practiceDay = String(Math.max(1, d1Num - 1));
+        day1 = String(d1Num);
+        day2 = daysMatch.length > 1 ? String(parseInt(daysMatch[1], 10)) : String(d1Num + 1);
+        day3 = daysMatch.length > 2 ? String(parseInt(daysMatch[2], 10)) : String(d1Num + 2);
+      }
+    }
+
+    const schedule = tournament.schedule || [
+      { month, date: practiceDay, title: "Practice Round", time: "COURSE OPEN • 8:00 AM — 5:00 PM" },
+      { month, date: day1, title: "Day 1: Opening Round", time: "SHOTGUN START • 7:30 AM" },
+      { month, date: day2, title: "Day 2: Moving Day", time: "TEE TIMES • 7:00 AM" },
+      { month, date: day3, title: "Day 3: Championship Final", time: "AWARDS CEREMONY • 4:00 PM", isFinal: true },
+    ];
+
+    const isOpen = tournament.isOpen !== false && tournament.status !== "Closed";
+    const statusBadgeText = isOpen ? "REGISTRATION OPEN" : (tournament.status === "Closed" ? "REGISTRATION CLOSED" : "INVITATION ONLY");
+    const tournName = tournament.name || tournament.title || tournament.titleLine1 || "Championship Tournament";
+    const tournClub = tournament.club || tournament.venue || "Ikoyi Club 1938";
+    const effectiveDateRange = formatDateRange(tournament.startDate || tournament.date, tournament.endDate);
+    const displayDate = effectiveDateRange !== "TBD" ? effectiveDateRange : (tournament.dateFull || tournament.date || "Oct 24th – 27th, 2024");
+
+    setSelectedTournamentInfo({
+      id: tournament.id,
+      name: tournName,
+      club: tournClub,
+      fee: cleanFee,
+      feeAmount: tournament.feeAmount,
+      date: displayDate,
+      dateFull: displayDate,
+      format: tournament.format || cleanFormat,
+      formatType: cleanFormat,
+      purse: tournament.purse || "₦15,000,000 Total Purse",
+      holes: tournament.holes || 18,
+      cutLine: tournament.cutLine || "Standard Cut",
+      bannerUrl: tournament.bannerUrl || tournament.image || "/images/tournaments/ikoyi_sunrise_fairway.jpg",
+      par: tournament.par || 72,
+      hcpLimit: tournament.hcpLimit || "No Limit",
+      description: tournament.description || `Join us for the most anticipated golf event of the year. The ${tournName} gathers elite amateurs and club members for a weekend of competitive stroke play on the historic ${tournClub} course.`,
+      schedule,
+      isOpen,
+      statusBadgeText,
+      organizer: {
+        name: tournClub,
+        tag: "OFFICIAL CLUB ORGANIZER",
+      },
+    });
+    setTournamentDetailTab("OVERVIEW");
+    switchScreen("tournament-details");
+  };
+
+  const [isTournamentBookmarked, setIsTournamentBookmarked] = useState(false);
   const [friendsSearchQuery, setFriendsSearchQuery] = useState("");
   const [friendsDisplayLimit, setFriendsDisplayLimit] = useState(4);
   const [sentFriendRequests, setSentFriendRequests] = useState<string[]>([]);
@@ -4126,9 +4344,13 @@ export default function MobilePreviewPage() {
           const mapped: RealTournament[] = data.map((t: any, idx: number) => {
             const isFree = t.requiresPayment === false || !t.entryFee || Number(t.entryFee) === 0;
             const symbol = getCurrencySymbol(t.currency);
-            const formattedPurse = (t.prizePool && Number(t.prizePool) > 0)
-              ? `${symbol}${formatNumber(Number(t.prizePool))}`
+            const rawPurse = (t.prizePool && Number(t.prizePool) > 0)
+              ? Number(t.prizePool)
+              : (isFree ? 0 : Number(t.entryFee) * 50);
+            const formattedPurse = rawPurse > 0
+              ? `${symbol}${formatNumber(rawPurse)}`
               : (isFree ? "—" : `${symbol}${formatNumber(Number(t.entryFee) * 50)}`);
+            const rawFee = Number(t.entryFee) || 0;
             const formattedFee = formatTournamentFee(t.entryFee, t.currency, {
               requiresPayment: t.requiresPayment !== false,
             });
@@ -4139,26 +4361,35 @@ export default function MobilePreviewPage() {
               status: t.status === "ONGOING" ? "LIVE" : (t.status || "UPCOMING"),
               organizerClub: t.club?.name || t.venue || "Tournament Club",
               organizerCity: t.club?.city || t.location || "Lagos, Nigeria",
+              clubLogo: t.club?.logo || null,
               courseName: t.course?.name || "Championship Course",
               coursePar: t.course?.par || (t.holes === 9 ? 36 : 72),
               courseHoles: t.holes || 18,
               format: t.format ? t.format.replace(/_/g, " ") : "Stroke Play",
               dates: t.startDate ? new Date(t.startDate).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "Upcoming",
               purse: formattedPurse,
+              rawPurse,
               entryFee: formattedFee,
-              fieldCount: t._count?.registrations ?? t.maxPlayers ?? 0,
+              rawFee,
+              currency: t.currency || "NGN",
+              fieldCount: t._count?.registrations ?? 0,
+              maxPlayers: t.maxPlayers || 120,
               cutLine: t.enableCut ? `Top ${t.cutLine || 30} + Ties` : "None",
               weather: "74°F Sunny • 6mph NW",
               stimp: "12.5 Stimp",
               isFeatured: Boolean(t.isFeatured),
-              bannerUrl: t.bannerUrl || null,
+              bannerUrl: t.bannerUrl || t.course?.coverImage || null,
               divisions: Array.isArray(t.divisions) && t.divisions.length > 0 ? t.divisions.join(" & ") : "Championship",
               gender: t.genderRestriction === "MALE_ONLY" ? "Male" : t.genderRestriction === "FEMALE_ONLY" ? "Ladies" : undefined,
               hcpLimit: t.hasHandicapRestriction ? `HCP ${t.minHandicap ?? 0}–${t.maxHandicap ?? 36}` : "No Limit",
+              hasHandicapRestriction: Boolean(t.hasHandicapRestriction),
+              minHandicap: t.minHandicap != null ? Number(t.minHandicap) : null,
+              maxHandicap: t.maxHandicap != null ? Number(t.maxHandicap) : null,
               deadline: t.registrationCloseAt ? new Date(t.registrationCloseAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : (t.startDate ? new Date(t.startDate).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "Open"),
               startDate: t.startDate || undefined,
               endDate: t.endDate || undefined,
               teeStartTime: t.teeStartTime || undefined,
+              description: t.description || undefined,
             };
           });
           setLiveTournaments(mapped);
@@ -5525,6 +5756,109 @@ class TournamentsView extends StatelessWidget {
   }
 }`,
     },
+    "tournament-filter": {
+      path: "apps/mobile-app/lib/screens/tournament_filter_screen.dart",
+      summary:
+        "Dedicated executive tournament filter screen featuring location proximity range slider, searchable host golf club selector with comprehensive club directory, event timeframes, 2x2 event type cards, format selection, dual entry fee slider, and handicap range tabs.",
+      snippet: `// Dart & Flutter: Tournament Filter Screen
+class TournamentFilterScreen extends StatefulWidget {
+  const TournamentFilterScreen({super.key});
+
+  @override
+  State<TournamentFilterScreen> createState() => _TournamentFilterScreenState();
+}
+
+class _TournamentFilterScreenState extends State<TournamentFilterScreen> {
+  double _proximityKm = 25;
+  String _selectedClub = "All";
+  String _selectedWhen = "Anytime";
+  String _selectedEventType = "Major Event";
+  String _selectedFormat = "Stroke Play";
+  double _maxFee = 250000;
+  String _handicapRange = "10 – 18";
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF4F6F3),
+      appBar: AppBar(
+        title: const Text('Tournament Filter', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        leading: const CircularBackButton(),
+        actions: [
+          TextButton(
+            onPressed: () {},
+            child: const Text('Reset', style: TextStyle(color: Color(0xFF009A60), fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+      body: ListView(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+        children: [
+          // Location & Proximity Slider
+          // Host Golf Club Searchable Dropdown
+          // When Timeline Horizontal Pills
+          // 2x2 Event Type Cards (Major Event, Social Golf, Clinic, Elite Cup)
+          // Game Format Pills (Stroke Play, Stableford, Match Play, Scramble, Four-Ball)
+          // Entry Fee Range (MIN N0, MAX N250,000+)
+          // Handicap Range Segmented Pills (0-9, 10-18, 19-28+)
+        ],
+      ),
+      bottomNavigationBar: Container(
+        padding: const EdgeInsets.all(16),
+        child: ElevatedButton(
+          onPressed: () => Navigator.pop(context),
+          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF009A60)),
+          child: const Text('Apply Filters'),
+        ),
+      ),
+    );
+  }
+}`,
+    },
+    "tournament-details": {
+      path: "apps/mobile-app/lib/screens/tournament_details_screen.dart",
+      summary:
+        "Dedicated executive tournament details screen with full-bleed hero banner, frosted navigation pills, registration status badge, entry fee & format metrics, specs tabs (Overview, Rules, Players, Prizes), schedule cards, and pinned calendar sync & join bar.",
+      snippet: `// Dart & Flutter: Tournament Details Screen
+class TournamentDetailsScreen extends StatefulWidget {
+  final Tournament tournament;
+  const TournamentDetailsScreen({super.key, required this.tournament});
+
+  @override
+  State<TournamentDetailsScreen> createState() => _TournamentDetailsScreenState();
+}
+
+class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 4, vsync: this);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: CustomScrollView(
+        slivers: [
+          // Hero Cover Banner with frosted back, share, bookmark buttons
+          // Status Pill: REGISTRATION OPEN
+          // Title & Host Club Location
+          // Metric Cards: Entry Fee & Playing Format
+          // Tab Navigation: OVERVIEW, RULES, PLAYERS, PRIZES
+          // Tab Content: Course Specs, Schedule, Organizer
+        ],
+      ),
+      bottomNavigationBar: PinnedJoinActionBar(
+        onCalendarTap: () {},
+        onJoinTap: () {},
+      ),
+    );
+  }
+}`,
+    },
   };
 
   const copyCode = () => {
@@ -5606,6 +5940,17 @@ class TournamentsView extends StatelessWidget {
     const currentHandicap = (authenticatedPlayer?.handicap !== undefined && authenticatedPlayer?.handicap !== null)
       ? (typeof authenticatedPlayer.handicap === 'number' ? authenticatedPlayer.handicap.toFixed(1) : authenticatedPlayer.handicap)
       : (regHandicap ? (parseFloat(regHandicap) ? parseFloat(regHandicap).toFixed(1) : regHandicap) : (currentIsPro ? "+2.4" : "36.0"));
+
+    const isTablet = DEVICE_MODELS[phoneSlots[phoneIdx]?.model || "iphone-16-pro"]?.category === "tablet";
+
+    const allAvailableHostClubs = Array.from(
+      new Set([
+        ...coursesList.map((c) => c.name),
+        ...coursesList.map((c) => c.name.replace(/ Course$/i, "").replace(/ Golf Course$/i, " Golf Club")),
+        ...liveTournaments.map((t) => t.organizerClub || t.courseName).filter(Boolean),
+        ...ALL_COMPREHENSIVE_GOLF_CLUBS,
+      ])
+    ).filter(Boolean).sort((a, b) => a.localeCompare(b));
 
     return (
       <div
@@ -5698,7 +6043,7 @@ class TournamentsView extends StatelessWidget {
                               <path d="M10.5 20.5h3" />
                             </svg>
                           </div>
-                          <div className="text-[17px] font-black tracking-tight leading-none">
+                          <div className="text-[17px] font-bold tracking-tight leading-none">
                             <span className="text-white">Openclub</span>
                             <span className="text-[#10B981]">OS</span>
                           </div>
@@ -5735,10 +6080,10 @@ class TournamentsView extends StatelessWidget {
                           >
                             {/* Slide 1 Content */}
                             <div className="w-full shrink-0 flex flex-col items-center text-center px-1">
-                              <h2 className="text-[25px] sm:text-[26px] font-black text-[#0F172A] tracking-tight leading-[1.22] mb-3">
+                              <h2 className="text-[25px] sm:text-[26px] font-bold text-[#0F172A] tracking-tight leading-[1.22] mb-3">
                                 The Modern Operating<br />
-                                System for <span className="text-[#009A60] italic font-black">Golf</span><br />
-                                <span className="text-[#009A60] italic font-black">Tournaments</span>
+                                System for <span className="text-[#009A60] italic font-bold">Golf</span><br />
+                                <span className="text-[#009A60] italic font-bold">Tournaments</span>
                               </h2>
                               <p className="text-[14px] text-[#5B6B7F] font-normal leading-[1.5] max-w-[310px] mx-auto">
                                 Experience elite tournament management, real-time leaderboards, and automated peer-attested scoring.
@@ -5747,9 +6092,9 @@ class TournamentsView extends StatelessWidget {
 
                             {/* Slide 2 Content */}
                             <div className="w-full shrink-0 flex flex-col items-center text-center px-1">
-                              <h2 className="text-[25px] sm:text-[26px] font-black text-[#0F172A] tracking-tight leading-[1.22] mb-3">
+                              <h2 className="text-[25px] sm:text-[26px] font-bold text-[#0F172A] tracking-tight leading-[1.22] mb-3">
                                 Real-Time Leaderboards<br />
-                                & <span className="text-[#009A60] italic font-black">Live Scoring</span>
+                                & <span className="text-[#009A60] italic font-bold">Live Scoring</span>
                               </h2>
                               <p className="text-[14px] text-[#5B6B7F] font-normal leading-[1.5] max-w-[310px] mx-auto">
                                 Follow the action as it happens. Every stroke, every hole, updated instantly across all devices.
@@ -5758,9 +6103,9 @@ class TournamentsView extends StatelessWidget {
 
                             {/* Slide 3 Content */}
                             <div className="w-full shrink-0 flex flex-col items-center text-center px-1">
-                              <h2 className="text-[25px] sm:text-[26px] font-black text-[#0F172A] tracking-tight leading-[1.22] mb-3">
+                              <h2 className="text-[25px] sm:text-[26px] font-bold text-[#0F172A] tracking-tight leading-[1.22] mb-3">
                                 Automated Bookings &<br />
-                                <span className="text-[#009A60] italic font-black">Practice Rounds</span>
+                                <span className="text-[#009A60] italic font-bold">Practice Rounds</span>
                               </h2>
                               <p className="text-[14px] text-[#5B6B7F] font-normal leading-[1.5] max-w-[310px] mx-auto">
                                 Secure your spot. Manage tee times, payments, and practice sessions with seamless automation.
@@ -5969,7 +6314,7 @@ class TournamentsView extends StatelessWidget {
                             <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-mono">
                               Strokes
                             </span>
-                            <span className="text-4xl font-extrabold text-white tracking-tight">
+                            <span className="text-4xl font-bold text-white tracking-tight">
                               {activeHoleScore.strokes}
                             </span>
                           </div>
@@ -6212,7 +6557,7 @@ class TournamentsView extends StatelessWidget {
                                     </div>
                                     <div className="text-right">
                                       <span
-                                        className={`text-base font-extrabold ${player.gross.includes("-")
+                                        className={`text-base font-bold ${player.gross.includes("-")
                                           ? "text-emerald-400"
                                           : "text-amber-400"
                                           } font-mono block`}
@@ -6274,7 +6619,7 @@ class TournamentsView extends StatelessWidget {
                         <div className="absolute inset-0 bg-gradient-to-b from-black/65 via-black/30 to-black/55 pointer-events-none" />
 
                         {/* Header Content */}
-                        <div className="relative z-10 px-5 pt-3 pb-8 flex flex-col justify-between h-full w-full max-w-sm mx-auto">
+                        <div className="relative z-10 px-4 pt-3 pb-8 flex flex-col justify-between h-full w-full">
                           {/* Top Action Bar: 4 WHITE ICONS (Properly spaced at the top right corner) */}
                           <div className="flex items-center justify-end gap-3.5 shrink-0 pt-0.5">
                             {/* User Plus (Add Friends) - Opens New Screen */}
@@ -6298,7 +6643,7 @@ class TournamentsView extends StatelessWidget {
                               >
                                 <Bell className="h-[20px] w-[20px] text-white stroke-[1.8]" />
                                 {incomingFriendRequests.length > 0 ? (
-                                  <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] rounded-full bg-[#EF4444] border-1.5 border-[#0A3D27] text-white text-[10px] font-black flex items-center justify-center px-1 shadow-sm leading-none animate-pulse">
+                                  <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] rounded-full bg-[#EF4444] border-1.5 border-[#0A3D27] text-white text-[10px] font-bold flex items-center justify-center px-1 shadow-sm leading-none animate-pulse">
                                     {incomingFriendRequests.length}
                                   </span>
                                 ) : unreadNotificationsCount > 0 ? (
@@ -6316,7 +6661,7 @@ class TournamentsView extends StatelessWidget {
                               >
                                 <CalendarCheck className="h-[20px] w-[20px] text-white stroke-[1.8]" />
                                 {proBookings.length > 0 && (
-                                  <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-[16px] rounded-full bg-[#009A60] border-1.5 border-[#0A3D27] text-white text-[9.5px] font-black flex items-center justify-center px-1 shadow-sm leading-none">
+                                  <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-[16px] rounded-full bg-[#009A60] border-1.5 border-[#0A3D27] text-white text-[9.5px] font-bold flex items-center justify-center px-1 shadow-sm leading-none">
                                     {proBookings.length}
                                   </span>
                                 )}
@@ -6350,14 +6695,14 @@ class TournamentsView extends StatelessWidget {
                                       const parent = target.parentElement;
                                       if (parent && !parent.querySelector('.fallback-initials')) {
                                         const span = document.createElement('span');
-                                        span.className = 'fallback-initials text-[19px] font-black tracking-tight text-white drop-shadow-sm select-none';
+                                        span.className = 'fallback-initials text-[19px] font-bold tracking-tight text-white drop-shadow-sm select-none';
                                         span.innerText = currentInitials;
                                         parent.appendChild(span);
                                       }
                                     }}
                                   />
                                 ) : (
-                                  <span className="text-[19px] font-black tracking-tight text-white drop-shadow-sm select-none">
+                                  <span className="text-[19px] font-bold tracking-tight text-white drop-shadow-sm select-none">
                                     {currentInitials}
                                   </span>
                                 )}
@@ -6380,7 +6725,7 @@ class TournamentsView extends StatelessWidget {
                                 title={`${currentIsPro ? "PRO. " : ""}${currentFirstName}`}
                               >
                                 {currentIsPro && (
-                                  <span className="shrink-0 text-[11px] font-black uppercase px-2 py-0.5 rounded-md bg-emerald-500/35 text-emerald-300 border border-emerald-400/50 tracking-wider shadow-xs">
+                                  <span className="shrink-0 text-[11px] font-bold uppercase px-2 py-0.5 rounded-md bg-emerald-500/35 text-emerald-300 border border-emerald-400/50 tracking-wider shadow-xs">
                                     PRO.
                                   </span>
                                 )}
@@ -6409,7 +6754,7 @@ class TournamentsView extends StatelessWidget {
                       </div>
 
                       {/* --- 2. DUAL FLOATING ACTION CARDS (BALANCED EQUAL WIDTH, HEIGHT 66PX, MORE ROUNDED [26PX]) --- */}
-                      <div className="-mt-5 px-4 relative z-10 w-full max-w-sm mx-auto">
+                      <div className="-mt-5 px-4 relative z-10 w-full">
                         <div className="flex items-center gap-2.5">
                           {/* Left Card: Book a Pro (Equal flex-1) */}
                           <button
@@ -6441,7 +6786,7 @@ class TournamentsView extends StatelessWidget {
 
                             <CalendarCheck className="h-5.5 w-5.5 text-[#009A60] stroke-[1.9] shrink-0 group-hover:scale-105 transition-transform relative z-10" />
                             <div className="flex flex-col text-left min-w-0 justify-center relative z-10">
-                              <span className="text-[16px] font-extrabold text-[#009A60] whitespace-nowrap tracking-tight leading-tight">
+                              <span className="text-[16px] font-bold text-[#009A60] whitespace-nowrap tracking-tight leading-tight">
                                 Book a Pro
                               </span>
                               <span className="text-[9.5px] font-medium text-slate-500 whitespace-nowrap tracking-tight leading-tight mt-0.5">
@@ -6485,7 +6830,7 @@ class TournamentsView extends StatelessWidget {
 
                             <Award className="h-5.5 w-5.5 text-[#009A60] stroke-[1.9] shrink-0 group-hover:scale-105 transition-transform relative z-10" />
                             <div className="flex flex-col text-left min-w-0 justify-center relative z-10">
-                              <span className="text-[16px] font-extrabold text-[#009A60] whitespace-nowrap tracking-tight leading-tight">
+                              <span className="text-[16px] font-bold text-[#009A60] whitespace-nowrap tracking-tight leading-tight">
                                 {currentHandicap} HCP
                               </span>
                               <span className="text-[9.5px] font-medium text-slate-500 whitespace-nowrap tracking-tight leading-tight mt-0.5">
@@ -6500,7 +6845,7 @@ class TournamentsView extends StatelessWidget {
                       </div>
 
                       {/* --- 2.5 PLAYING NOW SECTION (ENHANCED VERTICAL SPACING & EMPTY STATE) --- */}
-                      <div className="w-full max-w-sm mx-auto px-4 pt-6 pb-4">
+                      <div className="w-full px-4 pt-6 pb-4">
                         {/* --- ACTIVE IN-PROGRESS ROUND CARD (DISPLAYED WHEN PLAYER HAS NOT YET FINISHED ROUND) --- */}
                         {activeRound && (
                           <div className="mb-4.5 w-full rounded-[22px] bg-[#052417] text-white p-4.5 sm:p-5 border border-[#0D3826] shadow-[0_10px_28px_rgba(0,0,0,0.22)] select-none relative overflow-hidden group">
@@ -6550,7 +6895,7 @@ class TournamentsView extends StatelessWidget {
                                   <span className="text-[9.5px] font-bold text-[#10B981]/90 uppercase tracking-widest leading-none">
                                     HOLE
                                   </span>
-                                  <span className="text-[28px] font-black text-[#10B981] leading-none mt-1.5 tracking-tight">
+                                  <span className="text-[28px] font-bold text-[#10B981] leading-none mt-1.5 tracking-tight">
                                     {activeRound.holeNumber}
                                   </span>
                                 </div>
@@ -6561,11 +6906,11 @@ class TournamentsView extends StatelessWidget {
                                   <div className="flex items-center justify-between gap-2">
                                     <div className="flex items-center gap-2 min-w-0">
                                       {activeRound.isLive ? (
-                                        <span className="px-2 py-0.5 rounded-[5px] bg-[#EF4444] text-white text-[9px] font-black tracking-wider uppercase leading-none shrink-0 animate-pulse">
+                                        <span className="px-2 py-0.5 rounded-[5px] bg-[#EF4444] text-white text-[9px] font-bold tracking-wider uppercase leading-none shrink-0 animate-pulse">
                                           LIVE
                                         </span>
                                       ) : (
-                                        <span className="px-2 py-0.5 rounded-[5px] bg-[#10B981]/20 text-[#10B981] border border-[#10B981]/30 text-[9px] font-black tracking-wider uppercase leading-none shrink-0">
+                                        <span className="px-2 py-0.5 rounded-[5px] bg-[#10B981]/20 text-[#10B981] border border-[#10B981]/30 text-[9px] font-bold tracking-wider uppercase leading-none shrink-0">
                                           {activeTournament?.status === "REGISTRATION_OPEN" ? "REG OPEN" : "UPCOMING"}
                                         </span>
                                       )}
@@ -6639,7 +6984,7 @@ class TournamentsView extends StatelessWidget {
                                         )}
                                       </div>
                                       <div className="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
-                                        <span className={`text-[12px] font-black tracking-tight whitespace-nowrap ${
+                                        <span className={`text-[12px] font-bold tracking-tight whitespace-nowrap ${
                                           isTeeTimeReached ? "text-[#10B981]" : "text-[#F59E0B]"
                                         }`}>
                                           {teeLabel}
@@ -6787,8 +7132,8 @@ class TournamentsView extends StatelessWidget {
                                 className="w-[54px] h-[54px] rounded-full border-2 border-[#009A60] bg-white flex flex-col items-center justify-center shrink-0 shadow-[0_2px_10px_rgba(0,154,96,0.12)] hover:bg-emerald-50/40 transition-all cursor-pointer group active:scale-95"
                                 title="Invite Friends"
                               >
-                                <span className="text-[8px] font-black tracking-wider text-[#009A60] leading-none">OPEN</span>
-                                <span className="text-[8.5px] font-black tracking-wider text-[#009A60] my-0.5 leading-none">CLUB</span>
+                                <span className="text-[8px] font-bold tracking-wider text-[#009A60] leading-none">OPEN</span>
+                                <span className="text-[8.5px] font-bold tracking-wider text-[#009A60] my-0.5 leading-none">CLUB</span>
                                 <span className="text-[7px] font-bold tracking-widest text-[#009A60]/75 leading-none">GOLF</span>
                               </button>
                               <span className="text-[11px] font-semibold text-[#009A60] mt-1.5 max-w-[56px] truncate text-center leading-tight">
@@ -6859,7 +7204,7 @@ class TournamentsView extends StatelessWidget {
                       </div>
 
                       {/* --- 2.75 OPENCLUBOS SYSTEM PROMOTIONAL CARD (HOST. SCORE. WIN.) --- */}
-                      <div className="w-full max-w-sm mx-auto px-4 pb-2.5">
+                      <div className="w-full px-4 pb-2.5">
                         <div className="w-full bg-white rounded-[22px] border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.04)] p-4 flex items-center justify-between gap-3 select-none relative overflow-hidden group">
                           {/* Fitted Background Pattern: High-Tech Tournament OS Dot-Matrix & Circuit Bracket Telemetry */}
                           <svg
@@ -6891,16 +7236,16 @@ class TournamentsView extends StatelessWidget {
                           <div className="relative z-10 flex flex-col min-w-0 flex-1">
                             {/* Brand Tag + System Pill */}
                             <div className="flex items-center gap-1.5 mb-1">
-                              <span className="text-[10.5px] font-black tracking-wider text-[#009A60] uppercase">
+                              <span className="text-[10.5px] font-bold tracking-wider text-[#009A60] uppercase">
                                 OPENCLUBOS
                               </span>
-                              <span className="inline-flex items-center px-1.5 py-0.5 rounded-[5px] text-[8px] font-black uppercase tracking-wider bg-[#009A60] text-white">
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded-[5px] text-[8px] font-bold uppercase tracking-wider bg-[#009A60] text-white">
                                 SYSTEM
                               </span>
                             </div>
 
                             {/* Title */}
-                            <h3 className="text-[17px] font-extrabold text-[#0F172A] tracking-tight leading-tight">
+                            <h3 className="text-[17px] font-bold text-[#0F172A] tracking-tight leading-tight">
                               Host. Score. Win.
                             </h3>
 
@@ -6917,7 +7262,7 @@ class TournamentsView extends StatelessWidget {
                                   setActiveBottomNavTab("tournaments");
                                   showToast("Accessing OpenClub Full Tournament OS", "success", "TOURNAMENT OS");
                                 }}
-                                className="h-8 px-4 rounded-xl bg-[#064E3B] hover:bg-[#065F46] active:scale-95 text-white font-extrabold text-[10px] tracking-wider uppercase transition-all shadow-2xs cursor-pointer inline-flex items-center justify-center"
+                                className="h-8 px-4 rounded-xl bg-[#064E3B] hover:bg-[#065F46] active:scale-95 text-white font-bold text-[10px] tracking-wider uppercase transition-all shadow-2xs cursor-pointer inline-flex items-center justify-center"
                               >
                                 EXPLORE
                               </button>
@@ -6948,7 +7293,7 @@ class TournamentsView extends StatelessWidget {
                       </div>
 
                       {/* --- 3. FEATURED TOURNAMENTS SECTION (REFERENCE MATCH) --- */}
-                      <div className="w-full max-w-sm mx-auto pt-3 pb-1">
+                      <div className="w-full pt-3 pb-1">
                         {/* Section Header */}
                         <div className="flex items-center justify-between px-4 mb-2.5">
                           <h3 className="text-[15px] font-bold text-[#0F172A] tracking-tight whitespace-nowrap">
@@ -7075,7 +7420,7 @@ class TournamentsView extends StatelessWidget {
                                       </div>
 
                                       {/* Title: Consistent 15px font sizing matching section typography */}
-                                      <h4 className="text-[15px] font-extrabold text-white tracking-tight leading-tight drop-shadow-sm max-w-[255px]">
+                                      <h4 className="text-[15px] font-bold text-white tracking-tight leading-tight drop-shadow-sm max-w-[255px]">
                                         {tourn.titleLine2 ? (
                                           <>
                                             <span className="block truncate">{tourn.titleLine1}</span>
@@ -7086,21 +7431,42 @@ class TournamentsView extends StatelessWidget {
                                         )}
                                       </h4>
                                     </div>
-                                    <button
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        if (featuredTournamentsCarouselRef.current?.dataset.moved === "true") {
-                                          featuredTournamentsCarouselRef.current.dataset.moved = "false";
-                                          return;
-                                        }
-                                        showToast(`${tourn.title} saved to bookmarks`, "success", "BOOKMARKED");
-                                      }}
-                                      className="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 border border-white/10 backdrop-blur-xs flex items-center justify-center cursor-pointer transition-all shrink-0 mt-0.5"
-                                      title="Bookmark Tournament"
-                                    >
-                                      <Bookmark className="w-3.5 h-3.5 text-emerald-400" />
-                                    </button>
+                                    {/* Action Buttons Top Right: Share + Bookmark Beside Each Other */}
+                                    <div className="flex items-center gap-1.5 shrink-0 mt-0.5">
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          if (featuredTournamentsCarouselRef.current?.dataset.moved === "true") {
+                                            featuredTournamentsCarouselRef.current.dataset.moved = "false";
+                                            return;
+                                          }
+                                          if (typeof navigator !== "undefined" && navigator.clipboard) {
+                                            navigator.clipboard.writeText(`https://openclub.app/tournaments/${tourn.id}`).catch(() => {});
+                                          }
+                                          showToast(`${tourn.title} link copied to clipboard!`, "success", "SHARE TOURNAMENT");
+                                        }}
+                                        className="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 border border-white/10 backdrop-blur-xs flex items-center justify-center cursor-pointer transition-all"
+                                        title="Share Tournament"
+                                      >
+                                        <Share2 className="w-3.5 h-3.5 text-white hover:text-emerald-400 transition-colors" />
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          if (featuredTournamentsCarouselRef.current?.dataset.moved === "true") {
+                                            featuredTournamentsCarouselRef.current.dataset.moved = "false";
+                                            return;
+                                          }
+                                          showToast(`${tourn.title} saved to bookmarks`, "success", "BOOKMARKED");
+                                        }}
+                                        className="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 border border-white/10 backdrop-blur-xs flex items-center justify-center cursor-pointer transition-all"
+                                        title="Bookmark Tournament"
+                                      >
+                                        <Bookmark className="w-3.5 h-3.5 text-emerald-400" />
+                                      </button>
+                                    </div>
                                   </div>
 
                                   {/* Tight spacing directly under tournament title */}
@@ -7172,7 +7538,7 @@ class TournamentsView extends StatelessWidget {
                                   {/* Flexible Spacer between Metadata and Action Buttons */}
                                   <div className="flex-1 min-h-1.5" />
 
-                                  {/* Bottom: Action Buttons (Register 70%, Share 30%) */}
+                                  {/* Bottom: Action Buttons (Register 70%, Info 30%) */}
                                   <div className="flex items-center gap-2">
                                     <button
                                       type="button"
@@ -7185,7 +7551,7 @@ class TournamentsView extends StatelessWidget {
                                         showToast(`Opening registration for ${tourn.title}`, "success", "REGISTRATION");
                                         switchScreen("scoring");
                                       }}
-                                      className="flex-[7] h-[38px] rounded-xl bg-[#009A60] hover:bg-[#008753] active:scale-[0.98] text-white font-semibold text-[12.5px] flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                                      className="flex-[7] h-[38px] rounded-xl bg-[#009A60] hover:bg-[#008753] active:scale-[0.98] text-white font-semibold text-[12.5px] flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer capitalize"
                                     >
                                       <span>Register Now</span>
                                       <ChevronRight className="w-4 h-4" />
@@ -7199,16 +7565,13 @@ class TournamentsView extends StatelessWidget {
                                           featuredTournamentsCarouselRef.current.dataset.moved = "false";
                                           return;
                                         }
-                                        if (typeof navigator !== "undefined" && navigator.clipboard) {
-                                          navigator.clipboard.writeText(`https://openclub.app/tournaments/${tourn.id}`).catch(() => {});
-                                        }
-                                        showToast(`${tourn.title} link copied to clipboard!`, "success", "SHARE TOURNAMENT");
+                                        openTournamentDetails(tourn);
                                       }}
-                                      className="flex-[3] h-[38px] rounded-xl bg-white hover:bg-slate-100 active:scale-[0.98] text-[#0F172A] font-semibold text-[12px] flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer border border-slate-200"
-                                      title="Share Tournament"
+                                      className="flex-[3] h-[38px] rounded-xl bg-white hover:bg-slate-100 active:scale-[0.98] text-[#0F172A] font-semibold text-[12px] flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer border border-slate-200 capitalize"
+                                      title="Tournament Details"
                                     >
-                                      <Share2 className="w-3.5 h-3.5 text-[#0F172A]" />
-                                      <span>Share</span>
+                                      <Info className="w-3.5 h-3.5 text-[#009A60]" />
+                                      <span>Details</span>
                                     </button>
                                   </div>
                                 </div>
@@ -7220,7 +7583,7 @@ class TournamentsView extends StatelessWidget {
                     </div>
 
                       {/* --- 3.5 ROUNDS SECTION --- */}
-                      <div className="w-full max-w-sm mx-auto px-4 pt-3 pb-6">
+                      <div className="w-full px-4 pt-3 pb-6">
                         {/* Section Header */}
                         <div className="flex items-center justify-between mb-3">
                           <h3 className="text-[17px] font-bold text-[#0F172A] tracking-tight">
@@ -7337,7 +7700,7 @@ class TournamentsView extends StatelessWidget {
                                 <span className="text-[11px] font-bold text-[#009A60] tracking-wider leading-none">
                                   {round.month}
                                 </span>
-                                <span className="text-[20px] font-black text-[#009A60] leading-none mt-1">
+                                <span className="text-[20px] font-bold text-[#009A60] leading-none mt-1">
                                   {round.day}
                                 </span>
                               </div>
@@ -7360,10 +7723,10 @@ class TournamentsView extends StatelessWidget {
 
                               {/* Right Net Score Column */}
                               <div className="relative z-10 flex flex-col items-end shrink-0 pl-1">
-                                <span className="text-[23px] font-black text-[#0F172A] tracking-tight leading-none">
+                                <span className="text-[23px] font-bold text-[#0F172A] tracking-tight leading-none">
                                   {round.netScore}
                                 </span>
-                                <span className="text-[9px] font-extrabold text-slate-400 tracking-wider uppercase mt-1 leading-none">
+                                <span className="text-[9px] font-bold text-slate-400 tracking-wider uppercase mt-1 leading-none">
                                   NET SCORE
                                 </span>
                               </div>
@@ -7374,7 +7737,7 @@ class TournamentsView extends StatelessWidget {
 
                       {/* --- 4. CUSTOM MOBILE BOTTOM NAVIGATION BAR (FLUSH, PLAY GOLF DOES NOT PROTRUDE) --- */}
                       <div className="mt-auto sticky bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-t border-slate-200/90 shadow-[0_-4px_20px_rgba(0,0,0,0.04)] shrink-0">
-                        <div className="w-full max-w-sm mx-auto h-16 flex items-center justify-between px-3">
+                        <div className="w-full h-16 flex items-center justify-between px-3">
                           {/* 1. Home */}
                           <button
                             type="button"
@@ -7434,8 +7797,8 @@ class TournamentsView extends StatelessWidget {
                             className="w-[48px] h-[48px] rounded-full bg-[#009A60] hover:bg-[#008251] active:scale-95 transition-all shadow-[0_4px_12px_rgba(0,154,96,0.32)] border-2 border-white flex flex-col items-center justify-center shrink-0 cursor-pointer group"
                             title="Play Golf"
                           >
-                            <span className="text-[9px] font-black text-white tracking-wider leading-none">PLAY</span>
-                            <span className="text-[9px] font-black text-white tracking-wider leading-none mt-0.5">GOLF</span>
+                            <span className="text-[9px] font-bold text-white tracking-wider leading-none">PLAY</span>
+                            <span className="text-[9px] font-bold text-white tracking-wider leading-none mt-0.5">GOLF</span>
                           </button>
 
                           {/* 4. Challenges */}
@@ -7490,107 +7853,8 @@ class TournamentsView extends StatelessWidget {
 
                   {/* TOURNAMENTS SCREEN (Pixel-Perfect Reference Match) */}
                   {targetScreen === "tournaments" && (() => {
-                    // Base curated tournament entries
-                    const baseTournamentsList = [
-                      {
-                        id: "lagos-amateur-open",
-                        name: "Lagos Amateur Open",
-                        club: "Lakowe Lakes Golf Estate",
-                        category: "Ongoing",
-                        fee: "₦150,000 Fee",
-                        feeAmount: 150000,
-                        date: "Nov 12th, 2024",
-                        dateFull: "Nov 12th – 14th, 2024",
-                        format: "Individual Strokeplay • 36 Holes",
-                        formatType: "Strokeplay",
-                        purse: "₦12,500,000 Total Purse",
-                        holes: 18,
-                        cutLine: "Top 40 Players & Ties",
-                        bannerUrl: "/images/tournaments/lagos_amateur_open.jpg",
-                        isFeatured: false,
-                        status: "Open",
-                        isOpen: true,
-                      },
-                      {
-                        id: "ibb-invitational",
-                        name: "IBB Invitational",
-                        club: "IBB International Golf Club",
-                        category: "Invitational",
-                        fee: "Registration Closed",
-                        feeAmount: 100000,
-                        date: "Oct 5th, 2024",
-                        dateFull: "Oct 5th, 2024",
-                        format: "Matchplay Invitational • 18 Holes",
-                        formatType: "Matchplay",
-                        purse: "₦8,000,000 Total Purse",
-                        holes: 18,
-                        cutLine: "Invitation Only",
-                        bannerUrl: "/images/tournaments/ibb_invitational.jpg",
-                        isFeatured: false,
-                        status: "Closed",
-                        isOpen: false,
-                      },
-                      {
-                        id: "corporate-golf-challenge",
-                        name: "Corporate Golf Challenge",
-                        club: "Port Harcourt Golf Club",
-                        category: "Invitational",
-                        fee: "₦85,000 Fee",
-                        feeAmount: 85000,
-                        date: "Dec 15th, 2024",
-                        dateFull: "Dec 15th, 2024",
-                        format: "Four-Ball Better Ball • 18 Holes",
-                        formatType: "Four-Ball",
-                        purse: "₦5,000,000 In Trophies & Gifts",
-                        holes: 18,
-                        cutLine: "One Day Invitational",
-                        bannerUrl: "/images/tournaments/corporate_golf_cart.jpg",
-                        isFeatured: false,
-                        status: "Open",
-                        isOpen: true,
-                      },
-                      {
-                        id: "smokin-hills-memorial",
-                        name: "Smokin Hills Memorial Trophy",
-                        club: "Smokin Hills Golf Resort",
-                        category: "Major",
-                        fee: "₦120,000 Fee",
-                        feeAmount: 120000,
-                        date: "Jan 18th, 2025",
-                        dateFull: "Jan 18th – 20th, 2025",
-                        format: "Individual Strokeplay • 54 Holes",
-                        formatType: "Strokeplay",
-                        purse: "₦15,000,000 Total Purse",
-                        holes: 18,
-                        cutLine: "Top 35 Players & Ties",
-                        bannerUrl: "/images/tournaments/course_banner_04.jpg",
-                        isFeatured: false,
-                        status: "Open",
-                        isOpen: true,
-                      },
-                      {
-                        id: "abuja-national-scramble",
-                        name: "Abuja National Scramble",
-                        club: "IBB International Golf Club",
-                        category: "Ongoing",
-                        fee: "₦50,000 Fee",
-                        feeAmount: 50000,
-                        date: "Nov 28th, 2024",
-                        dateFull: "Nov 28th, 2024",
-                        format: "Four-Man Scramble • 18 Holes",
-                        formatType: "Scramble",
-                        purse: "₦3,500,000 In Prizes",
-                        holes: 18,
-                        cutLine: "Open Entry",
-                        bannerUrl: "/images/tournaments/course_banner_06.jpg",
-                        isFeatured: false,
-                        status: "Open",
-                        isOpen: true,
-                      },
-                    ];
-
-                    // Merge dynamic real tournaments from database
-                    const dynamicFromDb = liveTournaments.map((t, idx) => {
+                    // Dynamic real tournaments directly wired to the database
+                    const dynamicFromDb = (liveTournaments.length > 0 ? liveTournaments : []).map((t, idx) => {
                       const fmtStr = (t.format || "").toLowerCase();
                       const formatType = fmtStr.includes("match")
                         ? "Matchplay"
@@ -7606,26 +7870,135 @@ class TournamentsView extends StatelessWidget {
                         id: t.id,
                         name: t.name,
                         club: t.organizerClub || t.courseName || "Ikoyi Club 1938",
-                        category: t.isFeatured ? "Major" : (t.status === "LIVE" ? "Ongoing" : "Ongoing"),
+                        city: t.organizerCity || "Lagos, Nigeria",
+                        clubLogo: t.clubLogo || null,
+                        category: t.isFeatured ? "Major" : (t.status === "LIVE" ? "Ongoing" : t.status === "COMPLETED" ? "Completed" : "Upcoming"),
                         fee: t.entryFee || "Free",
-                        feeAmount: parseInt((t.entryFee || "0").replace(/[^0-9]/g, ""), 10) || 0,
-                        date: formatWithOrdinal(t.deadline || "Open Entry"),
-                        dateFull: formatWithOrdinal(t.deadline || "Open Entry"),
+                        feeAmount: t.rawFee ?? (parseInt((t.entryFee || "0").replace(/[^0-9]/g, ""), 10) || 0),
+                        currency: t.currency || "NGN",
+                        date: formatDateRange(t.startDate || t.deadline || "Open Entry", t.endDate),
+                        dateFull: formatDateRange(t.startDate || t.deadline || "Open Entry", t.endDate),
+                        startDate: t.startDate,
+                        endDate: t.endDate,
                         format: `${t.divisions || "Championship"} • ${t.courseHoles || 18} Holes`,
                         formatType: formatType,
                         purse: t.purse || "Official OpenclubOS Purse",
+                        rawPurse: t.rawPurse,
                         holes: t.courseHoles || 18,
                         cutLine: t.cutLine || "Standard Cut",
                         bannerUrl: resolveTournamentBanner(idx, t.bannerUrl),
-                        isFeatured: t.isFeatured,
-                        status: t.status === "LIVE" ? "Live" : "Open",
-                        isOpen: true,
+                        isFeatured: Boolean(t.isFeatured),
+                        status: t.status === "LIVE" ? "Live" : t.status === "COMPLETED" ? "Closed" : "Open",
+                        isOpen: t.status !== "COMPLETED",
+                        fieldCount: t.fieldCount || 0,
+                        maxPlayers: t.maxPlayers || 120,
+                        divisions: t.divisions || "Grand Final Series",
+                        description: t.description,
+                        hcpLimit: t.hcpLimit && t.hcpLimit !== "No Limit"
+                          ? t.hcpLimit
+                          : (t.maxHandicap != null
+                            ? (t.minHandicap ? `HCP ${t.minHandicap}–${t.maxHandicap}` : `Max ${t.maxHandicap} HCP`)
+                            : (t.hasHandicapRestriction ? "HCP Restricted" : "No Limit")),
+                        minHandicap: t.minHandicap,
+                        maxHandicap: t.maxHandicap,
                       };
                     });
 
-                    const combinedTournaments = Array.from(
-                      new Map([...baseTournamentsList, ...dynamicFromDb].map((t) => [t.name.toLowerCase(), t])).values()
-                    );
+                    // Graceful preview fallbacks if local database is empty/cold-starting
+                    const fallbackTournaments = [
+                      {
+                        id: "ikoyi-open-2024",
+                        name: "Ikoyi Open Championship 2024",
+                        club: "Ikoyi Club 1938",
+                        city: "Lagos, Nigeria",
+                        clubLogo: null,
+                        category: "Ongoing",
+                        fee: "₦150,000",
+                        feeAmount: 150000,
+                        currency: "NGN",
+                        date: "Oct 24th, 2024",
+                        dateFull: "Oct 24th – 27th, 2024",
+                        startDate: "2024-10-24",
+                        endDate: "2024-10-27",
+                        format: "Individual Strokeplay • 54 Holes",
+                        formatType: "Strokeplay",
+                        purse: "₦15,000,000 Total Purse",
+                        rawPurse: 15000000,
+                        holes: 18,
+                        cutLine: "Top 35 Players & Ties",
+                        bannerUrl: "/images/tournaments/ikoyi_sunrise_fairway.jpg",
+                        isFeatured: true,
+                        status: "Live",
+                        isOpen: true,
+                        fieldCount: 120,
+                        maxPlayers: 120,
+                        divisions: "Grand Final Series",
+                        description: "The Ikoyi Open Championship gathers elite amateurs and club members for a competitive 3-day tournament.",
+                        hcpLimit: "Max 18 HCP",
+                      },
+                      {
+                        id: "lagos-amateur-open",
+                        name: "Lagos Amateur Open",
+                        club: "Lakowe Lakes Golf Estate",
+                        city: "Lagos, Nigeria",
+                        clubLogo: null,
+                        category: "Ongoing",
+                        fee: "₦150,000",
+                        feeAmount: 150000,
+                        currency: "NGN",
+                        date: "Nov 12th, 2024",
+                        dateFull: "Nov 12th – 14th, 2024",
+                        startDate: "2024-11-12",
+                        endDate: "2024-11-14",
+                        format: "Individual Strokeplay • 36 Holes",
+                        formatType: "Strokeplay",
+                        purse: "₦12,500,000 Total Purse",
+                        rawPurse: 12500000,
+                        holes: 18,
+                        cutLine: "Top 40 Players & Ties",
+                        bannerUrl: "/images/tournaments/lagos_amateur_open.jpg",
+                        isFeatured: false,
+                        status: "Open",
+                        isOpen: true,
+                        fieldCount: 88,
+                        maxPlayers: 120,
+                        divisions: "Major Event",
+                        description: "Prestigious amateur championship on the fairways of Lakowe Lakes.",
+                        hcpLimit: "Max 24 HCP",
+                      },
+                      {
+                        id: "smokin-hills-memorial",
+                        name: "Smokin Hills Memorial Trophy",
+                        club: "Smokin Hills Golf Resort",
+                        city: "Ilara-Mokin, Ondo",
+                        clubLogo: null,
+                        category: "Major",
+                        fee: "₦120,000",
+                        feeAmount: 120000,
+                        currency: "NGN",
+                        date: "Jan 18th, 2025",
+                        dateFull: "Jan 18th – 20th, 2025",
+                        startDate: "2025-01-18",
+                        endDate: "2025-01-20",
+                        format: "Individual Strokeplay • 54 Holes",
+                        formatType: "Strokeplay",
+                        purse: "₦15,000,000 Total Purse",
+                        rawPurse: 15000000,
+                        holes: 18,
+                        cutLine: "Top 35 Players & Ties",
+                        bannerUrl: "/images/tournaments/course_banner_04.jpg",
+                        isFeatured: false,
+                        status: "Open",
+                        isOpen: true,
+                        fieldCount: 74,
+                        maxPlayers: 100,
+                        divisions: "Championship",
+                        description: "Historic annual memorial trophy contest across Smokin Hills.",
+                        hcpLimit: "Max 18 HCP",
+                      },
+                    ];
+
+                    const combinedTournaments = dynamicFromDb.length > 0 ? dynamicFromDb : fallbackTournaments;
 
                     // Filter by search query, categories, formats, fees, host club, and sort order
                     const filteredTournaments = combinedTournaments
@@ -7641,20 +8014,22 @@ class TournamentsView extends StatelessWidget {
                           if (!matchName && !matchClub && !matchFormat && !matchDate && !matchFee) return false;
                         }
 
-                        // 2. Category Filter
+                        // 2. Tournament Lifecycle Status Filter
                         if (tournamentFilter !== "All") {
-                          if (tournamentFilter === "Ongoing" && t.category !== "Ongoing") return false;
-                          if (tournamentFilter === "Major" && t.category !== "Major" && !t.isFeatured) return false;
-                          if (tournamentFilter === "Invitational" && t.category !== "Invitational") return false;
+                          if (tournamentFilter === "Ongoing" && t.status !== "Live" && t.category !== "Ongoing" && !t.isFeatured) return false;
+                          if (tournamentFilter === "Upcoming" && (t.status === "Closed" || t.status === "Completed" || !t.isOpen)) return false;
+                          if (tournamentFilter === "Completed" && t.status !== "Closed" && t.status !== "Completed" && t.isOpen) return false;
                         }
 
                         // 3. Format Filter
                         if (tournamentFormatFilter !== "All") {
-                          if (tournamentFormatFilter === "Strokeplay" && !t.format.toLowerCase().includes("strokeplay") && !t.format.toLowerCase().includes("stroke play")) return false;
-                          if (tournamentFormatFilter === "Matchplay" && !t.format.toLowerCase().includes("matchplay") && !t.format.toLowerCase().includes("match play")) return false;
-                          if (tournamentFormatFilter === "Four-Ball" && !t.format.toLowerCase().includes("four-ball") && !t.format.toLowerCase().includes("four ball") && !t.format.toLowerCase().includes("best ball") && !t.format.toLowerCase().includes("best_ball")) return false;
-                          if (tournamentFormatFilter === "Scramble" && !t.format.toLowerCase().includes("scramble")) return false;
-                          if (tournamentFormatFilter === "Stableford" && !t.format.toLowerCase().includes("stableford")) return false;
+                          const fmt = tournamentFormatFilter.toLowerCase();
+                          const tFmt = t.format.toLowerCase();
+                          if ((fmt === "strokeplay" || fmt === "stroke play") && !tFmt.includes("strokeplay") && !tFmt.includes("stroke play")) return false;
+                          if ((fmt === "matchplay" || fmt === "match play") && !tFmt.includes("matchplay") && !tFmt.includes("match play")) return false;
+                          if ((fmt === "four-ball" || fmt === "four ball") && !tFmt.includes("four-ball") && !tFmt.includes("four ball") && !tFmt.includes("best ball") && !tFmt.includes("best_ball")) return false;
+                          if (fmt === "scramble" && !tFmt.includes("scramble")) return false;
+                          if (fmt === "stableford" && !tFmt.includes("stableford")) return false;
                         }
 
                         // 4. Fee Filter
@@ -7663,10 +8038,20 @@ class TournamentsView extends StatelessWidget {
                           if (tournamentFeeFilter === "Under ₦100,000" && t.feeAmount >= 100000) return false;
                           if (tournamentFeeFilter === "₦100,000+" && t.feeAmount < 100000) return false;
                         }
+                        if (filterFeeMax < 250000 && t.feeAmount > filterFeeMax) {
+                          return false;
+                        }
 
                         // 5. Host Club Filter
                         if (tournamentClubFilter !== "All" && t.club !== tournamentClubFilter) {
                           return false;
+                        }
+
+                        // 6. Event Type Filter
+                        if (filterEventType === "Clinic / Lesson") {
+                          if (!t.format.toLowerCase().includes("clinic") && !t.name.toLowerCase().includes("clinic") && !t.name.toLowerCase().includes("lesson")) return false;
+                        } else if (filterEventType === "Elite Cup") {
+                          if (!t.name.toLowerCase().includes("cup") && !t.name.toLowerCase().includes("elite") && t.category !== "Invitational") return false;
                         }
 
                         return true;
@@ -7678,13 +8063,20 @@ class TournamentsView extends StatelessWidget {
                         return 0;
                       });
 
-                    const isCustomFilterActive = tournamentFilter !== "All" || tournamentFormatFilter !== "All" || tournamentFeeFilter !== "All" || tournamentClubFilter !== "All" || tournamentSortOrder !== "date";
+                    // 2. Select Dynamic Featured Tournament directly from Database Tournaments
+                    const featuredTournament =
+                      combinedTournaments.find((t) => t.isFeatured) ||
+                      combinedTournaments.find((t) => t.status === "Live") ||
+                      combinedTournaments[0] ||
+                      null;
+
+                    const isCustomFilterActive = tournamentFilter !== "All" || tournamentFormatFilter !== "All" || tournamentFeeFilter !== "All" || tournamentClubFilter !== "All" || filterFeeMax < 250000 || filterProximityKm !== 25 || filterWhen !== "Anytime" || tournamentSortOrder !== "date";
 
                     return (
-                      <div className="flex-1 flex flex-col bg-[#F4F6F3] min-h-0 relative select-none font-['DM_Sans',sans-serif]">
+                      <div className="flex-1 flex flex-col bg-[#F4F6F3] min-h-0 relative select-none font-['Plus_Jakarta_Sans',sans-serif]">
                         {/* FIXED TOP SECTION: Top Navigation Bar + Search Bar (Strictly Non-Scrollable) */}
                         <div className="w-full shrink-0 z-20 bg-white border-b border-slate-200/60 shadow-2xs">
-                          <div className="w-full max-w-sm mx-auto px-6 pt-4 pb-3 space-y-3">
+                          <div className="w-full px-6 pt-4 pb-3 space-y-3">
                             {/* Top Navigation Bar: Unified 16px top offset, 24px horizontal gutters */}
                             <div className="flex items-center justify-between">
                               <button
@@ -7699,7 +8091,7 @@ class TournamentsView extends StatelessWidget {
                               <h2 className="text-base font-bold text-[#0F172A]">Tournaments</h2>
                               <button
                                 type="button"
-                                onClick={() => setShowTournamentFilterModal(true)}
+                                onClick={() => switchScreen("tournament-filter")}
                                 className="h-8 w-8 rounded-full bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center text-[#009A60] hover:bg-[#d8f3e3] shadow-2xs transition-all cursor-pointer relative shrink-0"
                                 title="Tournament Filter"
                                 aria-label="Tournament Filter"
@@ -7766,208 +8158,397 @@ class TournamentsView extends StatelessWidget {
 
                         {/* Scrollable Body */}
                         <div className="flex-1 overflow-y-auto scrollbar-hide no-scrollbar pb-24">
-                          <div className="w-full max-w-sm mx-auto">
+                          <div className="w-full">
                             {/* 1. Category Filter Pills & Active Filter Tags */}
-                            <div className="px-4 pt-3.5 pb-2.5 flex items-center gap-2 overflow-x-auto scrollbar-hide no-scrollbar">
-                              {(["All", "Ongoing", "Major", "Invitational"] as const).map((cat) => {
-                                const isActive = tournamentFilter === cat;
-                                return (
+                            <div
+                              data-pills-container="true"
+                              onWheel={(e) => {
+                                if (e.deltaX !== 0) {
+                                  e.currentTarget.scrollLeft += e.deltaX;
+                                } else if (e.deltaY !== 0) {
+                                  e.currentTarget.scrollLeft += e.deltaY;
+                                }
+                              }}
+                              onMouseDown={(e) => {
+                                const el = e.currentTarget;
+                                el.dataset.isDown = "true";
+                                el.dataset.startX = String(e.pageX - el.offsetLeft);
+                                el.dataset.scrollLeft = String(el.scrollLeft);
+                                el.dataset.moved = "false";
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.dataset.isDown = "false";
+                              }}
+                              onMouseUp={(e) => {
+                                e.currentTarget.dataset.isDown = "false";
+                              }}
+                              onMouseMove={(e) => {
+                                const el = e.currentTarget;
+                                if (el.dataset.isDown !== "true") return;
+                                e.preventDefault();
+                                const x = e.pageX - el.offsetLeft;
+                                const startX = Number(el.dataset.startX);
+                                const scrollLeftStart = Number(el.dataset.scrollLeft);
+                                const walk = (x - startX) * 1.5;
+                                if (Math.abs(walk) > 4) {
+                                  el.dataset.moved = "true";
+                                }
+                                el.scrollLeft = scrollLeftStart - walk;
+                              }}
+                              onTouchStart={(e) => {
+                                const el = e.currentTarget;
+                                el.dataset.isDown = "true";
+                                el.dataset.startX = String(e.touches[0].pageX - el.offsetLeft);
+                                el.dataset.scrollLeft = String(el.scrollLeft);
+                                el.dataset.moved = "false";
+                              }}
+                              onTouchEnd={(e) => {
+                                e.currentTarget.dataset.isDown = "false";
+                              }}
+                              onTouchMove={(e) => {
+                                const el = e.currentTarget;
+                                if (el.dataset.isDown !== "true") return;
+                                const x = e.touches[0].pageX - el.offsetLeft;
+                                const startX = Number(el.dataset.startX);
+                                const scrollLeftStart = Number(el.dataset.scrollLeft);
+                                const walk = (x - startX) * 1.2;
+                                if (Math.abs(walk) > 4) {
+                                  el.dataset.moved = "true";
+                                }
+                                el.scrollLeft = scrollLeftStart - walk;
+                              }}
+                              className="w-full overflow-x-auto scrollbar-hide no-scrollbar scroll-smooth cursor-grab active:cursor-grabbing select-none touch-pan-x px-4 pt-3.5 pb-2.5"
+                              style={{ scrollbarWidth: "none", msOverflowStyle: "none", WebkitOverflowScrolling: "touch" }}
+                            >
+                              <div className="flex items-center gap-2 w-max min-w-max mx-auto pe-4">
+                                {(["All", "Ongoing", "Upcoming", "Completed"] as const).map((cat) => {
+                                  const isActive = tournamentFilter === cat;
+                                  return (
+                                    <button
+                                      key={cat}
+                                      type="button"
+                                      onClick={(e) => {
+                                        const container = e.currentTarget.closest('[data-pills-container]') as HTMLElement | null;
+                                        if (container?.dataset.moved === "true") {
+                                          container.dataset.moved = "false";
+                                          return;
+                                        }
+                                        setTournamentFilter(cat);
+                                        e.currentTarget.scrollIntoView({
+                                          behavior: "smooth",
+                                          inline: "nearest",
+                                          block: "nearest",
+                                        });
+                                      }}
+                                      className={`rounded-full px-4 py-1.5 text-[12px] transition-all cursor-pointer shrink-0 ${
+                                        isActive
+                                          ? "bg-[#009A60] text-white border border-[#009A60] font-bold shadow-xs"
+                                          : "bg-white text-[#475569] border border-[#e1efe5] font-semibold shadow-2xs hover:border-[#009A60]/40 hover:text-[#009A60]"
+                                      }`}
+                                    >
+                                      {cat}
+                                    </button>
+                                  );
+                                })}
+
+                                {tournamentFormatFilter !== "All" && (
                                   <button
-                                    key={cat}
                                     type="button"
-                                    onClick={() => setTournamentFilter(cat)}
-                                    className={`rounded-full px-5 py-2 text-[13px] transition-all cursor-pointer shrink-0 ${
-                                      isActive
-                                        ? "bg-[#009A60] text-white font-bold shadow-[0_2px_8px_rgba(0,154,96,0.25)]"
-                                        : "bg-white text-[#8CA0BA] border border-slate-200/80 font-semibold shadow-2xs hover:border-slate-300"
-                                    }`}
+                                    onClick={(e) => {
+                                      const container = e.currentTarget.closest('[data-pills-container]') as HTMLElement | null;
+                                      if (container?.dataset.moved === "true") {
+                                        container.dataset.moved = "false";
+                                        return;
+                                      }
+                                      setTournamentFormatFilter("All");
+                                    }}
+                                    className="rounded-full pl-3.5 pr-2 py-1.5 text-[12px] bg-[#EAF7EE] text-[#009A60] border border-[#C6F0DB] font-bold flex items-center gap-1.5 shrink-0 shadow-2xs cursor-pointer hover:bg-[#d8f3e3]"
+                                    title="Remove format filter"
                                   >
-                                    {cat}
+                                    <span>{tournamentFormatFilter}</span>
+                                    <X className="w-3.5 h-3.5" />
                                   </button>
-                                );
-                              })}
+                                )}
 
-                              {tournamentFormatFilter !== "All" && (
-                                <button
-                                  type="button"
-                                  onClick={() => setTournamentFormatFilter("All")}
-                                  className="rounded-full pl-3.5 pr-2 py-1.5 text-[12px] bg-[#EAF7EE] text-[#009A60] border border-[#C6F0DB] font-bold flex items-center gap-1.5 shrink-0 shadow-2xs cursor-pointer hover:bg-[#d8f3e3]"
-                                  title="Remove format filter"
-                                >
-                                  <span>{tournamentFormatFilter}</span>
-                                  <X className="w-3.5 h-3.5" />
-                                </button>
-                              )}
-
-                              {tournamentFeeFilter !== "All" && (
-                                <button
-                                  type="button"
-                                  onClick={() => setTournamentFeeFilter("All")}
-                                  className="rounded-full pl-3.5 pr-2 py-1.5 text-[12px] bg-[#EAF7EE] text-[#009A60] border border-[#C6F0DB] font-bold flex items-center gap-1.5 shrink-0 shadow-2xs cursor-pointer hover:bg-[#d8f3e3]"
-                                  title="Remove fee filter"
-                                >
-                                  <span>{tournamentFeeFilter}</span>
-                                  <X className="w-3.5 h-3.5" />
-                                </button>
-                              )}
-                            </div>
-
-                            {/* 2. Featured Event Hero Card (Show when not actively searching for a specific other term) */}
-                            {!tournamentSearchQuery && (tournamentFilter === "All" || tournamentFilter === "Major") && (
-                              <div className="mx-4 mb-4.5 rounded-[24px] overflow-hidden relative shadow-[0_10px_25px_rgba(0,0,0,0.16)] border border-slate-200/40 h-[224px] shrink-0 group select-none">
-                                <img
-                                  src="/images/tournaments/ikoyi_night_golf.jpg"
-                                  alt="Ikoyi Open Championship 2024"
-                                  className="absolute inset-0 w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700"
-                                />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-black/10" />
-
-                                <div className="absolute inset-0 p-4.5 flex flex-col justify-end text-white z-10">
-                                  <div className="inline-flex items-center self-start bg-[#00A86B] text-white text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full mb-2 shadow-xs">
-                                    FEATURED EVENT
-                                  </div>
-                                  <h3 className="text-[15px] font-extrabold text-white leading-tight tracking-tight drop-shadow-md mb-2">
-                                    Ikoyi Open Championship 2024
-                                  </h3>
-                                  <div className="flex items-center gap-4 text-[11.5px] font-semibold text-white/95">
-                                    <div className="flex items-center gap-1.5">
-                                      <MapPin className="w-3.5 h-3.5 text-[#00E575] shrink-0 fill-[#00E575]/20" />
-                                      <span>Ikoyi Club 1938</span>
-                                    </div>
-                                    <div className="flex items-center gap-1.5">
-                                      <Calendar className="w-3.5 h-3.5 text-[#00E575] shrink-0" />
-                                      <span>Oct 24th – 27th</span>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-
-                            {/* 3. Section Header */}
-                            <div className="px-4 mb-3 flex items-center justify-between select-none">
-                              <span className="text-[11px] font-black tracking-widest text-[#8CA0BA] uppercase">
-                                AVAILABLE ENTRIES
-                              </span>
-                              <span className="text-[11px] font-black tracking-widest text-[#009A60] uppercase">
-                                {filteredTournaments.length} FOUND
-                              </span>
-                            </div>
-
-                            {/* 4. Tournament Entries Cards */}
-                            {filteredTournaments.length === 0 ? (
-                              <div className="mx-4 my-6 bg-white rounded-[22px] p-6 text-center border border-slate-200/80 shadow-2xs">
-                                <div className="w-12 h-12 rounded-2xl bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center text-[#009A60] mx-auto mb-3 shadow-2xs">
-                                  <Search className="w-5 h-5" />
-                                </div>
-                                <h4 className="text-[15px] font-bold text-[#0F172A] mb-1">
-                                  No Tournaments Found
-                                </h4>
-                                <p className="text-[12px] text-[#64748B] max-w-[260px] mx-auto mb-4 leading-relaxed">
-                                  No tournament events match your search term or active filter criteria.
-                                </p>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setTournamentSearchQuery("");
-                                    setTournamentFilter("All");
-                                    setTournamentFormatFilter("All");
-                                    setTournamentFeeFilter("All");
-                                    setVirtualKeyboard((k) => (k ? { ...k, queryValue: "" } : null));
-                                  }}
-                                  className="px-4 py-2 rounded-xl bg-[#009A60] hover:bg-[#008251] text-white text-[12px] font-bold capitalize tracking-normal transition-all shadow-2xs cursor-pointer"
-                                >
-                                  Clear Search & Filters
-                                </button>
-                              </div>
-                            ) : (
-                              <div className="space-y-3.5 px-4">
-                                {filteredTournaments.map((tournament) => (
-                                  <div
-                                    key={tournament.id}
-                                    className="bg-white rounded-[22px] p-4 shadow-[0_2px_12px_rgba(0,0,0,0.04)] border border-slate-100/90 relative overflow-hidden transition-all hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)]"
+                                {tournamentFeeFilter !== "All" && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      const container = e.currentTarget.closest('[data-pills-container]') as HTMLElement | null;
+                                      if (container?.dataset.moved === "true") {
+                                        container.dataset.moved = "false";
+                                        return;
+                                      }
+                                      setTournamentFeeFilter("All");
+                                    }}
+                                    className="rounded-full pl-3.5 pr-2 py-1.5 text-[12px] bg-[#EAF7EE] text-[#009A60] border border-[#C6F0DB] font-bold flex items-center gap-1.5 shrink-0 shadow-2xs cursor-pointer hover:bg-[#d8f3e3]"
+                                    title="Remove fee filter"
                                   >
-                                    <div className="flex items-start">
-                                      <div className="w-[72px] h-[72px] rounded-[18px] overflow-hidden shrink-0 mr-3.5 bg-emerald-950/10 border border-slate-100 shadow-2xs">
-                                        <img
-                                          src={tournament.bannerUrl}
-                                          alt={tournament.name}
-                                          className={`w-full h-full object-cover ${!tournament.isOpen ? "filter grayscale contrast-105" : ""}`}
-                                        />
-                                      </div>
-                                      <div className="flex-1 min-w-0">
-                                        <h4 className="text-[15px] font-bold text-[#0F172A] tracking-tight leading-tight mb-1 truncate">
-                                          {formatTitleCase(tournament.name)}
-                                        </h4>
-                                        <p className="text-[12px] text-[#64748B] font-medium leading-tight mb-2 truncate">
-                                          {tournament.club}
-                                        </p>
-                                        <div className="flex items-center justify-between">
-                                          <span
-                                            className={`text-[12.5px] tracking-tight ${
-                                              !tournament.isOpen
-                                                ? "text-[#94A3B8] font-bold"
-                                                : "font-black text-[#009A60]"
-                                            }`}
-                                          >
-                                            {tournament.fee}
-                                          </span>
-                                          <span className="text-[11.5px] text-[#8CA0BA] font-medium">
-                                            {formatWithOrdinal(tournament.date)}
-                                          </span>
+                                    <span>{tournamentFeeFilter}</span>
+                                    <X className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+
+                            {(() => {
+                              const nextEvents = filteredTournaments.filter(
+                                (t) => !featuredTournament || t.id !== featuredTournament.id
+                              );
+
+                              return (
+                                <>
+                                  {/* 2. Featured Event Hero Card (from Database) */}
+                                  {!tournamentSearchQuery && (tournamentFilter === "All" || tournamentFilter === "Ongoing") && featuredTournament && (
+                                    <div
+                                      onClick={() => openTournamentDetails(featuredTournament)}
+                                      className="mx-4 mb-6 rounded-[32px] overflow-hidden relative shadow-[0_12px_36px_rgba(0,0,0,0.22)] border border-slate-200/40 min-h-[380px] shrink-0 group select-none cursor-pointer active:scale-[0.99] transition-transform flex flex-col justify-between p-6"
+                                    >
+                                      <img
+                                        src={featuredTournament.bannerUrl || "/images/tournaments/ikoyi_sunrise_fairway.jpg"}
+                                        alt={featuredTournament.name}
+                                        className="absolute inset-0 w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700"
+                                      />
+                                      <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/45 to-black/25 pointer-events-none" />
+
+                                      {/* Top Row: Status Pill + Club Pill */}
+                                      <div className="relative z-10 flex items-center justify-between w-full">
+                                        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#009A60] text-white text-[11px] font-bold uppercase tracking-wider shadow-sm">
+                                          <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                                          <span>{featuredTournament.status === "Live" ? "ONGOING" : featuredTournament.status === "Closed" ? "COMPLETED" : "REGISTRATION OPEN"}</span>
+                                        </div>
+
+                                        <div className="px-3.5 py-1.5 rounded-full bg-white/20 backdrop-blur-md border border-white/25 text-white text-[11px] font-bold uppercase tracking-wider shadow-sm truncate max-w-[170px]">
+                                          {featuredTournament.club.toUpperCase()}
                                         </div>
                                       </div>
-                                    </div>
 
-                                    {/* Action Buttons */}
-                                    {tournament.isOpen ? (
-                                      <div className="mt-3.5 flex items-center gap-2.5">
-                                        <button
-                                          type="button"
-                                          onClick={() =>
-                                            setSelectedTournamentInfo({
-                                              name: tournament.name,
-                                              club: tournament.club,
-                                              fee: tournament.fee,
-                                              date: tournament.dateFull || tournament.date,
-                                              format: tournament.format,
-                                              purse: tournament.purse,
-                                              holes: tournament.holes || 18,
-                                              cutLine: tournament.cutLine,
-                                              bannerUrl: tournament.bannerUrl,
-                                            })
-                                          }
-                                          className="flex-1 h-[42px] rounded-xl bg-[#F8FAFC] hover:bg-slate-100 active:scale-98 text-[#0F172A] font-bold text-[12.5px] capitalize tracking-normal flex items-center justify-center border border-slate-200/60 transition-all cursor-pointer"
-                                        >
-                                          View Info
-                                        </button>
-                                        <button
-                                          type="button"
-                                          onClick={() => {
-                                            showToast(`Opening entry registration for ${tournament.name}...`, "success", "TOURNAMENT ENTRY");
-                                            setTimeout(() => switchScreen("register"), 600);
-                                          }}
-                                          className="flex-1 h-[42px] rounded-xl bg-[#009A60] hover:bg-[#008251] active:scale-98 text-white font-bold text-[12.5px] capitalize tracking-normal flex items-center justify-center shadow-xs transition-all cursor-pointer"
-                                        >
-                                          Register Now
-                                        </button>
-                                      </div>
-                                    ) : (
-                                      <div className="mt-3 py-1.5 px-3 rounded-xl bg-slate-50 border border-slate-200/60 text-center">
-                                        <span className="text-[11px] font-bold text-slate-500 capitalize tracking-normal">
-                                          Official Registration Closed
+                                      {/* Bottom Content: Series + Title + Telemetry + CTA Button */}
+                                      <div className="relative z-10 mt-auto pt-6 text-white">
+                                        <span className="text-[12px] font-bold tracking-[0.15em] text-white/90 uppercase block mb-1 drop-shadow-sm">
+                                          {featuredTournament.divisions || "GRAND FINAL SERIES"}
                                         </span>
+
+                                        <h3 className="text-[26px] sm:text-[30px] font-bold text-white leading-[1.15] tracking-tight drop-shadow-md mb-4 line-clamp-2">
+                                          {featuredTournament.name}
+                                        </h3>
+
+                                        {/* Telemetry Stats Row */}
+                                        <div className="flex items-center gap-5 sm:gap-6 mb-5">
+                                          <div>
+                                            <span className="text-[10px] font-bold tracking-wider text-white/70 uppercase block">PLAYERS</span>
+                                            <span className="text-[17px] font-bold text-white mt-0.5 block leading-none">
+                                              {featuredTournament.fieldCount}/{featuredTournament.maxPlayers || 120}
+                                            </span>
+                                          </div>
+                                          <div className="w-px h-8 bg-white/25 self-center" />
+                                          <div>
+                                            <span className="text-[10px] font-bold tracking-wider text-white/70 uppercase block">HANDICAP</span>
+                                            <span className="text-[17px] font-bold text-white mt-0.5 block leading-none truncate max-w-[110px]" title={featuredTournament.hcpLimit || "No Limit"}>
+                                              {featuredTournament.hcpLimit || "No Limit"}
+                                            </span>
+                                          </div>
+                                          <div className="w-px h-8 bg-white/25 self-center" />
+                                          <div>
+                                            <span className="text-[10px] font-bold tracking-wider text-white/70 uppercase block">PRIZE POOL</span>
+                                            <span className="text-[17px] font-bold text-white mt-0.5 block leading-none">
+                                              {featuredTournament.rawPurse && featuredTournament.rawPurse > 0
+                                                ? `₦${Number(featuredTournament.rawPurse).toLocaleString("en-US")}`
+                                                : (featuredTournament.purse && featuredTournament.purse !== "—" ? featuredTournament.purse : "₦2,500,000")}
+                                            </span>
+                                          </div>
+                                        </div>
+
+                                        {/* Full-width CTA Button */}
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            openTournamentDetails(featuredTournament);
+                                          }}
+                                          className="w-full py-4 rounded-[20px] bg-[#009A60] hover:bg-[#008251] active:scale-[0.98] text-white font-bold text-[15px] capitalize tracking-wide flex items-center justify-center gap-2 shadow-[0_8px_20px_rgba(0,154,96,0.35)] transition-all cursor-pointer"
+                                        >
+                                          <span>{featuredTournament.status === "Live" ? "View Live Scores" : "Register Now"}</span>
+                                          <ArrowRight className="w-4 h-4 ml-1" />
+                                        </button>
                                       </div>
-                                    )}
+                                    </div>
+                                  )}
+
+                                  {/* 3. Section Header */}
+                                  <div className="px-4 mb-3 flex items-center justify-between select-none">
+                                    <span className="text-[11px] font-bold tracking-[0.14em] text-[#64748B] uppercase block">
+                                      NEXT EVENTS
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setTournamentSortOrder((curr) =>
+                                          curr === "date" ? "fee_asc" : curr === "fee_asc" ? "fee_desc" : curr === "fee_desc" ? "name" : "date"
+                                        );
+                                      }}
+                                      className="text-[11px] font-bold tracking-wider text-[#009A60] hover:text-[#008251] uppercase flex items-center gap-1 cursor-pointer transition-colors"
+                                    >
+                                      <span>
+                                        {tournamentSortOrder === "date"
+                                          ? "SORT BY DATE"
+                                          : tournamentSortOrder === "fee_asc"
+                                          ? "FEE: LOW TO HIGH"
+                                          : tournamentSortOrder === "fee_desc"
+                                          ? "FEE: HIGH TO LOW"
+                                          : "SORT BY NAME"}
+                                      </span>
+                                      <ChevronDown className="w-3.5 h-3.5" />
+                                    </button>
                                   </div>
-                                ))}
-                              </div>
-                            )}
+
+                                  {/* 4. Tournament Entries Cards */}
+                                  {nextEvents.length === 0 ? (
+                                    <div className="mx-4 my-6 bg-white rounded-[22px] p-6 text-center border border-slate-200/80 shadow-2xs">
+                                      <div className="w-12 h-12 rounded-2xl bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center text-[#009A60] mx-auto mb-3 shadow-2xs">
+                                        <Search className="w-5 h-5" />
+                                      </div>
+                                      <h4 className="text-[15px] font-bold text-[#0F172A] mb-1">
+                                        No Tournaments Found
+                                      </h4>
+                                      <p className="text-[12px] text-[#64748B] max-w-[260px] mx-auto mb-4 leading-relaxed">
+                                        No tournament events match your search term or active filter criteria.
+                                      </p>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setTournamentSearchQuery("");
+                                          setTournamentFilter("All");
+                                          setTournamentFormatFilter("All");
+                                          setTournamentFeeFilter("All");
+                                          setVirtualKeyboard((k) => (k ? { ...k, queryValue: "" } : null));
+                                        }}
+                                        className="px-4 py-2 rounded-xl bg-[#009A60] hover:bg-[#008251] text-white text-[12px] font-semibold capitalize tracking-normal transition-all shadow-2xs cursor-pointer"
+                                      >Clear Search & Filters</button>
+                                    </div>
+                                  ) : (
+                                    <div className="space-y-3.5 px-4">
+                                      {nextEvents.map((tournament) => (
+                                        <div
+                                          key={tournament.id}
+                                          onClick={() => openTournamentDetails(tournament)}
+                                          className="bg-white rounded-[26px] p-4 shadow-[0_4px_20px_rgba(0,0,0,0.04)] border border-slate-100/90 relative overflow-hidden transition-all hover:shadow-[0_6px_24px_rgba(0,0,0,0.07)] cursor-pointer group"
+                                        >
+                                          <div className="flex items-start gap-3.5">
+                                            {/* Left: Squircle logo container with top-right green star badge */}
+                                            <div className="relative shrink-0">
+                                              <div className="w-[60px] h-[60px] rounded-[20px] bg-[#f5faf6] border border-[#e1efe5] flex items-center justify-center p-1.5 shadow-2xs overflow-hidden">
+                                                {tournament.clubLogo ? (
+                                                  <img
+                                                    src={tournament.clubLogo}
+                                                    alt={tournament.club}
+                                                    className="w-full h-full object-contain rounded-xl"
+                                                    onError={(e) => {
+                                                      (e.currentTarget as HTMLElement).style.display = "none";
+                                                      const fb = e.currentTarget.parentElement?.querySelector(".crest-fallback") as HTMLElement | null;
+                                                      if (fb) fb.style.display = "block";
+                                                    }}
+                                                  />
+                                                ) : null}
+                                                <div className={`crest-fallback w-full h-full ${tournament.clubLogo ? "hidden" : "block"}`}>
+                                                  <LuxuryClubCrest className="w-full h-full" name={tournament.club} />
+                                                </div>
+                                              </div>
+                                              <div className="w-5 h-5 rounded-full bg-white border border-[#C6F0DB] shadow-xs flex items-center justify-center text-[#009A60] absolute -top-1.5 -right-1.5 z-10 pointer-events-none">
+                                                <Star className="w-3 h-3 fill-[#009A60] text-[#009A60]" />
+                                              </div>
+                                            </div>
+
+                                            {/* Right: Info Column */}
+                                            <div className="flex-1 min-w-0">
+                                              {/* Top Row: Category + Date */}
+                                              <div className="flex items-center justify-between gap-2 mb-1.5">
+                                                <span className="text-[10.5px] font-bold text-[#009A60] uppercase tracking-wider truncate">
+                                                  {tournament.category === "Major" ? "MAJOR EVENT" : (tournament.divisions || tournament.formatType || "CHAMPIONSHIP").toUpperCase()}
+                                                </span>
+                                                <span className="text-[11px] font-bold text-[#64748B] uppercase tracking-tight shrink-0">
+                                                  {formatShortDate(tournament.startDate || tournament.date, tournament.endDate)}
+                                                </span>
+                                              </div>
+
+                                              {/* Title */}
+                                              <h4 className="text-[15.5px] font-bold text-[#0F172A] tracking-tight leading-snug mb-1.5 truncate group-hover:text-[#009A60] transition-colors">
+                                                {formatTitleCase(tournament.name)}
+                                              </h4>
+
+                                              {/* Location with Pin */}
+                                              <div className="flex items-center gap-1.5 text-[12px] font-semibold text-[#64748B] truncate">
+                                                <MapPin className="w-3.5 h-3.5 text-[#64748B] shrink-0" />
+                                                <span className="truncate">{tournament.club}</span>
+                                              </div>
+                                            </div>
+                                          </div>
+
+                                          {/* Bottom Row: Entry Fee + Handicap + Action Button */}
+                                          <div className="mt-3.5 pt-3 border-t border-slate-100 flex items-center justify-between">
+                                            <div className="flex items-start gap-3.5 sm:gap-4 shrink-0">
+                                              <div className="shrink-0">
+                                                <span className="text-[11px] font-bold tracking-[0.14em] text-[#64748B] uppercase block leading-none mb-1.5 whitespace-nowrap">
+                                                  ENTRY FEE
+                                                </span>
+                                                <span className="text-[16px] font-bold text-[#0F172A] tracking-tight block leading-none whitespace-nowrap">
+                                                  {formatCompactFee(tournament.feeAmount, tournament.currency || "NGN")}
+                                                </span>
+                                              </div>
+
+                                              <div className="w-px h-6.5 bg-slate-200/80 self-center shrink-0" />
+
+                                              <div className="shrink-0">
+                                                <span className="text-[11px] font-bold tracking-[0.14em] text-[#64748B] uppercase block leading-none mb-1.5 whitespace-nowrap">
+                                                  HANDICAP
+                                                </span>
+                                                <span
+                                                  className="text-[14px] font-bold text-[#009A60] tracking-tight block leading-none truncate max-w-[110px] whitespace-nowrap"
+                                                  title={tournament.hcpLimit || "No Limit"}
+                                                >
+                                                  {tournament.hcpLimit || "No Limit"}
+                                                </span>
+                                              </div>
+                                            </div>
+
+                                            {tournament.isOpen ? (
+                                              <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  showToast(`Opening entry registration for ${tournament.name}...`, "success", "TOURNAMENT ENTRY");
+                                                  setTimeout(() => switchScreen("register"), 600);
+                                                }}
+                                                className="bg-[#0B132B] hover:bg-slate-800 text-white font-bold text-[13px] px-5 py-2.5 rounded-xl capitalize shadow-xs active:scale-95 transition-all cursor-pointer shrink-0"
+                                              >
+                                                Register
+                                              </button>
+                                            ) : (
+                                              <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  openTournamentDetails(tournament);
+                                                }}
+                                                className="bg-slate-100 text-slate-700 font-bold text-[13px] px-5 py-2.5 rounded-xl capitalize cursor-pointer hover:bg-slate-200 transition-all shrink-0"
+                                              >
+                                                View Info
+                                              </button>
+                                            )}
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </>
+                              );
+                            })()}
                           </div>
                         </div>
 
                         {/* 5. Persistent Bottom Navigation Bar */}
                         <div className="absolute bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-t border-slate-100 shadow-[0_-4px_24px_rgba(0,0,0,0.05)]">
-                          <div className="w-full max-w-sm mx-auto h-[64px] px-3 flex items-center justify-between relative">
+                          <div className="w-full h-[64px] px-3 flex items-center justify-between relative">
                             {/* 1. Home */}
                             <button
                               type="button"
@@ -8008,8 +8589,8 @@ class TournamentsView extends StatelessWidget {
                                   className="w-[54px] h-[54px] rounded-full bg-[#009A60] hover:bg-[#008251] active:scale-95 transition-all border-[3px] border-white flex flex-col items-center justify-center cursor-pointer shadow-xs"
                                   title="Play Golf"
                                 >
-                                  <span className="text-[9.5px] font-black text-white tracking-normal leading-none capitalize">Play</span>
-                                  <span className="text-[9.5px] font-black text-white tracking-normal leading-none mt-0.5 capitalize">Golf</span>
+                                  <span className="text-[9.5px] font-bold text-white tracking-normal leading-none capitalize">Play</span>
+                                  <span className="text-[9.5px] font-bold text-white tracking-normal leading-none mt-0.5 capitalize">Golf</span>
                                 </button>
                               </div>
                             </div>
@@ -8047,7 +8628,7 @@ class TournamentsView extends StatelessWidget {
                             onClick={() => setShowTournamentFilterModal(false)}
                           >
                             <div
-                              className="relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl p-5 pb-6 animate-in slide-in-from-bottom duration-200 max-h-[88%] flex flex-col w-full max-w-sm mx-auto"
+                              className={`relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl p-5 pb-6 animate-in slide-in-from-bottom duration-200 max-h-[88%] flex flex-col w-full ${isTablet ? "" : "max-w-sm mx-auto"}`}
                               onClick={(e) => e.stopPropagation()}
                             >
                               {/* Drag Handle */}
@@ -8082,15 +8663,15 @@ class TournamentsView extends StatelessWidget {
                                 {/* Category Filter */}
                                 <div>
                                   <div className="flex items-center justify-between mb-2">
-                                    <label className="text-[11px] font-extrabold uppercase tracking-wider text-[#8CA0BA]">
-                                      Event Category
+                                    <label className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#64748B] block">
+                                      Tournament Status
                                     </label>
                                     <span className="text-[10px] font-bold text-[#009A60]">
-                                      {tournamentFilter === "All" ? "All categories" : tournamentFilter}
+                                      {tournamentFilter === "All" ? "All status" : tournamentFilter}
                                     </span>
                                   </div>
                                   <div className="grid grid-cols-2 gap-2">
-                                    {(["All", "Ongoing", "Major", "Invitational"] as const).map((cat) => {
+                                    {(["All", "Ongoing", "Upcoming", "Completed"] as const).map((cat) => {
                                       const active = tournamentFilter === cat;
                                       return (
                                         <button
@@ -8103,7 +8684,7 @@ class TournamentsView extends StatelessWidget {
                                               : "bg-[#f5faf6] text-[#475569] border-[#e1efe5] hover:border-slate-300"
                                           }`}
                                         >
-                                          {cat === "All" ? "All Categories" : cat}
+                                          {cat === "All" ? "All Tournaments" : cat}
                                         </button>
                                       );
                                     })}
@@ -8113,7 +8694,7 @@ class TournamentsView extends StatelessWidget {
                                 {/* Playing Format */}
                                 <div>
                                   <div className="flex items-center justify-between mb-2">
-                                    <label className="text-[11px] font-extrabold uppercase tracking-wider text-[#8CA0BA]">
+                                    <label className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#64748B] block">
                                       Playing Format
                                     </label>
                                     <span className="text-[10px] font-bold text-[#009A60]">
@@ -8144,7 +8725,7 @@ class TournamentsView extends StatelessWidget {
                                 {/* Entry Fee Range */}
                                 <div>
                                   <div className="flex items-center justify-between mb-2">
-                                    <label className="text-[11px] font-extrabold uppercase tracking-wider text-[#8CA0BA]">
+                                    <label className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#64748B] block">
                                       Entry Fee Range
                                     </label>
                                     <span className="text-[10px] font-bold text-[#009A60]">
@@ -8175,7 +8756,7 @@ class TournamentsView extends StatelessWidget {
                                 {/* Host Golf Club */}
                                 <div>
                                   <div className="flex items-center justify-between mb-2">
-                                    <label className="text-[11px] font-extrabold uppercase tracking-wider text-[#8CA0BA]">
+                                    <label className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#64748B] block">
                                       Host Golf Club
                                     </label>
                                     <span className="text-[10px] font-bold text-[#009A60]">
@@ -8306,7 +8887,7 @@ class TournamentsView extends StatelessWidget {
 
                                 {/* Sort Tournaments By */}
                                 <div>
-                                  <label className="text-[11px] font-extrabold uppercase tracking-wider text-[#8CA0BA] block mb-2">
+                                  <label className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#64748B] block mb-2">
                                     Sort Tournaments By
                                   </label>
                                   <div className="grid grid-cols-2 gap-2">
@@ -8351,9 +8932,7 @@ class TournamentsView extends StatelessWidget {
                                     showToast("Filters reset to default", "success", "FILTERS RESET");
                                   }}
                                   className="py-3 px-4 rounded-xl border border-[#e1efe5] bg-white hover:bg-slate-50 active:scale-98 text-slate-700 font-bold text-xs shadow-2xs transition-all cursor-pointer shrink-0"
-                                >
-                                  Reset All
-                                </button>
+                                >Reset All</button>
                                 <button
                                   type="button"
                                   onClick={() => {
@@ -8372,86 +8951,1181 @@ class TournamentsView extends StatelessWidget {
                           </div>
                         )}
 
-                        {/* Tournament Details Sheet / Modal */}
-                        {selectedTournamentInfo && (
-                          <div
-                            className="absolute inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-end sm:items-center justify-center animate-in fade-in duration-200 p-2"
-                            onClick={() => setSelectedTournamentInfo(null)}
-                          >
-                            <div
-                              className="w-full max-w-sm mx-auto bg-white rounded-t-[28px] sm:rounded-2xl p-5 shadow-2xl border border-slate-100 animate-in slide-in-from-bottom duration-200"
-                              onClick={(e) => e.stopPropagation()}
+
+                      </div>
+                    );
+                  })()}
+
+                  {/* 3b. TOURNAMENT FILTER SCREEN (DEDICATED FULL-FLOW FILTER) */}
+                  {targetScreen === "tournament-filter" && (() => {
+                    const filteredClubs = allAvailableHostClubs.filter((c) =>
+                      !hostClubSearchQuery.trim() || c.toLowerCase().includes(hostClubSearchQuery.toLowerCase())
+                    );
+
+                    const eventTypes: Array<{
+                      id: "Major Event" | "Social Golf" | "Clinic / Lesson" | "Elite Cup";
+                      tag: string;
+                    }> = [
+                      { id: "Major Event", tag: "PROFESSIONAL" },
+                      { id: "Social Golf", tag: "NETWORKING" },
+                      { id: "Clinic / Lesson", tag: "LEARNING" },
+                      { id: "Elite Cup", tag: "CURATED" },
+                    ];
+
+                    const gameFormats = [
+                      "Stroke Play",
+                      "Stableford",
+                      "Match Play",
+                      "Scramble",
+                      "Four-Ball",
+                    ];
+
+                    const handicapRanges: Array<"0 – 9" | "10 – 18" | "19 – 28+"> = [
+                      "0 – 9",
+                      "10 – 18",
+                      "19 – 28+",
+                    ];
+
+                    const whenOptions: Array<"Anytime" | "This Weekend" | "Next 7 Days" | "Next 30 Days"> = [
+                      "Anytime",
+                      "This Weekend",
+                      "Next 7 Days",
+                      "Next 30 Days",
+                    ];
+
+                    return (
+                      <div className="h-full bg-white text-slate-900 flex flex-col overflow-hidden relative font-['Plus_Jakarta_Sans',sans-serif] select-none">
+                        {/* FIXED TOP NAVIGATION BAR (Matching Login / Registration Header) */}
+                        <div className="w-full shrink-0 z-20 bg-white border-b border-slate-100">
+                          <div className="w-full px-6 pt-4 pb-3 flex items-center justify-between">
+                            <button
+                              type="button"
+                              onClick={() => switchScreen("tournaments")}
+                              className="h-8 w-8 rounded-full flex items-center justify-center bg-white border border-slate-200 text-[#0F172A] hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer shrink-0"
+                              title="Back to Tournaments"
+                              aria-label="Back"
                             >
-                              <div className="w-10 h-1 rounded-full bg-slate-300 mx-auto mb-3 sm:hidden" />
-                              <div className="flex items-start justify-between mb-3">
-                                <div>
-                                  <h3 className="text-lg font-bold text-[#0F172A] leading-tight">
-                                    {selectedTournamentInfo.name}
-                                  </h3>
-                                  <p className="text-sm font-medium text-[#64748B]">
-                                    {selectedTournamentInfo.club}
-                                  </p>
-                                </div>
-                                <button
-                                  type="button"
-                                  onClick={() => setSelectedTournamentInfo(null)}
-                                  className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 cursor-pointer"
-                                >
-                                  <X className="w-4 h-4" />
-                                </button>
+                              <ChevronLeft className="h-[18px] w-[18px] text-[#0F172A]" />
+                            </button>
+                            <h2 className="text-base font-bold text-[#0F172A]">Tournament Filter</h2>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setFilterLocation("Ikoyi, Lagos");
+                                setFilterProximityKm(25);
+                                setTournamentClubFilter("All");
+                                setFilterWhen("Anytime");
+                                setFilterEventType("Major Event");
+                                setTournamentFormatFilter("Stroke Play");
+                                setFilterFeeMin(0);
+                                setFilterFeeMax(250000);
+                                setFilterHandicapRange("10 – 18");
+                                setHostClubSearchQuery("");
+                                setIsHostClubDropdownOpen(false);
+                              }}
+                              className="text-[10.5px] font-bold text-[#009A60] bg-[#EAF7EE] border border-[#C6F0DB] hover:bg-[#d8f3e3] px-2.5 py-1 rounded-full uppercase tracking-wider cursor-pointer transition-colors"
+                            >
+                              Reset
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* SCROLLABLE FORM BODY (Pure White Background matching Login/Signup Steps) */}
+                        <div className="flex-1 overflow-y-auto px-6 pt-4 space-y-7 scrollbar-hide no-scrollbar" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
+                          <div className="w-full space-y-7 pb-28">
+
+                            {/* 1. LOCATION & PROXIMITY */}
+                            <div>
+                              <div className="flex items-center justify-between mb-3">
+                                <span className="text-[11px] font-bold tracking-[0.14em] text-[#64748B] uppercase">
+                                  LOCATION & PROXIMITY
+                                </span>
+                                <span className="text-[10px] font-bold text-[#009A60] bg-[#EAF7EE] border border-[#C6F0DB] px-2.5 py-0.5 rounded-full">
+                                  Within {filterProximityKm}km
+                                </span>
                               </div>
 
-                              <div className="space-y-2.5 my-4 text-xs">
-                                <div className="flex justify-between py-1.5 border-b border-slate-100">
-                                  <span className="text-slate-500 font-medium">Dates</span>
-                                  <span className="font-semibold text-slate-800">{formatWithOrdinal(selectedTournamentInfo.date)}</span>
-                                </div>
-                                <div className="flex justify-between py-1.5 border-b border-slate-100">
-                                  <span className="text-slate-500 font-medium">Format</span>
-                                  <span className="font-semibold text-slate-800">{selectedTournamentInfo.format}</span>
-                                </div>
-                                <div className="flex justify-between py-1.5 border-b border-slate-100">
-                                  <span className="text-slate-500 font-medium">Entry Fee</span>
-                                  <span className="font-bold text-[#009A60]">{selectedTournamentInfo.fee}</span>
-                                </div>
-                                {selectedTournamentInfo.purse && (
-                                  <div className="flex justify-between py-1.5 border-b border-slate-100">
-                                    <span className="text-slate-500 font-medium">Prize Purse</span>
-                                    <span className="font-semibold text-slate-800">{selectedTournamentInfo.purse}</span>
-                                  </div>
-                                )}
-                                {selectedTournamentInfo.cutLine && (
-                                  <div className="flex justify-between py-1.5 border-b border-slate-100">
-                                    <span className="text-slate-500 font-medium">Cut Line</span>
-                                    <span className="font-semibold text-slate-800">{selectedTournamentInfo.cutLine}</span>
-                                  </div>
+                              <div className="w-full h-12 bg-[#f5faf6] border border-[#e1efe5] focus-within:border-[#009A60] focus-within:ring-2 focus-within:ring-[#009A60]/20 rounded-xl px-3.5 flex items-center gap-2.5 transition-all shadow-2xs">
+                                <MapPin className="h-4 w-4 text-[#8CA0BA] shrink-0" />
+                                <input
+                                  type="text"
+                                  value={filterLocation}
+                                  onChange={(e) => setFilterLocation(e.target.value)}
+                                  placeholder="City, State or Region"
+                                  className="bg-transparent text-[13.5px] leading-normal font-medium text-[#0F172A] placeholder:text-[#8CA0BA] placeholder:font-medium focus:outline-hidden w-full"
+                                />
+                                {filterLocation && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setFilterLocation("")}
+                                    className="text-[#8CA0BA] hover:text-[#0F172A] p-0.5 cursor-pointer shrink-0"
+                                    aria-label="Clear location"
+                                  >
+                                    <X className="h-3.5 w-3.5" />
+                                  </button>
                                 )}
                               </div>
 
-                              <div className="flex gap-2 pt-2">
-                                <button
-                                  type="button"
-                                  onClick={() => setSelectedTournamentInfo(null)}
-                                  className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-700 font-bold text-xs hover:bg-slate-50 cursor-pointer"
-                                >
-                                  Close
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const name = selectedTournamentInfo.name;
-                                    setSelectedTournamentInfo(null);
-                                    showToast(`Opening registration for ${name}...`, "success", "TOURNAMENT ENTRY");
-                                    setTimeout(() => switchScreen("register"), 400);
+                              <div className="mt-3.5 px-1">
+                                <input
+                                  type="range"
+                                  min={0}
+                                  max={100}
+                                  step={5}
+                                  value={filterProximityKm}
+                                  onChange={(e) => setFilterProximityKm(Number(e.target.value))}
+                                  className="w-full h-1.5 bg-[#e1efe5] rounded-lg appearance-none cursor-pointer accent-[#009A60]"
+                                />
+                                <div className="flex justify-between text-[10px] font-semibold text-[#8CA0BA] mt-1.5">
+                                  <span>0km</span>
+                                  <span>50km</span>
+                                  <span>100km+</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* 2. HOST GOLF CLUB (SEARCHABLE SELECT WITH ALL CLUBS) */}
+                            <div>
+                              <div className="flex items-center justify-between mb-3">
+                                <span className="text-[11px] font-bold tracking-[0.14em] text-[#64748B] uppercase">
+                                  HOST GOLF CLUB
+                                </span>
+                                <span className="text-[10px] font-bold text-[#5B6B7F] bg-[#f5faf6] border border-[#e1efe5] px-2.5 py-0.5 rounded-full truncate max-w-[150px]">
+                                  {tournamentClubFilter === "All" ? "All Clubs" : tournamentClubFilter}
+                                </span>
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={() => setIsHostClubDropdownOpen(!isHostClubDropdownOpen)}
+                                className="w-full h-12 bg-[#f5faf6] border border-[#e1efe5] hover:border-[#009A60]/40 focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 rounded-xl px-3.5 flex items-center justify-between text-left shadow-2xs transition-all cursor-pointer"
+                              >
+                                <span className="text-[13.5px] leading-normal font-medium text-[#0F172A] truncate">
+                                  {tournamentClubFilter === "All" ? "Select Host Golf Club (All)" : tournamentClubFilter}
+                                </span>
+                                <ChevronDown className={`h-4 w-4 text-[#8CA0BA] transition-transform ${isHostClubDropdownOpen ? "rotate-180 text-[#009A60]" : ""}`} />
+                              </button>
+
+                              {isHostClubDropdownOpen && (
+                                <div className="mt-2 bg-white border border-[#e1efe5] rounded-xl p-2.5 shadow-lg space-y-2 animate-in fade-in duration-150">
+                                  <div className="relative">
+                                    <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-[#8CA0BA]" />
+                                    <input
+                                      type="text"
+                                      value={hostClubSearchQuery}
+                                      onChange={(e) => setHostClubSearchQuery(e.target.value)}
+                                      placeholder="Search all golf clubs..."
+                                      className="w-full h-10 pl-8 pr-3.5 text-[13px] font-medium bg-[#f5faf6] border border-[#e1efe5] rounded-xl text-[#0F172A] placeholder:text-[#8CA0BA] placeholder:font-medium focus:outline-hidden focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 transition-all"
+                                    />
+                                  </div>
+
+                                  <div className="max-h-44 overflow-y-auto space-y-0.5 pr-1 no-scrollbar">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setTournamentClubFilter("All");
+                                        setIsHostClubDropdownOpen(false);
+                                        setHostClubSearchQuery("");
+                                      }}
+                                      className={`w-full text-left px-3 py-2.5 rounded-xl text-[13px] flex items-center justify-between cursor-pointer transition-all ${
+                                        tournamentClubFilter === "All"
+                                          ? "bg-[#e8f5ed] border border-[#009A60] text-[#009A60] font-semibold"
+                                          : "bg-white hover:bg-[#f5faf6] text-[#0F172A] border border-transparent hover:border-[#e1efe5] font-medium"
+                                      }`}
+                                    >
+                                      <span>All Host Clubs ({allAvailableHostClubs.length})</span>
+                                      {tournamentClubFilter === "All" && <Check className="h-3.5 w-3.5 text-[#009A60]" />}
+                                    </button>
+
+                                    {filteredClubs.map((club) => (
+                                      <button
+                                        key={club}
+                                        type="button"
+                                        onClick={() => {
+                                          setTournamentClubFilter(club);
+                                          setIsHostClubDropdownOpen(false);
+                                          setHostClubSearchQuery("");
+                                        }}
+                                        className={`w-full text-left px-3 py-2.5 rounded-xl text-[13px] flex items-center justify-between cursor-pointer transition-all ${
+                                          tournamentClubFilter === club
+                                            ? "bg-[#e8f5ed] border border-[#009A60] text-[#009A60] font-semibold"
+                                            : "bg-white hover:bg-[#f5faf6] text-[#0F172A] border border-transparent hover:border-[#e1efe5] font-medium"
+                                        }`}
+                                      >
+                                        <span className="truncate">{club}</span>
+                                        {tournamentClubFilter === club && <Check className="h-3.5 w-3.5 text-[#009A60] shrink-0" />}
+                                      </button>
+                                    ))}
+                                    {filteredClubs.length === 0 && (
+                                      <p className="text-center text-xs text-[#8CA0BA] py-3 font-medium">No golf clubs match search</p>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* 3. WHEN */}
+                            <div>
+                              <span className="text-[11px] font-bold tracking-[0.14em] text-[#64748B] uppercase mb-3 block">
+                                WHEN
+                              </span>
+                              <div className="bg-[#f5faf6] border border-[#e1efe5] rounded-xl p-1 flex items-center gap-1 overflow-x-auto no-scrollbar">
+                                {whenOptions.map((opt) => {
+                                  const isActive = filterWhen === opt;
+                                  return (
+                                    <button
+                                      key={opt}
+                                      type="button"
+                                      onClick={() => setFilterWhen(opt)}
+                                      className={`px-3.5 py-1.5 rounded-lg text-xs shrink-0 cursor-pointer transition-all ${
+                                        isActive
+                                          ? "bg-white text-[#009A60] border border-[#e1efe5] shadow-xs font-semibold"
+                                          : "text-[#62758D] hover:text-[#0F172A] border border-transparent font-medium"
+                                      }`}
+                                    >
+                                      {opt}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+
+                            {/* 4. EVENT TYPE (2x2 GRID) */}
+                            <div>
+                              <span className="text-[11px] font-bold tracking-[0.14em] text-[#64748B] uppercase mb-3 block">
+                                EVENT TYPE
+                              </span>
+                              <div className="grid grid-cols-2 gap-3">
+                                {eventTypes.map((item) => {
+                                  const isActive = filterEventType === item.id;
+                                  return (
+                                    <button
+                                      key={item.id}
+                                      type="button"
+                                      onClick={() => setFilterEventType(item.id)}
+                                      className={`rounded-xl p-3.5 relative overflow-hidden text-left cursor-pointer transition-all min-h-[96px] flex flex-col justify-between ${
+                                        isActive
+                                          ? "bg-[#e8f5ed] border-2 border-[#009A60] shadow-xs"
+                                          : "bg-[#f5faf6] border border-[#e1efe5] hover:bg-[#e8f5ed]/40 shadow-2xs"
+                                      }`}
+                                    >
+                                      <span
+                                        className={`text-[9.5px] font-bold tracking-wider uppercase px-2 py-0.5 rounded-md inline-block self-start ${
+                                          isActive
+                                            ? "text-[#009A60] bg-[#EAF7EE] border border-[#C6F0DB]"
+                                            : "text-[#5B6B7F] bg-[#f5faf6] border border-[#e1efe5]"
+                                        }`}
+                                      >
+                                        {item.tag}
+                                      </span>
+
+                                      <div className="flex items-center justify-between gap-1 z-10 mt-2">
+                                        <span
+                                          className={`text-[13.5px] font-semibold ${
+                                            isActive ? "text-[#009A60]" : "text-[#0F172A]"
+                                          }`}
+                                        >
+                                          {item.id}
+                                        </span>
+                                        {isActive && (
+                                          <div className="h-4 w-4 rounded-full bg-[#009A60] flex items-center justify-center shrink-0 shadow-2xs">
+                                            <Check className="h-2.5 w-2.5 text-white stroke-[3]" />
+                                          </div>
+                                        )}
+                                      </div>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+
+                            {/* 5. GAME FORMAT */}
+                            <div>
+                              <span className="text-[11px] font-bold tracking-[0.14em] text-[#64748B] uppercase mb-3 block">
+                                GAME FORMAT
+                              </span>
+                              <div className="flex flex-wrap gap-2">
+                                {gameFormats.map((format) => {
+                                  const isActive =
+                                    tournamentFormatFilter === format ||
+                                    (format === "Stroke Play" && (tournamentFormatFilter === "Strokeplay" || tournamentFormatFilter === "Stroke Play")) ||
+                                    (format === "Match Play" && (tournamentFormatFilter === "Matchplay" || tournamentFormatFilter === "Match Play"));
+                                  return (
+                                    <button
+                                      key={format}
+                                      type="button"
+                                      onClick={() => setTournamentFormatFilter(isActive ? "All" : format)}
+                                      className={`px-4 py-2 rounded-xl text-xs cursor-pointer transition-all ${
+                                        isActive
+                                          ? "bg-[#009A60] text-white border border-[#009A60] shadow-xs font-bold"
+                                          : "bg-[#f5faf6] border border-[#e1efe5] text-[#5B6B7F] hover:text-[#009A60] hover:bg-[#e8f5ed]/40 font-medium"
+                                      }`}
+                                    >
+                                      {format}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+
+                            {/* 6. ENTRY FEE */}
+                            <div>
+                              <div className="flex items-center justify-between mb-3">
+                                <span className="text-[11px] font-bold tracking-[0.14em] text-[#64748B] uppercase">
+                                  ENTRY FEE
+                                </span>
+                                <span className="text-xs font-bold text-[#009A60]">
+                                  ₦{filterFeeMin === 0 ? "0" : filterFeeMin >= 1000 ? `${(filterFeeMin / 1000).toFixed(0)}k` : filterFeeMin} – {filterFeeMax >= 250000 ? "₦250k+" : `₦${(filterFeeMax / 1000).toFixed(0)}k`}
+                                </span>
+                              </div>
+
+                              <div className="relative w-full h-8 flex items-center select-none my-1">
+                                {/* Base Track */}
+                                <div className="w-full h-1.5 bg-[#e1efe5] rounded-full relative">
+                                  {/* Active Green Track */}
+                                  <div
+                                    className="absolute top-0 bottom-0 bg-[#009A60] rounded-full"
+                                    style={{
+                                      left: `${(filterFeeMin / 250000) * 100}%`,
+                                      width: `${Math.max(0, ((filterFeeMax - filterFeeMin) / 250000) * 100)}%`,
+                                    }}
+                                  />
+                                </div>
+
+                                {/* Left Thumb Handle (White circle with green border) */}
+                                <div
+                                  className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-5 h-5 rounded-full bg-white border-[3px] border-[#009A60] shadow-xs pointer-events-none z-10"
+                                  style={{ left: `${(filterFeeMin / 250000) * 100}%` }}
+                                />
+
+                                {/* Right Thumb Handle (White circle with green border) */}
+                                <div
+                                  className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-5 h-5 rounded-full bg-white border-[3px] border-[#009A60] shadow-xs pointer-events-none z-10"
+                                  style={{ left: `${(filterFeeMax / 250000) * 100}%` }}
+                                />
+
+                                {/* Invisible Native Min Range Input */}
+                                <input
+                                  type="range"
+                                  min={0}
+                                  max={250000}
+                                  step={10000}
+                                  value={filterFeeMin}
+                                  onChange={(e) => {
+                                    const val = Math.min(Number(e.target.value), filterFeeMax - 10000);
+                                    setFilterFeeMin(Math.max(0, val));
                                   }}
-                                  className="flex-1 py-2.5 rounded-xl bg-[#009A60] hover:bg-[#008251] text-white font-bold text-xs shadow-xs cursor-pointer"
+                                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer pointer-events-none z-20 [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:appearance-none [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:w-6 [&::-moz-range-thumb]:h-6"
+                                  aria-label="Minimum Entry Fee"
+                                />
+
+                                {/* Invisible Native Max Range Input */}
+                                <input
+                                  type="range"
+                                  min={0}
+                                  max={250000}
+                                  step={10000}
+                                  value={filterFeeMax}
+                                  onChange={(e) => {
+                                    const val = Math.max(Number(e.target.value), filterFeeMin + 10000);
+                                    setFilterFeeMax(val);
+                                  }}
+                                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer pointer-events-none z-20 [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:appearance-none [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:w-6 [&::-moz-range-thumb]:h-6"
+                                  aria-label="Maximum Entry Fee"
+                                />
+                              </div>
+
+                              <div className="grid grid-cols-2 gap-3.5 mt-3">
+                                <div className="bg-[#f5faf6] border border-[#e1efe5] rounded-2xl py-3 px-3 text-center shadow-2xs">
+                                  <span className="block text-[10px] font-bold uppercase tracking-wider text-[#8A99AD] mb-1">
+                                    MIN
+                                  </span>
+                                  <span className="block text-base font-bold text-[#0F172A]">
+                                    {filterFeeMin === 0 ? "₦0" : `₦${filterFeeMin.toLocaleString()}`}
+                                  </span>
+                                </div>
+                                <div className="bg-[#f5faf6] border border-[#e1efe5] rounded-2xl py-3 px-3 text-center shadow-2xs">
+                                  <span className="block text-[10px] font-bold uppercase tracking-wider text-[#8A99AD] mb-1">
+                                    MAX
+                                  </span>
+                                  <span className="block text-base font-bold text-[#0F172A]">
+                                    {filterFeeMax >= 250000 ? "₦250,000+" : `₦${filterFeeMax.toLocaleString()}`}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* 7. YOUR HANDICAP RANGE */}
+                            <div>
+                              <span className="text-[11px] font-bold tracking-[0.14em] text-[#64748B] uppercase mb-3 block">
+                                YOUR HANDICAP RANGE
+                              </span>
+                              <div className="bg-[#f5faf6] border border-[#e1efe5] rounded-xl p-1 grid grid-cols-3 gap-1">
+                                {handicapRanges.map((range) => {
+                                  const isActive = filterHandicapRange === range;
+                                  return (
+                                    <button
+                                      key={range}
+                                      type="button"
+                                      onClick={() => setFilterHandicapRange(range)}
+                                      className={`py-2 rounded-lg text-center text-xs cursor-pointer transition-all ${
+                                        isActive
+                                          ? "bg-white text-[#009A60] border border-[#e1efe5] shadow-xs font-semibold"
+                                          : "text-[#62758D] hover:text-[#0F172A] border border-transparent font-medium"
+                                      }`}
+                                    >
+                                      {range}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+
+                          </div>
+                        </div>
+
+                        {/* PINNED BOTTOM ACTION BAR (Matching Login / Registration Steps) */}
+                        <div className="w-full shrink-0 z-20 bg-white border-t border-slate-100 p-4 shadow-xs">
+                          <div className="w-full">
+                            <button
+                              type="button"
+                              onClick={() => switchScreen("tournaments")}
+                              className="w-full h-12 rounded-xl text-sm font-medium bg-[#009A60] hover:bg-[#008754] text-white shadow-md shadow-emerald-700/20 flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-[0.99]"
+                            >Apply Filters</button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* 3c. TOURNAMENT DETAILS SCREEN (Executive Single Tournament Hub Match) */}
+                  {targetScreen === "tournament-details" && (() => {
+                    const activeTournament = selectedTournamentInfo || {
+                      id: "ikoyi-open-2024",
+                      name: "Ikoyi Open Championship 2024",
+                      club: "Ikoyi Club 1938, Lagos",
+                      fee: "₦150,000",
+                      feeAmount: 150000,
+                      date: "Oct 24th – 27th, 2024",
+                      dateFull: "Oct 24th – 27th, 2024",
+                      format: "Individual Strokeplay • 54 Holes",
+                      formatType: "Stroke Play",
+                      purse: "₦15,000,000 Total Purse",
+                      holes: 18,
+                      cutLine: "Top 35 Players & Ties",
+                      bannerUrl: "/images/tournaments/ikoyi_sunrise_fairway.jpg",
+                      par: 72,
+                      hcpLimit: 24,
+                      description: "Join us for the most anticipated golf event of the year. The Ikoyi Open Championship gathers elite amateurs and club members for a 3–day competitive tournament on the historic Ikoyi 1938 course.",
+                      schedule: [
+                        { month: "OCT", date: "23", title: "Practice Round", time: "COURSE OPEN • 8:00 AM — 5:00 PM" },
+                        { month: "OCT", date: "24", title: "Day 1: Opening Round", time: "SHOTGUN START • 7:30 AM" },
+                        { month: "OCT", date: "25", title: "Day 2: Moving Day", time: "TEE TIMES • 7:00 AM" },
+                        { month: "OCT", date: "26", title: "Day 3: Championship Final", time: "AWARDS CEREMONY • 4:00 PM", isFinal: true },
+                      ],
+                      organizer: {
+                        name: "Ikoyi Club 1938",
+                        tag: "OFFICIAL CLUB ORGANIZER",
+                      },
+                      isOpen: true,
+                      statusBadgeText: "REGISTRATION OPEN",
+                    };
+
+                    return (
+                      <div className="flex-1 flex flex-col bg-white min-h-0 relative select-none font-['Plus_Jakarta_Sans',sans-serif]">
+                        {/* SCROLLABLE SCREEN BODY */}
+                        <div className="flex-1 overflow-y-auto scrollbar-hide no-scrollbar pb-28">
+                          {/* 1. HERO COVER BANNER */}
+                          <div className="relative w-full h-[385px] bg-[#EAF0E6] overflow-hidden shrink-0">
+                            {/* Course / Event Photo */}
+                            <img
+                              src={activeTournament.bannerUrl || "/images/tournaments/ikoyi_sunrise_fairway.jpg"}
+                              alt={activeTournament.name}
+                              className="w-full h-full object-cover object-top"
+                            />
+
+                            {/* Top Dark Vignette for Frosted Navigation Buttons */}
+                            <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-black/30 via-black/10 to-transparent pointer-events-none" />
+
+                            {/* Bottom Soft Mist Overlay (Preserves Fairway & Flagstick with 100% Text Legibility) */}
+                            <div className="absolute inset-x-0 bottom-0 h-56 bg-gradient-to-t from-white/85 via-white/35 to-transparent pointer-events-none" />
+
+                            {/* Floating Top Navigation Header */}
+                            <div className="absolute top-0 inset-x-0 pt-4 px-6 z-20">
+                              <div className="w-full flex items-center justify-between">
+                                {/* Back Button: Frosted Circular Glass Pill */}
+                                <button
+                                  type="button"
+                                  onClick={() => switchScreen("tournaments")}
+                                  className="h-10 w-10 rounded-full bg-white/40 hover:bg-white/60 backdrop-blur-md border border-white/50 flex items-center justify-center text-white cursor-pointer transition-all active:scale-95 shadow-2xs"
+                                  aria-label="Back to tournaments"
                                 >
-                                  Register Now
+                                  <ChevronLeft className="w-5 h-5 text-white stroke-[2.8]" />
                                 </button>
+
+                                {/* Right Frosted Glass Actions */}
+                                <div className="flex items-center gap-2.5">
+                                  {/* Share Button */}
+                                  <button
+                                    type="button"
+                                    onClick={async () => {
+                                      const tournId = (activeTournament as any)?.id || "ikoyi-open-2024";
+                                      const shareUrl = typeof window !== "undefined"
+                                        ? `${window.location.origin}/tournaments/${tournId}`
+                                        : `https://openclub.app/tournaments/${tournId}`;
+                                      const shareTitle = activeTournament.name || "Tournament";
+                                      const shareText = `Join ${shareTitle} at ${activeTournament.club || "OpenClub"}! Register now on OpenClub OS.`;
+
+                                      if (typeof navigator !== "undefined" && navigator.share) {
+                                        try {
+                                          await navigator.share({
+                                            title: shareTitle,
+                                            text: shareText,
+                                            url: shareUrl,
+                                          });
+                                          showToast(`Shared ${shareTitle}`, "success", "SHARE LINK");
+                                          return;
+                                        } catch {
+                                          // Fallback to clipboard if share was cancelled or unavailable
+                                        }
+                                      }
+
+                                      if (typeof navigator !== "undefined" && navigator.clipboard) {
+                                        try {
+                                          await navigator.clipboard.writeText(shareUrl);
+                                          showToast("Tournament invitation link copied to clipboard!", "success", "SHARE LINK");
+                                          return;
+                                        } catch {
+                                          // Ignore clipboard failure
+                                        }
+                                      }
+
+                                      showToast("Tournament invitation link copied to clipboard!", "success", "SHARE LINK");
+                                    }}
+                                    className="h-10 w-10 rounded-full bg-white/40 hover:bg-white/60 backdrop-blur-md border border-white/50 flex items-center justify-center text-white cursor-pointer transition-all active:scale-95 shadow-2xs"
+                                    title="Share tournament"
+                                  >
+                                    <Share2 className="w-4 h-4 text-white stroke-[2.3]" />
+                                  </button>
+
+                                  {/* Bookmark / Heart Button */}
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setIsTournamentBookmarked((prev) => !prev);
+                                      showToast(
+                                        isTournamentBookmarked ? "Removed from saved events" : "Saved to your bookmarks",
+                                        "success",
+                                        "TOURNAMENT SAVED"
+                                      );
+                                    }}
+                                    className="h-10 w-10 rounded-full bg-white/40 hover:bg-white/60 backdrop-blur-md border border-white/50 flex items-center justify-center text-white cursor-pointer transition-all active:scale-95 shadow-2xs"
+                                    title="Bookmark tournament"
+                                  >
+                                    <Heart
+                                      className={`w-4 h-4 transition-colors ${
+                                        isTournamentBookmarked ? "text-rose-500 fill-rose-500" : "text-white stroke-[2.3]"
+                                      }`}
+                                    />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Hero Overlay Content: Badge, Title & Location */}
+                            <div className="absolute inset-x-0 bottom-4 px-6 z-10">
+                              <div className="w-full">
+                                {/* Status Pill Badge */}
+                                <div
+                                  className={`inline-flex items-center text-white text-[11px] font-bold uppercase tracking-wider px-3.5 py-1.5 rounded-full mb-2.5 shadow-xs ${
+                                    activeTournament.isOpen === false || (activeTournament.statusBadgeText && activeTournament.statusBadgeText.includes("CLOSED"))
+                                      ? "bg-slate-700"
+                                      : "bg-[#009A60]"
+                                  }`}
+                                >
+                                  {activeTournament.statusBadgeText || (activeTournament.isOpen === false ? "REGISTRATION CLOSED" : "REGISTRATION OPEN")}
+                                </div>
+
+                                {/* Tournament Title (Two-line Bold Display) */}
+                                <h1 className="text-[26px] font-bold text-[#0B1B2B] tracking-tight leading-[1.12] mb-2.5 drop-shadow-2xs">
+                                  {activeTournament.name}
+                                </h1>
+
+                                {/* Location with Emerald Map Pin */}
+                                <div className="flex items-center gap-1.5 text-[14px] font-bold text-[#3B4E61]">
+                                  <svg className="w-4 h-4 text-[#009A60] shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                                    <path fillRule="evenodd" clipRule="evenodd" d="M12 2C7.58172 2 4 5.58172 4 10C4 15.25 12 22 12 22C12 22 20 15.25 20 10C20 5.58172 16.4183 2 12 2ZM12 13C10.3431 13 9 11.6569 9 10C9 8.34315 10.3431 7 12 7C13.6569 7 15 8.34315 15 10C15 11.6569 13.6569 13 12 13Z" />
+                                  </svg>
+                                  <span className="truncate">{activeTournament.club}</span>
+                                </div>
                               </div>
                             </div>
                           </div>
-                        )}
+
+                          {/* 2. BODY CONTENT (Standardized px-4 margin/padding across mobile & tablets) */}
+                          <div className="w-full px-4 pt-5">
+                            {/* Three Side-by-Side Metric Cards (Matching Reference Design) */}
+                            {(() => {
+                              const formatFeeShort = (fee?: string, feeAmount?: number) => {
+                                if (!fee && !feeAmount) return "Free";
+                                const num = typeof feeAmount === "number" && !isNaN(feeAmount) && feeAmount > 0
+                                  ? feeAmount
+                                  : Number(String(fee).replace(/[^0-9]/g, ""));
+                                if (isNaN(num) || num <= 0) {
+                                  if (String(fee).toLowerCase().includes("free")) return "Free";
+                                  return String(fee || "Free");
+                                }
+                                if (num >= 1_000_000) {
+                                  const val = (num / 1_000_000).toFixed(1).replace(/\.0$/, "");
+                                  return `₦${val}m`;
+                                }
+                                if (num >= 1_000) {
+                                  const val = (num / 1_000).toFixed(0);
+                                  return `₦${val}k`;
+                                }
+                                return `₦${num.toLocaleString()}`;
+                              };
+
+                              const tournDuration = (activeTournament as any).duration || (
+                                activeTournament.schedule && Array.isArray(activeTournament.schedule) && activeTournament.schedule.length > 0
+                                  ? `${Math.min(activeTournament.schedule.length, 3)} Days`
+                                  : "3 Days"
+                              );
+
+                              const getShortFormat = (formatStr?: string) => {
+                                if (!formatStr) return "Stroke";
+                                const upper = formatStr.toUpperCase();
+                                if (upper.includes("STROKE")) return "Stroke";
+                                if (upper.includes("MATCH")) return "Match";
+                                if (upper.includes("STABLEFORD")) return "Stableford";
+                                if (upper.includes("SCRAMBLE")) return "Scramble";
+                                if (upper.includes("FOUR-BALL") || upper.includes("BEST BALL")) return "Four-Ball";
+                                return formatStr.split(" ")[0] || "Stroke";
+                              };
+
+                              const shortFormat = getShortFormat(activeTournament.formatType || activeTournament.format);
+
+                              return (
+                                <div className="grid grid-cols-3 gap-2.5 mb-7">
+                                  {/* Entry Fee Card */}
+                                  <div className="bg-[#f5faf6] border border-[#e1efe5] rounded-[24px] py-3.5 px-2 shadow-none flex flex-col items-center justify-center text-center h-[76px]">
+                                    <span className="text-[10px] font-bold text-[#7E8B9B] uppercase tracking-[0.08em] mb-1.5 block">
+                                      ENTRY FEE
+                                    </span>
+                                    <span
+                                      className="text-[17px] font-bold text-[#009A60] tracking-tight leading-none block truncate w-full px-1"
+                                      title={activeTournament.fee}
+                                    >
+                                      {formatFeeShort(activeTournament.fee, activeTournament.feeAmount)}
+                                    </span>
+                                  </div>
+
+                                  {/* Duration Card */}
+                                  <div className="bg-[#f5faf6] border border-[#e1efe5] rounded-[24px] py-3.5 px-2 shadow-none flex flex-col items-center justify-center text-center h-[76px]">
+                                    <span className="text-[10px] font-bold text-[#7E8B9B] uppercase tracking-[0.08em] mb-1.5 block">
+                                      DURATION
+                                    </span>
+                                    <span
+                                      className="text-[17px] font-bold text-[#0B1B2B] tracking-tight leading-none block truncate w-full px-1"
+                                      title={tournDuration}
+                                    >
+                                      {tournDuration}
+                                    </span>
+                                  </div>
+
+                                  {/* Format Card */}
+                                  <div className="bg-[#f5faf6] border border-[#e1efe5] rounded-[24px] py-3.5 px-2 shadow-none flex flex-col items-center justify-center text-center h-[76px]">
+                                    <span className="text-[10px] font-bold text-[#7E8B9B] uppercase tracking-[0.08em] mb-1.5 block">
+                                      FORMAT
+                                    </span>
+                                    <span
+                                      className="text-[17px] font-bold text-[#0B1B2B] tracking-tight leading-none block truncate w-full px-1"
+                                      title={shortFormat}
+                                    >
+                                      {shortFormat}
+                                    </span>
+                                  </div>
+                                </div>
+                              );
+                            })()}
+
+                            {/* Navigation Tabs Bar */}
+                            <div className={`flex items-center justify-center ${isTablet ? "gap-7 mb-7" : "gap-5 mb-6"} border-b border-slate-100`}>
+                              {(["OVERVIEW", "RULES", "PLAYERS", "SPONSORS"] as const).map((tab) => {
+                                const isActive = tournamentDetailTab === tab;
+                                return (
+                                  <button
+                                    key={tab}
+                                    type="button"
+                                    onClick={() => setTournamentDetailTab(tab)}
+                                    className={`${isTablet ? "pb-3 text-[12.5px] font-bold" : "pb-2.5 text-[12px] font-bold"} uppercase tracking-wider transition-all cursor-pointer relative ${
+                                      isActive
+                                        ? "text-[#009A60]"
+                                        : "text-[#8CA0BA] hover:text-[#0F172A]"
+                                    }`}
+                                  >
+                                    <span>{tab}</span>
+                                    {isActive && (
+                                      <span className={`absolute bottom-0 inset-x-0 ${isTablet ? "h-[2.5px]" : "h-[2px]"} bg-[#009A60] rounded-full`} />
+                                    )}
+                                  </button>
+                                );
+                              })}
+                            </div>
+
+                            {/* TAB 1: OVERVIEW CONTENT */}
+                            {tournamentDetailTab === "OVERVIEW" && (
+                              <div className="space-y-8">
+                                {/* About the Event */}
+                                <div>
+                                  <h3 className="text-[11px] font-bold tracking-[0.14em] text-[#64748B] uppercase mb-3.5 block">
+                                    ABOUT THE EVENT
+                                  </h3>
+                                  <p className="text-[14.5px] text-[#0B1B2B] font-bold leading-[1.65]">
+                                    {activeTournament.description ? (
+                                      <span>
+                                        {activeTournament.description.includes("Ikoyi Open Championship") ? (
+                                          <>
+                                            {activeTournament.description.split("Ikoyi Open Championship")[0]}
+                                            <strong className="font-bold text-[#0B1B2B]">Ikoyi Open Championship</strong>
+                                            {activeTournament.description.split("Ikoyi Open Championship")[1]}
+                                          </>
+                                        ) : (
+                                          activeTournament.description
+                                        )}
+                                      </span>
+                                    ) : (
+                                      <>
+                                        Join us for the most anticipated golf event of the year. The <strong className="font-bold text-[#0B1B2B]">Ikoyi Open Championship</strong> gathers elite amateurs and club members for a 3–day competitive tournament on the historic {activeTournament.club} course.
+                                      </>
+                                    )}
+                                  </p>
+                                </div>
+
+                                {/* Course Specs */}
+                                <div>
+                                  <h3 className="text-[11px] font-bold tracking-[0.14em] text-[#64748B] uppercase mb-3.5 block">
+                                    COURSE SPECS
+                                  </h3>
+                                  <div className="bg-[#f5faf6] border border-[#e1efe5] rounded-[24px] py-4.5 px-3 grid grid-cols-3 divide-x divide-[#e1efe5] text-center shadow-none">
+                                    <div>
+                                      <span className="text-[10px] font-bold text-[#64748B] tracking-[0.12em] uppercase block mb-1">
+                                        PAR
+                                      </span>
+                                      <span className="text-[22px] font-bold text-[#0B1B2B] block">
+                                        {activeTournament.par || 72}
+                                      </span>
+                                    </div>
+                                    <div>
+                                      <span className="text-[10px] font-bold text-[#64748B] tracking-[0.12em] uppercase block mb-1">
+                                        HOLES
+                                      </span>
+                                      <span className="text-[22px] font-bold text-[#0B1B2B] block">
+                                        {activeTournament.holes || 18}
+                                      </span>
+                                    </div>
+                                    <div>
+                                      <span className="text-[10px] font-bold text-[#64748B] tracking-[0.12em] uppercase block mb-1">
+                                        HCP LIMIT
+                                      </span>
+                                      <span className="text-[22px] font-bold text-[#0B1B2B] block">
+                                        {activeTournament.hcpLimit || 24}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Tournament Schedule */}
+                                <div>
+                                  <h3 className="text-[11px] font-bold tracking-[0.14em] text-[#64748B] uppercase mb-3.5 block">
+                                    TOURNAMENT SCHEDULE
+                                  </h3>
+                                  <div className="space-y-3">
+                                    {(activeTournament.schedule || [
+                                      { month: "OCT", date: "23", title: "Practice Round", time: "COURSE OPEN • 8:00 AM — 5:00 PM" },
+                                      { month: "OCT", date: "24", title: "Day 1: Opening Round", time: "SHOTGUN START • 7:30 AM" },
+                                      { month: "OCT", date: "25", title: "Day 2: Moving Day", time: "TEE TIMES • 7:00 AM" },
+                                      { month: "OCT", date: "26", title: "Day 3: Championship Final", time: "AWARDS CEREMONY • 4:00 PM", isFinal: true },
+                                    ]).map((item: any, idx: number, arr: any[]) => {
+                                      const isFinalCard = item.isFinal || idx === arr.length - 1 || (item.title && item.title.toLowerCase().includes("final"));
+                                      const rawTime = (item.time || "").replace(/\s+FROM\s+/i, " • ");
+                                      const hasDot = rawTime.includes("•");
+                                      const label = hasDot ? rawTime.split("•")[0].trim() : rawTime.trim();
+                                      const timeVal = hasDot ? rawTime.split("•").slice(1).join("•").trim() : "";
+
+                                      return (
+                                        <div
+                                          key={idx}
+                                          className={`rounded-[22px] p-4 flex items-center gap-4 transition-all ${
+                                            isFinalCard
+                                              ? "bg-[#f2faf5] border border-[#c6f0db] shadow-[0_2px_10px_rgba(0,154,96,0.04)]"
+                                              : "bg-white border border-slate-100/90 shadow-[0_2px_10px_rgba(0,0,0,0.02)]"
+                                          }`}
+                                        >
+                                          <div className="w-14 h-14 rounded-[20px] bg-white border border-slate-100 shadow-2xs flex flex-col items-center justify-center shrink-0">
+                                            <span className="text-[10px] font-bold text-[#009A60] tracking-wider uppercase leading-none">
+                                              {item.month}
+                                            </span>
+                                            <span className="text-[20px] font-bold text-[#009A60] leading-none mt-1">
+                                              {item.date}
+                                            </span>
+                                          </div>
+                                          <div className="min-w-0 flex-1">
+                                            <h4 className="text-[15px] font-bold text-[#0B1B2B] leading-snug">
+                                              {item.title}
+                                            </h4>
+                                            <div className="flex items-center gap-1.5 mt-1 whitespace-nowrap overflow-hidden">
+                                              <span
+                                                className={`text-[10px] font-bold uppercase tracking-[0.08em] whitespace-nowrap shrink-0 ${
+                                                  isFinalCard ? "text-[#009A60]" : "text-[#64748B]"
+                                                }`}
+                                              >
+                                                {label}
+                                              </span>
+                                              {timeVal && (
+                                                <>
+                                                  <span
+                                                    className={`font-bold text-[8px] shrink-0 ${
+                                                      isFinalCard ? "text-[#009A60]/70" : "text-slate-300"
+                                                    }`}
+                                                  >
+                                                    •
+                                                  </span>
+                                                  <span
+                                                    className={`text-[11px] font-medium tracking-normal whitespace-nowrap shrink-0 ${
+                                                      isFinalCard ? "text-[#009A60]" : "text-[#64748B]"
+                                                    }`}
+                                                  >
+                                                    {timeVal}
+                                                  </span>
+                                                </>
+                                              )}
+                                            </div>
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+
+                                {/* Organizer */}
+                                <div>
+                                  <h3 className="text-[11px] font-bold tracking-[0.14em] text-[#64748B] uppercase mb-3.5 block">
+                                    ORGANIZER
+                                  </h3>
+                                  <div
+                                    onClick={() => showToast(`Organizer: ${activeTournament.organizer?.name || activeTournament.club}`, "success", "HOST CLUB")}
+                                    className="bg-white border border-slate-100/90 rounded-[24px] p-4 flex items-center justify-between shadow-[0_2px_10px_rgba(0,0,0,0.02)] cursor-pointer hover:bg-slate-50/50 transition-all active:scale-[0.99]"
+                                  >
+                                    <div className="flex items-center gap-3.5 min-w-0">
+                                      {/* Mint squircle container with dark crest avatar */}
+                                      <div className="w-14 h-14 rounded-[20px] bg-[#EAF7EE] border border-[#C6F0DB]/70 flex items-center justify-center shrink-0">
+                                        <div className="w-11 h-11 rounded-[14px] bg-[#0E1E17] border border-emerald-900/60 flex items-center justify-center shadow-xs relative overflow-hidden">
+                                          <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none">
+                                            <path d="M7 3v17" stroke="#F59E0B" strokeWidth="1.8" strokeLinecap="round" />
+                                            <path d="M7 4h8.5l-2.5 3.5 2.5 3.5H7V4z" fill="#EF4444" stroke="#EF4444" strokeWidth="1.2" strokeLinejoin="round" />
+                                            <path d="M4 19.5c2.5-1.2 5.5-1.2 8 0s5.5 1.2 8 0" stroke="#10B981" strokeWidth="2.2" strokeLinecap="round" />
+                                            <circle cx="16" cy="18" r="1.3" fill="#FFFFFF" />
+                                          </svg>
+                                        </div>
+                                      </div>
+                                      <div className="min-w-0 flex-1">
+                                        <h4 className="text-[15px] font-bold text-[#0B1B2B] truncate leading-tight">
+                                          {activeTournament.organizer?.name || (activeTournament.club ? activeTournament.club.split(",")[0] : "Ikoyi Club 1938")}
+                                        </h4>
+                                        <span className="text-[10px] font-bold text-[#64748B] tracking-[0.12em] uppercase block mt-1">
+                                          OFFICIAL CLUB ORGANIZER
+                                        </span>
+                                      </div>
+                                    </div>
+                                    {/* Light gray circular chevron button */}
+                                    <div className="w-8 h-8 rounded-full bg-[#F8FAFC] border border-slate-100 flex items-center justify-center text-slate-400 shrink-0 transition-colors">
+                                      <ChevronRight className="w-4 h-4 text-slate-400 stroke-[2.5]" />
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* TAB 2: RULES CONTENT */}
+                            {tournamentDetailTab === "RULES" && (
+                              <div>
+                                <h3 className="text-[11px] font-bold tracking-[0.14em] text-[#64748B] uppercase mb-4 block">
+                                  COMPETITION RULES
+                                </h3>
+                                <div className="space-y-5">
+                                  {(
+                                    (((activeTournament as any).rules && Array.isArray((activeTournament as any).rules) && (activeTournament as any).rules.length > 0)
+                                      ? (activeTournament as any).rules
+                                      : [
+                                          "R&A and USGA Rules of Golf apply alongside Local Rules.",
+                                          "Format is Individual Stroke Play over 54 holes (3 rounds).",
+                                          "Players must be in the tee box 15 minutes before start.",
+                                        ])
+                                  ).map((rule: string, idx: number) => (
+                                    <div key={idx} className="flex items-start gap-3.5">
+                                      <div className="w-7 h-7 rounded-full bg-[#EAF7EE] text-[#009A60] font-bold text-[12px] flex items-center justify-center shrink-0 mt-0.5">
+                                        {String(idx + 1).padStart(2, "0")}
+                                      </div>
+                                      <p className="text-[14.5px] font-bold text-[#0F172A] leading-snug">
+                                        {rule}
+                                      </p>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* TAB 3: PLAYERS CONTENT */}
+                            {tournamentDetailTab === "PLAYERS" && (
+                              <div>
+                                <div className="mb-3.5">
+                                  <h3 className="text-[11px] font-bold tracking-[0.14em] text-[#64748B] uppercase">
+                                    REGISTERED PLAYERS ({registeredPlayers && registeredPlayers.length > 0 ? registeredPlayers.length : 120})
+                                  </h3>
+                                </div>
+                                <div className="space-y-3">
+                                  {[
+                                    {
+                                      name: "Tunde Adekunle",
+                                      hcp: "4.2",
+                                      club: "Ikoyi Club 1938",
+                                      avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&h=120&q=80",
+                                    },
+                                    {
+                                      name: "Chioma Okoro",
+                                      hcp: "8.5",
+                                      club: "IBB Golf Club",
+                                      avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=120&h=120&q=80",
+                                    },
+                                    {
+                                      name: "Adediran Favour",
+                                      hcp: "28.0",
+                                      club: "OpenClub Golfer",
+                                      avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&h=120&q=80",
+                                    },
+                                    {
+                                      name: "Femi Adebayo",
+                                      hcp: "4.1",
+                                      club: "Lakowe Lakes",
+                                      avatar: "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=120&h=120&q=80",
+                                    },
+                                    {
+                                      name: "Ngozi Okonjo",
+                                      hcp: "7.8",
+                                      club: "Lakowe Lakes",
+                                      avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=120&h=120&q=80",
+                                    },
+                                    {
+                                      name: "Emeka Nwosu",
+                                      hcp: "11.2",
+                                      club: "Port Harcourt Club",
+                                      avatar: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=120&h=120&q=80",
+                                    },
+                                    {
+                                      name: "Dayo Adeleke",
+                                      hcp: "14.0",
+                                      club: "Ikeja Golf Club",
+                                      avatar: "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&w=120&h=120&q=80",
+                                    },
+                                  ].map((player, idx) => (
+                                    <div
+                                      key={idx}
+                                      className="w-full bg-[#f5faf6] rounded-2xl border border-[#e1efe5] shadow-2xs p-3.5 flex items-center justify-between gap-3 transition-all hover:border-[#c6f0db]"
+                                    >
+                                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                                        <div className="relative shrink-0">
+                                          {player.avatar ? (
+                                            <img
+                                              src={player.avatar}
+                                              alt={player.name}
+                                              className="w-11 h-11 rounded-full object-cover border border-slate-200"
+                                              onError={(e) => {
+                                                (e.currentTarget as HTMLElement).style.display = "none";
+                                                const fb = e.currentTarget.parentElement?.querySelector(".avatar-initials-fallback") as HTMLElement;
+                                                if (fb) fb.style.display = "flex";
+                                              }}
+                                            />
+                                          ) : null}
+                                          <div
+                                            className={`w-11 h-11 rounded-full bg-[#EAF7EE] text-[#009A60] font-bold text-sm items-center justify-center border border-[#C6F0DB] avatar-initials-fallback ${player.avatar ? "hidden" : "flex"}`}
+                                          >
+                                            {player.name
+                                              .split(" ")
+                                              .map((n) => n[0])
+                                              .slice(0, 2)
+                                              .join("")}
+                                          </div>
+                                          {/* Status check badge from friend request screen */}
+                                          <div className="w-4 h-4 rounded-full bg-[#009A60] border-2 border-white flex items-center justify-center text-white absolute -bottom-0.5 -right-0.5 shadow-xs">
+                                            <Check className="w-2.5 h-2.5 stroke-[3]" />
+                                          </div>
+                                        </div>
+                                        <div className="min-w-0 flex-1">
+                                          <h4 className="text-[14.5px] font-bold text-[#0F172A] leading-tight">
+                                            {player.name}
+                                          </h4>
+                                          <p className="text-[12px] font-medium text-[#64748B] truncate leading-tight mt-0.5 flex items-center">
+                                            {player.club && (
+                                              <>
+                                                <span className="truncate">{player.club}</span>
+                                                <span className="mx-1.5 text-slate-300 font-normal shrink-0">|</span>
+                                              </>
+                                            )}
+                                            <span className="shrink-0">{String(player.hcp).replace(/HCP/i, "").trim()} HCP</span>
+                                          </p>
+                                        </div>
+                                      </div>
+                                      <div className="shrink-0 flex items-center pl-2">
+                                        <span className="px-2.5 py-0.5 rounded-full bg-[#EAF7EE] border border-[#C6F0DB]/80 text-[10.5px] font-bold text-[#009A60] capitalize">
+                                          Verified
+                                        </span>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* TAB 4: SPONSORS CONTENT */}
+                            {tournamentDetailTab === "SPONSORS" && (
+                              <div>
+                                <div className="mb-3.5">
+                                  <h3 className="text-[11px] font-bold tracking-[0.14em] text-[#64748B] uppercase">
+                                    TOURNAMENT SPONSORS
+                                  </h3>
+                                </div>
+                                <div className="space-y-3.5">
+                                  {/* Title Sponsor Card */}
+                                  <div className="bg-[#f5faf6] border border-[#e1efe5] rounded-2xl p-4 shadow-2xs hover:border-[#c6f0db] transition-all">
+                                    <div className="flex items-center justify-between mb-3">
+                                      <span className="px-2.5 py-0.5 rounded-full bg-[#EAF7EE] border border-[#C6F0DB]/80 text-[10.5px] font-bold text-[#009A60] uppercase tracking-wide">
+                                        Title Sponsor
+                                      </span>
+                                      <span className="text-[11px] font-semibold text-slate-400">Headline Partner</span>
+                                    </div>
+                                    <div className="flex items-center gap-3.5">
+                                      <div className="w-12 h-12 rounded-2xl bg-white border border-[#e1efe5] flex items-center justify-center text-[#009A60] shadow-xs shrink-0 font-bold text-lg">
+                                        FB
+                                      </div>
+                                      <div className="min-w-0 flex-1">
+                                        <h4 className="text-[15px] font-bold text-[#0F172A] leading-tight">FirstBank Premier Banking</h4>
+                                        <p className="text-[12px] font-medium text-[#64748B] mt-0.5 leading-snug">
+                                          Official presenting corporate sponsor and championship trophy benefactor.
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Official Partners Display (Clean Active-Friend Style, No Enclosing Box Cards, 3 on Bigger Screen) */}
+                                  <div className={`grid gap-5 sm:gap-6 py-2 ${isTablet ? "grid-cols-3" : "grid-cols-2"}`}>
+                                    {[
+                                      {
+                                        name: "Rolex",
+                                        initials: "RX",
+                                      },
+                                      {
+                                        name: "Titleist",
+                                        initials: "TL",
+                                      },
+                                      {
+                                        name: "Heineken 0.0",
+                                        initials: "HK",
+                                      },
+                                      {
+                                        name: "PwC Nigeria",
+                                        initials: "PW",
+                                      },
+                                      {
+                                        name: "Emirates",
+                                        initials: "EK",
+                                      },
+                                      {
+                                        name: "TaylorMade",
+                                        initials: "TM",
+                                      },
+                                    ].map((sponsor, idx) => (
+                                      <div
+                                        key={idx}
+                                        className="flex flex-col items-center text-center group py-1.5 transition-all cursor-pointer"
+                                      >
+                                        {/* Active-Friend-Style Centered Logo Avatar with Emerald Status Badge */}
+                                        <div className="relative mb-2 shrink-0">
+                                          <div className="w-13 h-13 sm:w-14 sm:h-14 rounded-full bg-[#f5faf6] border-2 border-[#e1efe5] flex items-center justify-center text-[#009A60] font-bold text-sm sm:text-base shadow-2xs group-hover:scale-105 group-hover:border-[#009A60]/40 transition-all">
+                                            {sponsor.initials}
+                                          </div>
+                                          {/* Emerald Status / Verified Partner Check Badge */}
+                                          <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-[#009A60] border-2 border-white flex items-center justify-center shadow-2xs">
+                                            <Check className="w-2.5 h-2.5 text-white stroke-[3]" />
+                                          </div>
+                                        </div>
+
+                                        {/* Sponsor Name */}
+                                        <h5 className="text-[13.5px] font-bold text-[#0F172A] leading-tight truncate w-full">
+                                          {sponsor.name}
+                                        </h5>
+
+                                        {/* Partner Pill Badge */}
+                                        <span className="text-[10px] font-bold text-[#009A60] bg-[#EAF7EE] px-2.5 py-0.5 rounded-full border border-[#C6F0DB]/70 mt-1.5 leading-none">
+                                          Partner
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+
+                                  {/* Corporate Sponsorship Inquiries Footer Banner */}
+                                  <div className="rounded-2xl border border-dashed border-[#C6F0DB] bg-[#EAF7EE]/50 p-4 text-center">
+                                    <h5 className="text-[13px] font-bold text-[#0F172A]">Interested in Tournament Sponsorship?</h5>
+                                    <p className="text-[11.5px] text-[#64748B] mt-1 mb-2.5 max-w-xs mx-auto">
+                                      Showcase your brand to elite amateur and club competitors.
+                                    </p>
+                                    <button
+                                      type="button"
+                                      onClick={() => showToast("Sponsorship inquiry packet requested. Organizer notified.", "success", "SPONSORSHIP")}
+                                      className="px-4 py-2 rounded-xl bg-[#009A60] hover:bg-[#008251] text-white text-[12px] font-bold shadow-xs transition-all active:scale-95 cursor-pointer capitalize"
+                                    >
+                                      Inquire About Sponsorship
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* 3. PINNED BOTTOM ACTION BAR */}
+                        <div className="w-full shrink-0 z-30 bg-white/95 backdrop-blur-md border-t border-slate-100 p-4 pb-6 shadow-[0_-6px_25px_rgba(0,0,0,0.06)]">
+                          <div className="w-full flex items-center gap-3">
+                            {/* Calendar Button */}
+                            <button
+                              type="button"
+                              onClick={() => showToast(`Added ${activeTournament.name} to calendar`, "success", "CALENDAR SYNCED")}
+                              className="w-13 h-13 rounded-[22px] bg-[#F8FAFC] border border-slate-200/80 flex items-center justify-center text-[#0B1B2B] hover:bg-slate-100 cursor-pointer shadow-2xs transition-all active:scale-95 shrink-0"
+                              title="Add to calendar"
+                            >
+                              <CalendarPlus className="w-5 h-5 text-[#0B1B2B] stroke-[2.2]" />
+                            </button>
+
+                            {/* Join Tournament Pill Button / Closed State */}
+                            {activeTournament.isOpen === false || (activeTournament.statusBadgeText && activeTournament.statusBadgeText.includes("CLOSED")) ? (
+                              <div className="flex-1 h-13 rounded-full bg-slate-100 border border-slate-200/80 text-slate-500 font-semibold text-[13px] capitalize tracking-normal flex items-center justify-center gap-2">
+                                <span>Registration Closed</span>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  showToast(`Initiating registration for ${activeTournament.name}...`, "success", "TOURNAMENT ENTRY");
+                                  setTimeout(() => switchScreen("register"), 400);
+                                }}
+                                className="flex-1 h-13 rounded-full bg-[#009A60] hover:bg-[#008251] text-white font-bold text-[14px] capitalize tracking-normal flex items-center justify-center gap-2 shadow-md shadow-emerald-700/25 cursor-pointer transition-all active:scale-[0.98]"
+                              >
+                                <span>Join Tournament</span>
+                                <ArrowRight className="w-4 h-4 text-white stroke-[2.5]" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     );
                   })()}
@@ -8595,7 +10269,7 @@ class TournamentsView extends StatelessWidget {
 
                         {/* Title & Subtitle */}
                         <div className="text-center space-y-1 pb-1">
-                          <h2 className="text-[26px] font-black tracking-tight text-[#0F172A] leading-tight">
+                          <h2 className="text-[26px] font-bold tracking-tight text-[#0F172A] leading-tight">
                             Welcome Back
                           </h2>
                           <p className="text-[13.5px] text-[#64748B] font-normal">
@@ -8833,7 +10507,7 @@ class TournamentsView extends StatelessWidget {
                                 Invited by {incomingReferrer.split("-")[0]}
                               </span>
                             )}
-                            <span className="text-[10px] font-extrabold text-[#5B6B7F] bg-[#f5faf6] border border-[#e1efe5] px-3 py-1 rounded-full tracking-wider uppercase">
+                            <span className="text-[10px] font-bold text-[#5B6B7F] bg-[#f5faf6] border border-[#e1efe5] px-3 py-1 rounded-full tracking-wider uppercase">
                               STEP {regStep} OF 4
                             </span>
                           </div>
@@ -8863,7 +10537,7 @@ class TournamentsView extends StatelessWidget {
                         {regStep === 1 && (
                           <div className="space-y-3.5">
                             <div>
-                              <h1 className="text-2xl font-black text-[#111827] tracking-tight">
+                              <h1 className="text-2xl font-bold text-[#111827] tracking-tight">
                                 Create Player Account
                               </h1>
                               <p className="text-[13px] text-[#5B6B7F] mt-1 leading-relaxed font-normal">
@@ -9175,7 +10849,7 @@ class TournamentsView extends StatelessWidget {
                         {regStep === 2 && (
                           <div className="space-y-3.5">
                             <div>
-                              <h1 className="text-2xl font-black text-[#111827] tracking-tight">
+                              <h1 className="text-2xl font-bold text-[#111827] tracking-tight">
                                 Your Golf Profile
                               </h1>
                               <p className="text-[13px] text-[#5B6B7F] mt-1 leading-relaxed font-normal">
@@ -9443,7 +11117,7 @@ class TournamentsView extends StatelessWidget {
                         {regStep === 3 && (
                           <div className="space-y-3.5">
                             <div>
-                              <h1 className="text-2xl font-black text-[#111827] tracking-tight">
+                              <h1 className="text-2xl font-bold text-[#111827] tracking-tight">
                                 Player Contact & Avatar
                               </h1>
                               <p className="text-[13px] text-[#5B6B7F] mt-1 leading-relaxed font-normal">
@@ -9731,7 +11405,7 @@ class TournamentsView extends StatelessWidget {
                         {regStep === 4 && (
                           <div className="space-y-4">
                             <div>
-                              <h1 className="text-2xl font-black text-[#111827] tracking-tight">
+                              <h1 className="text-2xl font-bold text-[#111827] tracking-tight">
                                 Review your details
                               </h1>
                               <p className="text-[12.5px] text-[#5B6B7F] mt-1 leading-relaxed font-normal">
@@ -9909,7 +11583,7 @@ class TournamentsView extends StatelessWidget {
 
                           {/* Bottom Sheet Card */}
                           <div
-                            className="relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl p-5 pb-6 animate-in slide-in-from-bottom duration-200 flex flex-col w-full max-w-sm mx-auto transition-all"
+                            className={`relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl p-5 pb-6 animate-in slide-in-from-bottom duration-200 flex flex-col w-full ${isTablet ? "" : "max-w-sm mx-auto"} transition-all`}
                             style={{
                               marginBottom: virtualKeyboard?.isOpen ? "270px" : "0px",
                               maxHeight: virtualKeyboard?.isOpen ? "calc(100% - 280px)" : "88%",
@@ -10102,7 +11776,7 @@ class TournamentsView extends StatelessWidget {
                             onClick={() => setShowClassificationModal(false)}
                           />
                           {/* Bottom Sheet Card */}
-                          <div className="relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl p-5 pb-6 animate-in slide-in-from-bottom duration-200 max-h-[85%] flex flex-col w-full max-w-sm mx-auto">
+                          <div className={`relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl p-5 pb-6 animate-in slide-in-from-bottom duration-200 max-h-[85%] flex flex-col w-full ${isTablet ? "" : "max-w-sm mx-auto"}`}>
                             {/* Drag Pill Handle */}
                             <div className="w-10 h-1 rounded-full bg-slate-300 mx-auto mb-3 shrink-0" />
 
@@ -10172,7 +11846,7 @@ class TournamentsView extends StatelessWidget {
                                           {opt.title}
                                         </span>
                                         {opt.badge && (
-                                          <span className="bg-[#009A60] text-white text-[9px] font-black px-1.5 py-0.5 rounded tracking-wider">
+                                          <span className="bg-[#009A60] text-white text-[9px] font-bold px-1.5 py-0.5 rounded tracking-wider">
                                             {opt.badge}
                                           </span>
                                         )}
@@ -10425,7 +12099,7 @@ class TournamentsView extends StatelessWidget {
                             }}
                           />
                           <div
-                            className="relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl p-5 pb-6 animate-in slide-in-from-bottom duration-200 flex flex-col w-full max-w-sm mx-auto transition-all"
+                            className={`relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl p-5 pb-6 animate-in slide-in-from-bottom duration-200 flex flex-col w-full ${isTablet ? "" : "max-w-sm mx-auto"} transition-all`}
                             style={{
                               marginBottom: virtualKeyboard?.isOpen ? "270px" : "0px",
                               maxHeight: virtualKeyboard?.isOpen ? "calc(100% - 280px)" : "85%",
@@ -10560,7 +12234,7 @@ class TournamentsView extends StatelessWidget {
                             }}
                           />
                           <div
-                            className="relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl p-5 pb-6 animate-in slide-in-from-bottom duration-200 flex flex-col w-full max-w-sm mx-auto transition-all"
+                            className={`relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl p-5 pb-6 animate-in slide-in-from-bottom duration-200 flex flex-col w-full ${isTablet ? "" : "max-w-sm mx-auto"} transition-all`}
                             style={{
                               marginBottom: virtualKeyboard?.isOpen ? "270px" : "0px",
                               maxHeight: virtualKeyboard?.isOpen ? "calc(100% - 280px)" : "85%",
@@ -10688,7 +12362,7 @@ class TournamentsView extends StatelessWidget {
                             }}
                           />
                           <div
-                            className="relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl p-5 pb-6 animate-in slide-in-from-bottom duration-200 flex flex-col w-full max-w-sm mx-auto transition-all"
+                            className={`relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl p-5 pb-6 animate-in slide-in-from-bottom duration-200 flex flex-col w-full ${isTablet ? "" : "max-w-sm mx-auto"} transition-all`}
                             style={{
                               marginBottom: virtualKeyboard?.isOpen ? "270px" : "0px",
                               maxHeight: virtualKeyboard?.isOpen ? "calc(100% - 280px)" : "85%",
@@ -10854,7 +12528,7 @@ class TournamentsView extends StatelessWidget {
                         </div>
 
                         {/* Title: "Verify email" */}
-                        <h1 className="text-[26px] font-black text-[#111827] tracking-tight mb-2">
+                        <h1 className="text-[26px] font-bold text-[#111827] tracking-tight mb-2">
                           Verify email
                         </h1>
 
@@ -10952,9 +12626,7 @@ class TournamentsView extends StatelessWidget {
                                 type="button"
                                 onClick={handleResendCode}
                                 className="min-h-[44px] px-6 py-2.5 rounded-xl text-sm font-bold text-[#009A60] bg-emerald-50/70 hover:bg-emerald-100 active:scale-95 border border-emerald-200/60 cursor-pointer transition-all inline-flex items-center justify-center shadow-xs"
-                              >
-                                Resend Code
-                              </button>
+                              >Resend Code</button>
                             </div>
                           )}
                         </div>
@@ -11000,7 +12672,7 @@ class TournamentsView extends StatelessWidget {
 
                           {/* Title & Explanatory Subtitle */}
                           <div className="text-center space-y-2 mb-7">
-                            <h1 className="text-[26px] font-black text-[#0F172A] tracking-tight leading-tight mb-2">
+                            <h1 className="text-[26px] font-bold text-[#0F172A] tracking-tight leading-tight mb-2">
                               Forgot Password?
                             </h1>
                             <p className="text-[13px] text-[#64748B] leading-relaxed font-normal max-w-[285px] mx-auto">
@@ -11123,7 +12795,7 @@ class TournamentsView extends StatelessWidget {
                           </div>
 
                           {/* Title */}
-                          <h1 className="text-[26px] font-black text-[#0F172A] tracking-tight mb-2.5">
+                          <h1 className="text-[26px] font-bold text-[#0F172A] tracking-tight mb-2.5">
                             Check Your Inbox
                           </h1>
 
@@ -11150,14 +12822,14 @@ class TournamentsView extends StatelessWidget {
                           <div className="text-center text-[12.5px] text-[#64748B] font-medium">
                             Didn&apos;t receive the email?{" "}
                             {checkInboxCountdown > 0 ? (
-                              <span className="font-black text-[#009A60] tracking-wider text-[11.5px]">
+                              <span className="font-bold text-[#009A60] tracking-wider text-[11.5px]">
                                 RESEND IN {checkInboxCountdown}s
                               </span>
                             ) : (
                               <button
                                 type="button"
                                 onClick={() => handleResendFromInbox()}
-                                className="font-black text-[#009A60] hover:underline tracking-wider text-[11.5px] cursor-pointer inline-block"
+                                className="font-bold text-[#009A60] hover:underline tracking-wider text-[11.5px] cursor-pointer inline-block"
                               >
                                 RESEND NOW
                               </button>
@@ -11197,7 +12869,7 @@ class TournamentsView extends StatelessWidget {
 
                         {/* Title & Subtitle (Centralized) */}
                         <div className="text-center space-y-2 mb-6">
-                          <h1 className="text-[26px] font-black text-[#0F172A] tracking-tight leading-tight mb-2">
+                          <h1 className="text-[26px] font-bold text-[#0F172A] tracking-tight leading-tight mb-2">
                             Set New Password
                           </h1>
                           <p className="text-[13.5px] text-[#64748B] leading-relaxed font-normal max-w-[285px] mx-auto">
@@ -11446,7 +13118,7 @@ class TournamentsView extends StatelessWidget {
                       <div className="h-full bg-[#F4F6F3] text-slate-900 flex flex-col overflow-hidden relative">
                         {/* Top Navigation Header (Unified Mobile System: 16px top, 24px gutter, 48px height) */}
                         <div className="px-6 pt-4 pb-3 bg-white border-b border-slate-200/80 shrink-0 z-10">
-                          <div className="w-full max-w-sm mx-auto h-8 flex items-center justify-between">
+                          <div className="w-full h-8 flex items-center justify-between">
                             <button
                               type="button"
                               onClick={() => switchScreen("hub")}
@@ -11477,7 +13149,7 @@ class TournamentsView extends StatelessWidget {
 
                         {/* Scrollable Body */}
                         <div className="flex-1 overflow-y-auto px-4 py-3.5 space-y-3 scrollbar-hide">
-                          <div className="w-full max-w-sm mx-auto space-y-3">
+                          <div className="w-full space-y-3">
                             {/* 1. On-Course Telemetry Hero Card */}
                             <div className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-xs relative overflow-hidden group">
                               {/* Fitted Background Pattern: On-Course Telemetry Radar Arcs & Tournament Distance Fairway Grid */}
@@ -11531,7 +13203,7 @@ class TournamentsView extends StatelessWidget {
 
                                 <div className="text-right shrink-0">
                                   <span
-                                    className={`inline-block px-2.5 py-1 rounded-lg text-xs font-black tracking-tight border ${
+                                    className={`inline-block px-2.5 py-1 rounded-lg text-xs font-bold tracking-tight border ${
                                       competitor.toPar < 0
                                         ? "bg-emerald-50 text-[#009A60] border-emerald-200"
                                         : competitor.toPar === 0
@@ -11551,19 +13223,19 @@ class TournamentsView extends StatelessWidget {
                               <div className="relative z-10 grid grid-cols-4 gap-2 mt-3.5 pt-3 border-t border-slate-100">
                                 <div className="bg-[#F8FAFC] rounded-xl p-2 text-center border border-slate-100">
                                   <span className="text-[10px] font-bold text-slate-400 uppercase block">HOLE</span>
-                                  <span className="text-sm font-black text-[#0F172A] block mt-0.5">#{competitor.currentHole}</span>
+                                  <span className="text-sm font-bold text-[#0F172A] block mt-0.5">#{competitor.currentHole}</span>
                                 </div>
                                 <div className="bg-[#F8FAFC] rounded-xl p-2 text-center border border-slate-100">
                                   <span className="text-[10px] font-bold text-slate-400 uppercase block">THRU</span>
-                                  <span className="text-sm font-black text-[#0F172A] block mt-0.5">{competitor.thru}</span>
+                                  <span className="text-sm font-bold text-[#0F172A] block mt-0.5">{competitor.thru}</span>
                                 </div>
                                 <div className="bg-[#F8FAFC] rounded-xl p-2 text-center border border-slate-100">
                                   <span className="text-[10px] font-bold text-slate-400 uppercase block">GROSS</span>
-                                  <span className="text-sm font-black text-[#0F172A] block mt-0.5">{competitor.gross}</span>
+                                  <span className="text-sm font-bold text-[#0F172A] block mt-0.5">{competitor.gross}</span>
                                 </div>
                                 <div className="bg-[#F8FAFC] rounded-xl p-2 text-center border border-slate-100">
                                   <span className="text-[10px] font-bold text-slate-400 uppercase block">NET</span>
-                                  <span className="text-sm font-black text-[#009A60] block mt-0.5">{competitor.net}</span>
+                                  <span className="text-sm font-bold text-[#009A60] block mt-0.5">{competitor.net}</span>
                                 </div>
                               </div>
 
@@ -11589,17 +13261,17 @@ class TournamentsView extends StatelessWidget {
                               {/* Header: FINAL SCORECARD • ROUND 1   and   Total: 71 (-1) */}
                               <div className="flex items-center justify-between pb-3.5 border-b border-slate-100">
                                 <div>
-                                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#8CA0BA]">
+                                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#8CA0BA]">
                                     FINAL SCORECARD • {activeRound?.dayText || "ROUND 1"}
                                   </span>
                                 </div>
                                 <div className="flex items-center gap-1.5 text-[14px]">
                                   <span className="font-bold text-[#0F172A]">Total:</span>
-                                  <span className="font-extrabold text-[#0F172A]">
+                                  <span className="font-bold text-[#0F172A]">
                                     {totalStats.playedCount > 0 ? totalStats.grossTotal : totalStats.parTotal}
                                   </span>
                                   <span
-                                    className={`font-extrabold text-[13.5px] ${
+                                    className={`font-bold text-[13.5px] ${
                                       totalStats.diffTotal < 0
                                         ? "text-[#009A60]"
                                         : totalStats.diffTotal === 0
@@ -11692,7 +13364,7 @@ class TournamentsView extends StatelessWidget {
 
                                     {/* Scores (S) */}
                                     <div className="flex items-center pt-0.5">
-                                      <span className="w-4 shrink-0 text-left text-[13px] font-black text-[#0F172A]">S</span>
+                                      <span className="w-4 shrink-0 text-left text-[13px] font-bold text-[#0F172A]">S</span>
                                       <div className="flex-1 grid grid-cols-9 gap-1 text-center">
                                         {front9Holes.map((h) => {
                                           const strokes = h.strokes;
@@ -11715,7 +13387,7 @@ class TournamentsView extends StatelessWidget {
                                           return (
                                             <div
                                               key={`s-${h.hole}`}
-                                              className={`h-9 flex items-center justify-center rounded-xl border text-[13px] font-extrabold transition-all shadow-2xs ${badgeStyle}`}
+                                              className={`h-9 flex items-center justify-center rounded-xl border text-[13px] font-bold transition-all shadow-2xs ${badgeStyle}`}
                                             >
                                               {strokes !== null ? strokes : "-"}
                                             </div>
@@ -11727,7 +13399,7 @@ class TournamentsView extends StatelessWidget {
 
                                   {/* Subtotal OUT */}
                                   <div className="text-right pt-2 pb-0.5">
-                                    <span className="text-[11px] font-extrabold text-[#8CA0BA] tracking-wider">
+                                    <span className="text-[11px] font-bold text-[#8CA0BA] tracking-wider">
                                       OUT: {outStats.playedCount > 0 ? outStats.grossTotal : outStats.parTotal}
                                     </span>
                                   </div>
@@ -11764,7 +13436,7 @@ class TournamentsView extends StatelessWidget {
 
                                     {/* Scores (S) */}
                                     <div className="flex items-center pt-0.5">
-                                      <span className="w-4 shrink-0 text-left text-[13px] font-black text-[#0F172A]">S</span>
+                                      <span className="w-4 shrink-0 text-left text-[13px] font-bold text-[#0F172A]">S</span>
                                       <div className="flex-1 grid grid-cols-9 gap-1 text-center">
                                         {back9Holes.map((h) => {
                                           const strokes = h.strokes;
@@ -11787,7 +13459,7 @@ class TournamentsView extends StatelessWidget {
                                           return (
                                             <div
                                               key={`s-${h.hole}`}
-                                              className={`h-9 flex items-center justify-center rounded-xl border text-[13px] font-extrabold transition-all shadow-2xs ${badgeStyle}`}
+                                              className={`h-9 flex items-center justify-center rounded-xl border text-[13px] font-bold transition-all shadow-2xs ${badgeStyle}`}
                                             >
                                               {strokes !== null ? strokes : "-"}
                                             </div>
@@ -11799,7 +13471,7 @@ class TournamentsView extends StatelessWidget {
 
                                   {/* Subtotal IN */}
                                   <div className="text-right pt-2 pb-0.5">
-                                    <span className="text-[11px] font-extrabold text-[#8CA0BA] tracking-wider">
+                                    <span className="text-[11px] font-bold text-[#8CA0BA] tracking-wider">
                                       IN: {inStats.playedCount > 0 ? inStats.grossTotal : inStats.parTotal}
                                     </span>
                                   </div>
@@ -12094,7 +13766,7 @@ class TournamentsView extends StatelessWidget {
                       <div className="flex-1 h-full flex flex-col bg-[#f4f6f3] relative overflow-hidden">
                         {/* FIXED TOP SECTION: Top Navigation Bar + Search Bar (Strictly Non-Scrollable) */}
                         <div className="w-full shrink-0 z-20 bg-white border-b border-slate-200/60 shadow-2xs">
-                          <div className="w-full max-w-sm mx-auto px-6 pt-4 pb-3 space-y-3">
+                          <div className="w-full px-6 pt-4 pb-3 space-y-3">
                             {/* Top Navigation Bar: Unified 16px top offset, 24px horizontal gutters */}
                             <div className="flex items-center justify-between">
                               <button
@@ -12181,7 +13853,7 @@ class TournamentsView extends StatelessWidget {
 
                         {/* SCROLLABLE BODY CONTENT */}
                         <div className="flex-1 overflow-y-auto">
-                          <div className="w-full max-w-sm mx-auto px-6 py-4 space-y-4 pb-8">
+                          <div className="w-full px-4 py-4 space-y-4 pb-8">
                             {/* Find from Contacts Deep Green Card Banner with Fitted Topographic Contour Background */}
                             <div
                               onClick={() => {
@@ -12227,7 +13899,7 @@ class TournamentsView extends StatelessWidget {
                                   e.stopPropagation();
                                   switchScreen("sync-contacts");
                                 }}
-                                className="relative z-10 px-4 py-2 rounded-full bg-white hover:bg-slate-100 text-[#052417] font-extrabold text-[10.5px] tracking-wider uppercase transition-all shadow-2xs active:scale-95 cursor-pointer shrink-0"
+                                className="relative z-10 px-4 py-2 rounded-full bg-white hover:bg-slate-100 text-[#052417] font-bold text-[10.5px] tracking-wider uppercase transition-all shadow-2xs active:scale-95 cursor-pointer shrink-0"
                               >
                                 CONNECT
                               </button>
@@ -12235,7 +13907,7 @@ class TournamentsView extends StatelessWidget {
 
                             {/* Section Header: PLAYERS YOU MAY KNOW */}
                             <div className="flex items-center justify-between pt-1">
-                              <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#64748B]">
+                              <span className="text-[11px] font-bold uppercase tracking-wider text-[#64748B]">
                                 {q ? `SEARCH RESULTS (${allMatchedGolfers.length})` : "PLAYERS YOU MAY KNOW"}
                               </span>
                               {q && allMatchedGolfers.length > 0 && (
@@ -12493,6 +14165,7 @@ class TournamentsView extends StatelessWidget {
                           </div>
                         </div>
 
+
                         {/* --- BOTTOM SHEET: MY QR CODE & SCANNER (MATCHING BOOKINGS DISPLAY GEOMETRY) --- */}
                         {showQrCodeModal && (
                           <div
@@ -12500,7 +14173,7 @@ class TournamentsView extends StatelessWidget {
                             onClick={() => setShowQrCodeModal(false)}
                           >
                             <div
-                              className="relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl p-5 pb-6 animate-in slide-in-from-bottom duration-200 max-h-[88%] flex flex-col w-full max-w-sm mx-auto"
+                              className={`relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl p-5 pb-6 animate-in slide-in-from-bottom duration-200 max-h-[88%] flex flex-col w-full ${isTablet ? "" : "max-w-sm mx-auto"}`}
                               onClick={(e) => e.stopPropagation()}
                             >
                               {/* Drag Handle */}
@@ -12768,11 +14441,11 @@ class TournamentsView extends StatelessWidget {
                                                   {scannedFriendResult.name}
                                                 </p>
                                                 {acceptedFriendIds.includes(scannedFriendResult.id) ? (
-                                                  <span className="px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[9px] font-extrabold">
+                                                  <span className="px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[9px] font-bold">
                                                     MUTUAL FRIEND
                                                   </span>
                                                 ) : (
-                                                  <span className="px-1.5 py-0.5 rounded-full bg-[#EAF7EE] text-[#009A60] text-[9px] font-extrabold">
+                                                  <span className="px-1.5 py-0.5 rounded-full bg-[#EAF7EE] text-[#009A60] text-[9px] font-bold">
                                                     CONNECTED LIVE
                                                   </span>
                                                 )}
@@ -12830,7 +14503,7 @@ class TournamentsView extends StatelessWidget {
                                                   className="p-2.5 rounded-xl bg-white border border-slate-200/80 flex items-center justify-between gap-2 shadow-2xs hover:border-[#009A60] transition-colors"
                                                 >
                                                   <div className="flex items-center gap-2 min-w-0">
-                                                    <div className="w-8 h-8 rounded-full bg-[#EAF7EE] text-[#009A60] text-[11px] font-black flex items-center justify-center shrink-0 border border-[#C6F0DB]">
+                                                    <div className="w-8 h-8 rounded-full bg-[#EAF7EE] text-[#009A60] text-[11px] font-bold flex items-center justify-center shrink-0 border border-[#C6F0DB]">
                                                       {comp.initial || getTwoInitials(comp.name)}
                                                     </div>
                                                     <div className="min-w-0">
@@ -12880,7 +14553,7 @@ class TournamentsView extends StatelessWidget {
                             onClick={() => setShowContactsModal(false)}
                           >
                             <div
-                              className="w-full max-w-sm mx-auto bg-white rounded-t-[28px] sm:rounded-3xl p-5 shadow-2xl space-y-3.5 border border-slate-100 flex flex-col max-h-[85vh] animate-in fade-in slide-in-from-bottom duration-200"
+                              className={`w-full ${isTablet ? "" : "max-w-sm mx-auto"} bg-white rounded-t-[28px] sm:rounded-3xl p-5 shadow-2xl space-y-3.5 border border-slate-100 flex flex-col max-h-[85vh] animate-in fade-in slide-in-from-bottom duration-200`}
                               onClick={(e) => e.stopPropagation()}
                             >
                               {/* Bottom sheet drag handle for mobile view */}
@@ -13193,7 +14866,7 @@ class TournamentsView extends StatelessWidget {
                             </div>
 
                             {/* Heading */}
-                            <h2 className="text-[26px] font-black text-[#0F172A] tracking-tight leading-tight mb-2.5">
+                            <h2 className="text-[26px] font-bold text-[#0F172A] tracking-tight leading-tight mb-2.5">
                               Sync Your Contacts
                             </h2>
 
@@ -13537,7 +15210,7 @@ class TournamentsView extends StatelessWidget {
                                 className="w-8.5 h-8.5 rounded-full object-cover border border-slate-200 shadow-2xs"
                               />
                             ) : (
-                              <div className="w-8.5 h-8.5 rounded-full bg-[#EAF7EE] text-[#009A60] border border-[#C6F0DB] flex items-center justify-center text-[10px] font-black shadow-2xs">
+                              <div className="w-8.5 h-8.5 rounded-full bg-[#EAF7EE] text-[#009A60] border border-[#C6F0DB] flex items-center justify-center text-[10px] font-bold shadow-2xs">
                                 {getTwoInitials(senderName)}
                               </div>
                             )}
@@ -13568,7 +15241,7 @@ class TournamentsView extends StatelessWidget {
                                   senderId,
                                   senderName,
                                 })}
-                                className="flex-1 py-2 rounded-xl bg-[#009A60] hover:bg-[#008251] text-white text-[11px] font-extrabold uppercase tracking-wider transition-all shadow-2xs active:scale-95 cursor-pointer text-center"
+                                className="flex-1 py-2 rounded-xl bg-[#009A60] hover:bg-[#008251] text-white text-[11px] font-bold uppercase tracking-wider transition-all shadow-2xs active:scale-95 cursor-pointer text-center"
                               >
                                 ACCEPT
                               </button>
@@ -13581,7 +15254,7 @@ class TournamentsView extends StatelessWidget {
                                   requestId: item.requestId || data.requestId || item.id,
                                   senderId,
                                 })}
-                                className="px-6 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200/60 text-rose-600 text-[11px] font-extrabold uppercase tracking-wider transition-all active:scale-95 cursor-pointer text-center"
+                                className="px-6 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200/60 text-rose-600 text-[11px] font-bold uppercase tracking-wider transition-all active:scale-95 cursor-pointer text-center"
                               >
                                 DECLINE
                               </button>
@@ -13666,7 +15339,7 @@ class TournamentsView extends StatelessWidget {
                                 )}
                                 {flightDetails.partners.length > 0 ? (
                                   <div className="mt-2.5 pt-2 border-t border-slate-100/90">
-                                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#8CA0BA] block mb-2">
+                                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#8CA0BA] block mb-2">
                                       {flightDetails.flightName ? `${flightDetails.flightName} • GROUPED WITH:` : "GROUPED WITH:"}
                                     </span>
                                     <div className="space-y-1.5">
@@ -13675,7 +15348,7 @@ class TournamentsView extends StatelessWidget {
                                           key={pIdx}
                                           className="flex items-center gap-2.5 py-0.5"
                                         >
-                                          <span className="w-5 h-5 rounded-full bg-[#EAF7EE] border border-[#C6F0DB] text-[#009A60] flex items-center justify-center text-[9.5px] font-black shrink-0 shadow-2xs">
+                                          <span className="w-5 h-5 rounded-full bg-[#EAF7EE] border border-[#C6F0DB] text-[#009A60] flex items-center justify-center text-[9.5px] font-bold shrink-0 shadow-2xs">
                                             {getTwoInitials(partnerName)}
                                           </span>
                                           <span className="text-[12.5px] font-semibold text-[#0F172A]">
@@ -13809,7 +15482,7 @@ class TournamentsView extends StatelessWidget {
                       <div className="flex-1 min-h-full flex flex-col bg-[#f4f6f3] relative overflow-hidden">
                         {/* FIXED TOP SECTION: Top Navigation Bar (Strictly Non-Scrollable, Centered Title) */}
                         <div className="w-full shrink-0 z-20 bg-white border-b border-slate-200/60 shadow-2xs">
-                          <div className="w-full max-w-sm mx-auto px-6 pt-4 pb-3 flex items-center justify-between">
+                          <div className="w-full px-6 pt-4 pb-3 flex items-center justify-between">
                             {/* Standard back button: circular white pill, border, soft drop shadow */}
                             <button
                               type="button"
@@ -13849,7 +15522,7 @@ class TournamentsView extends StatelessWidget {
 
                         {/* Scrollable Notifications Feed: Pure Real Database Data */}
                         <div className="flex-1 overflow-y-auto">
-                          <div className="w-full max-w-sm mx-auto px-4 py-3 space-y-4">
+                          <div className="w-full px-4 py-3 space-y-4">
                             {totalCount === 0 ? (
                               <div className="flex-1 flex flex-col items-center justify-center py-20 px-6 text-center my-auto">
                                 <div className="w-16 h-16 rounded-[24px] bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center text-[#009A60] mb-4 shadow-xs">
@@ -13868,7 +15541,7 @@ class TournamentsView extends StatelessWidget {
                                 {(sortedIncomingFriendRequests.length > 0 || todayNotifs.length > 0) && (
                                   <div>
                                     <div className="flex items-center justify-between px-1 mb-2.5">
-                                      <span className="text-[11px] font-extrabold tracking-widest text-[#8CA0BA] uppercase">
+                                      <span className="text-[11px] font-bold tracking-widest text-[#8CA0BA] uppercase">
                                         TODAY
                                       </span>
                                       {hasUnreadToday && (
@@ -13890,7 +15563,7 @@ class TournamentsView extends StatelessWidget {
                                 {yesterdayNotifs.length > 0 && (
                                   <div>
                                     <div className="flex items-center justify-between px-1 mb-2.5">
-                                      <span className="text-[11px] font-extrabold tracking-widest text-[#8CA0BA] uppercase">
+                                      <span className="text-[11px] font-bold tracking-widest text-[#8CA0BA] uppercase">
                                         YESTERDAY
                                       </span>
                                       {hasUnreadYesterday && (
@@ -13908,7 +15581,7 @@ class TournamentsView extends StatelessWidget {
                                 {earlierNotifs.length > 0 && (
                                   <div>
                                     <div className="flex items-center justify-between px-1 mb-2.5">
-                                      <span className="text-[11px] font-extrabold tracking-widest text-[#8CA0BA] uppercase">
+                                      <span className="text-[11px] font-bold tracking-widest text-[#8CA0BA] uppercase">
                                         EARLIER
                                       </span>
                                     </div>
@@ -13934,6 +15607,7 @@ class TournamentsView extends StatelessWidget {
     const modelSpec = DEVICE_MODELS[slot.model] || DEVICE_MODELS["iphone-16-pro"];
     const colorSpec = CHASSIS_COLORS[slot.color] || CHASSIS_COLORS["natural-titanium"];
     const effectiveScreen = syncScreens || !slot.screen ? activeScreen : slot.screen;
+    const isTablet = modelSpec.category === "tablet";
 
     return (
       <div key={index} className="flex flex-col items-center shrink-0">
@@ -14016,6 +15690,8 @@ class TournamentsView extends StatelessWidget {
                 <option value="attestation">Attestation</option>
                 <option value="hub">Home</option>
                 <option value="tournaments">Tournaments</option>
+                <option value="tournament-filter">Tournament Filter</option>
+                <option value="tournament-details">Tournament Details</option>
                 <option value="leaderboard">Leaderboard</option>
               </select>
             ) : (
@@ -14050,8 +15726,8 @@ class TournamentsView extends StatelessWidget {
           {/* Inner Screen Surface */}
           <div
             data-mobile-screen="true"
-            style={{ fontFamily: 'var(--font-dm-sans), "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', scrollbarWidth: "none", msOverflowStyle: "none" }}
-            className={`w-full h-full ${modelSpec.innerRadius} bg-[#06090E] overflow-hidden flex flex-col relative border border-black select-none font-['DM_Sans',sans-serif] scrollbar-hide no-scrollbar`}
+            style={{ fontFamily: 'var(--font-plus-jakarta-sans), "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', scrollbarWidth: "none", msOverflowStyle: "none" }}
+            className={`w-full h-full ${modelSpec.innerRadius} bg-[#06090E] overflow-hidden flex flex-col relative border border-black select-none font-['Plus_Jakarta_Sans',sans-serif] scrollbar-hide no-scrollbar`}
           >
             {/* Status Bar / Camera Cutout depending on model */}
             {modelSpec.notchType === "dynamic-island" && (
@@ -14150,7 +15826,7 @@ class TournamentsView extends StatelessWidget {
                       </div>
                     </div>
                     <div className="flex-1 min-w-0 pr-2">
-                      <h4 className="text-[13.5px] font-black uppercase tracking-wider text-[#111827] leading-none mb-1">
+                      <h4 className="text-[13.5px] font-bold uppercase tracking-wider text-[#111827] leading-none mb-1">
                         {mobileToast.title || "SUCCESS"}
                       </h4>
                       <p className="text-[12.5px] text-[#5B6B7F] leading-snug font-normal line-clamp-2">
@@ -14196,7 +15872,7 @@ class TournamentsView extends StatelessWidget {
                       <AlertTriangle className="w-5 h-5 text-[#111827] fill-[#111827] stroke-none" />
                     </div>
                     <div className="flex-1 min-w-0 pr-2">
-                      <h4 className="text-[13.5px] font-black uppercase tracking-wider text-white leading-none mb-1">
+                      <h4 className="text-[13.5px] font-bold uppercase tracking-wider text-white leading-none mb-1">
                         {mobileToast.title || "ALERT"}
                       </h4>
                       <p className="text-[12.5px] text-[#94A3B8] leading-snug font-normal line-clamp-2">
@@ -14224,7 +15900,7 @@ class TournamentsView extends StatelessWidget {
               <div
                 className={`${modelSpec.category === "tablet" ? "w-44 h-1.5 bg-slate-400/70" : modelSpec.os === "Android" ? "w-24 h-1 bg-slate-400/80" : "w-32 h-1"} rounded-full transition-colors ${
                   modelSpec.os === "iOS"
-                    ? effectiveScreen === "scoring" || effectiveScreen === "attestation" || effectiveScreen === "hub" || effectiveScreen === "leaderboard" || effectiveScreen === "tournaments"
+                    ? effectiveScreen === "scoring" || effectiveScreen === "attestation" || effectiveScreen === "hub" || effectiveScreen === "leaderboard" || effectiveScreen === "tournaments" || effectiveScreen === "tournament-filter" || effectiveScreen === "tournament-details"
                       ? "bg-slate-400/50"
                       : "bg-slate-300"
                     : ""
@@ -14242,7 +15918,7 @@ class TournamentsView extends StatelessWidget {
                 <div className="flex items-center justify-between px-3 py-1.5 border-b border-slate-800/80 mb-1">
                   <div className="flex items-center gap-2">
                     <span
-                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black tracking-wider uppercase ${
+                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wider uppercase ${
                         virtualKeyboard.type === "numeric"
                           ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
                           : "bg-slate-800 text-slate-300 border border-slate-700"
@@ -14502,7 +16178,7 @@ class TournamentsView extends StatelessWidget {
                 onClick={() => setShowForfeitModal(false)}
               >
                 <div
-                  className="relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl px-6 pt-3 pb-8 animate-in slide-in-from-bottom duration-200 flex flex-col w-full max-w-sm mx-auto"
+                  className={`relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl px-6 pt-3 pb-8 animate-in slide-in-from-bottom duration-200 flex flex-col w-full ${isTablet ? "" : "max-w-sm mx-auto"}`}
                   onClick={(e) => e.stopPropagation()}
                 >
                   <div className="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-6" />
@@ -14515,7 +16191,7 @@ class TournamentsView extends StatelessWidget {
                   </div>
 
                   {/* Centered Heading */}
-                  <h3 className="text-[22px] font-black text-[#0F172A] tracking-tight text-center mb-2.5">
+                  <h3 className="text-[22px] font-bold text-[#0F172A] tracking-tight text-center mb-2.5">
                     Withdraw from Round?
                   </h3>
 
@@ -14557,7 +16233,7 @@ class TournamentsView extends StatelessWidget {
                   <button
                     type="button"
                     onClick={() => setShowForfeitModal(false)}
-                    className="w-full h-12 rounded-[14px] bg-[#F1F5F9] hover:bg-[#E2E8F0] active:scale-98 text-[#0F172A] text-sm font-bold tracking-wide flex items-center justify-center cursor-pointer transition-all"
+                    className="w-full h-12 rounded-[14px] bg-red-50 hover:bg-red-100 border border-red-200/70 active:scale-98 text-red-600 text-sm font-bold tracking-wide flex items-center justify-center cursor-pointer transition-all capitalize"
                   >
                     Cancel, Stay in Play
                   </button>
@@ -14572,7 +16248,7 @@ class TournamentsView extends StatelessWidget {
                 onClick={() => setUnfriendCandidate(null)}
               >
                 <div
-                  className="relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl px-6 pt-3 pb-8 animate-in slide-in-from-bottom duration-200 flex flex-col w-full max-w-sm mx-auto"
+                  className={`relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl px-6 pt-3 pb-8 animate-in slide-in-from-bottom duration-200 flex flex-col w-full ${isTablet ? "" : "max-w-sm mx-auto"}`}
                   onClick={(e) => e.stopPropagation()}
                 >
                   <div className="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-6" />
@@ -14585,7 +16261,7 @@ class TournamentsView extends StatelessWidget {
                   </div>
 
                   {/* Centered Heading */}
-                  <h3 className="text-[22px] font-black text-[#0F172A] tracking-tight text-center mb-2.5">
+                  <h3 className="text-[22px] font-bold text-[#0F172A] tracking-tight text-center mb-2.5">
                     Remove Friend?
                   </h3>
 
@@ -14616,7 +16292,7 @@ class TournamentsView extends StatelessWidget {
                   <button
                     type="button"
                     onClick={() => setUnfriendCandidate(null)}
-                    className="w-full h-12 rounded-[14px] bg-[#F1F5F9] hover:bg-[#E2E8F0] active:scale-98 text-[#0F172A] text-sm font-bold tracking-wide flex items-center justify-center cursor-pointer transition-all"
+                    className="w-full h-12 rounded-[14px] bg-red-50 hover:bg-red-100 border border-red-200/70 active:scale-98 text-red-600 text-sm font-bold tracking-wide flex items-center justify-center cursor-pointer transition-all capitalize"
                   >
                     Cancel, Keep Friend
                   </button>
@@ -14631,7 +16307,7 @@ class TournamentsView extends StatelessWidget {
                 onClick={() => setBlockCandidate(null)}
               >
                 <div
-                  className="relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl px-6 pt-3 pb-8 animate-in slide-in-from-bottom duration-200 flex flex-col w-full max-w-sm mx-auto"
+                  className={`relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl px-6 pt-3 pb-8 animate-in slide-in-from-bottom duration-200 flex flex-col w-full ${isTablet ? "" : "max-w-sm mx-auto"}`}
                   onClick={(e) => e.stopPropagation()}
                 >
                   <div className="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-6" />
@@ -14644,7 +16320,7 @@ class TournamentsView extends StatelessWidget {
                   </div>
 
                   {/* Centered Heading */}
-                  <h3 className="text-[22px] font-black text-[#0F172A] tracking-tight text-center mb-2.5">
+                  <h3 className="text-[22px] font-bold text-[#0F172A] tracking-tight text-center mb-2.5">
                     Block Golfer?
                   </h3>
 
@@ -14675,7 +16351,7 @@ class TournamentsView extends StatelessWidget {
                   <button
                     type="button"
                     onClick={() => setBlockCandidate(null)}
-                    className="w-full h-12 rounded-[14px] bg-[#F1F5F9] hover:bg-[#E2E8F0] active:scale-98 text-[#0F172A] text-sm font-bold tracking-wide flex items-center justify-center cursor-pointer transition-all"
+                    className="w-full h-12 rounded-[14px] bg-red-50 hover:bg-red-100 border border-red-200/70 active:scale-98 text-red-600 text-sm font-bold tracking-wide flex items-center justify-center cursor-pointer transition-all capitalize"
                   >
                     Cancel, Keep Unblocked
                   </button>
@@ -14690,7 +16366,7 @@ class TournamentsView extends StatelessWidget {
                 onClick={() => setFriendActionUser(null)}
               >
                 <div
-                  className="relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl px-6 pt-3 pb-8 animate-in slide-in-from-bottom duration-200 flex flex-col w-full max-w-sm mx-auto"
+                  className={`relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl px-6 pt-3 pb-8 animate-in slide-in-from-bottom duration-200 flex flex-col w-full ${isTablet ? "" : "max-w-sm mx-auto"}`}
                   onClick={(e) => e.stopPropagation()}
                 >
                   <div className="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-6" />
@@ -14739,7 +16415,7 @@ class TournamentsView extends StatelessWidget {
                   })()}
 
                   {/* Centered Heading: Golfer Full Name */}
-                  <h3 className="text-[22px] font-black text-[#0F172A] tracking-tight text-center mb-1.5">
+                  <h3 className="text-[22px] font-bold text-[#0F172A] tracking-tight text-center mb-1.5">
                     {friendActionUser.name}
                   </h3>
 
@@ -14791,7 +16467,7 @@ class TournamentsView extends StatelessWidget {
                   <button
                     type="button"
                     onClick={() => setFriendActionUser(null)}
-                    className="w-full h-12 rounded-[14px] bg-[#F1F5F9] hover:bg-[#E2E8F0] active:scale-98 text-[#0F172A] text-sm font-bold tracking-wide flex items-center justify-center cursor-pointer transition-all"
+                    className="w-full h-12 rounded-[14px] bg-red-50 hover:bg-red-100 border border-red-200/70 active:scale-98 text-red-600 text-sm font-bold tracking-wide flex items-center justify-center cursor-pointer transition-all capitalize"
                   >
                     Cancel
                   </button>
@@ -14806,7 +16482,7 @@ class TournamentsView extends StatelessWidget {
                 onClick={() => setReportCandidate(null)}
               >
                 <div
-                  className="relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl px-6 pt-3 pb-8 animate-in slide-in-from-bottom duration-200 flex flex-col w-full max-w-sm mx-auto max-h-[88vh] overflow-y-auto"
+                  className={`relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl px-6 pt-3 pb-8 animate-in slide-in-from-bottom duration-200 flex flex-col w-full ${isTablet ? "" : "max-w-sm mx-auto"} max-h-[88vh] overflow-y-auto`}
                   onClick={(e) => e.stopPropagation()}
                 >
                   <div className="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-5 shrink-0" />
@@ -14816,7 +16492,7 @@ class TournamentsView extends StatelessWidget {
                     <Flag className="w-7 h-7 stroke-[2.2]" />
                   </div>
 
-                  <h3 className="text-[20px] font-black text-[#0F172A] tracking-tight text-center mb-1 shrink-0">
+                  <h3 className="text-[20px] font-bold text-[#0F172A] tracking-tight text-center mb-1 shrink-0">
                     Report Golfer
                   </h3>
                   <p className="text-[13px] text-[#64748B] text-center mb-5 shrink-0 font-normal">
@@ -14886,7 +16562,7 @@ class TournamentsView extends StatelessWidget {
                   <button
                     type="button"
                     onClick={() => setReportCandidate(null)}
-                    className="w-full h-12 rounded-[14px] bg-[#F1F5F9] hover:bg-[#E2E8F0] active:scale-98 text-[#0F172A] text-sm font-bold tracking-wide flex items-center justify-center cursor-pointer transition-all shrink-0"
+                    className="w-full h-12 rounded-[14px] bg-red-50 hover:bg-red-100 border border-red-200/70 active:scale-98 text-red-600 text-sm font-bold tracking-wide flex items-center justify-center cursor-pointer transition-all shrink-0 capitalize"
                   >
                     Cancel
                   </button>
@@ -14904,7 +16580,7 @@ class TournamentsView extends StatelessWidget {
                 }}
               >
                 <div
-                  className="relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl p-5 pb-6 animate-in slide-in-from-bottom duration-200 flex flex-col w-full max-w-sm mx-auto transition-all"
+                  className={`relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl p-5 pb-6 animate-in slide-in-from-bottom duration-200 flex flex-col w-full ${isTablet ? "" : "max-w-sm mx-auto"} transition-all`}
                   style={{
                     marginBottom: virtualKeyboard?.isOpen ? "270px" : "0px",
                     maxHeight: virtualKeyboard?.isOpen ? "calc(100% - 280px)" : "90%",
@@ -15283,7 +16959,7 @@ class TournamentsView extends StatelessWidget {
                 }}
               >
                 <div
-                  className="relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl p-5 pb-5 animate-in slide-in-from-bottom duration-200 flex flex-col w-full max-w-sm mx-auto transition-all"
+                  className={`relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl p-5 pb-5 animate-in slide-in-from-bottom duration-200 flex flex-col w-full ${isTablet ? "" : "max-w-sm mx-auto"} transition-all`}
                   style={{
                     marginBottom: virtualKeyboard?.isOpen ? "270px" : "0px",
                     height: virtualKeyboard?.isOpen ? "calc(100% - 280px)" : "auto",
@@ -15466,7 +17142,7 @@ class TournamentsView extends StatelessWidget {
                 onClick={() => setShowBookingsModal(false)}
               >
                 <div
-                  className="relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl p-5 pb-6 animate-in slide-in-from-bottom duration-200 max-h-[88%] flex flex-col w-full max-w-sm mx-auto"
+                  className={`relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl p-5 pb-6 animate-in slide-in-from-bottom duration-200 max-h-[88%] flex flex-col w-full ${isTablet ? "" : "max-w-sm mx-auto"}`}
                   onClick={(e) => e.stopPropagation()}
                 >
                   <div className="w-10 h-1 bg-slate-200 rounded-full mx-auto mb-3.5" />
@@ -15507,7 +17183,7 @@ class TournamentsView extends StatelessWidget {
                                   className="w-10 h-10 rounded-full object-cover border border-slate-200 shrink-0"
                                 />
                               ) : (
-                                <div className="w-10 h-10 rounded-full bg-[#EAF7EE] text-[#009A60] border border-[#C6F0DB] flex items-center justify-center text-xs font-black shrink-0">
+                                <div className="w-10 h-10 rounded-full bg-[#EAF7EE] text-[#009A60] border border-[#C6F0DB] flex items-center justify-center text-xs font-bold shrink-0">
                                   {getTwoInitials(b.proName)}
                                 </div>
                               )}
@@ -15520,7 +17196,7 @@ class TournamentsView extends StatelessWidget {
                                 </p>
                               </div>
                             </div>
-                            <span className="shrink-0 px-2 py-0.5 rounded-full bg-[#EAF7EE] text-[#009A60] border border-[#C6F0DB] text-[9.5px] font-extrabold uppercase tracking-wider">
+                            <span className="shrink-0 px-2 py-0.5 rounded-full bg-[#EAF7EE] text-[#009A60] border border-[#C6F0DB] text-[9.5px] font-bold uppercase tracking-wider">
                               {b.status}
                             </span>
                           </div>
@@ -15594,7 +17270,7 @@ class TournamentsView extends StatelessWidget {
                 }}
               >
                 <div
-                  className="relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl p-5 pb-7 animate-in slide-in-from-bottom duration-200 max-h-[85%] flex flex-col w-full max-w-sm mx-auto"
+                  className={`relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl p-5 pb-7 animate-in slide-in-from-bottom duration-200 max-h-[85%] flex flex-col w-full ${isTablet ? "" : "max-w-sm mx-auto"}`}
                   onClick={(e) => e.stopPropagation()}
                 >
                   <div className="w-10 h-1 bg-slate-200 rounded-full mx-auto mb-3.5" />
@@ -15722,7 +17398,7 @@ class TournamentsView extends StatelessWidget {
                 }}
               >
                 <div
-                  className="relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl p-5 pb-7 animate-in slide-in-from-bottom duration-200 max-h-[85%] flex flex-col w-full max-w-sm mx-auto"
+                  className={`relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl p-5 pb-7 animate-in slide-in-from-bottom duration-200 max-h-[85%] flex flex-col w-full ${isTablet ? "" : "max-w-sm mx-auto"}`}
                   onClick={(e) => e.stopPropagation()}
                 >
                   {/* Handle Bar */}
@@ -15942,13 +17618,13 @@ class TournamentsView extends StatelessWidget {
                 onClick={() => setShowMenuDrawer(false)}
               >
                 <div
-                  className="relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl p-5 pb-8 animate-in slide-in-from-bottom duration-200 max-h-[85%] flex flex-col w-full max-w-sm mx-auto"
+                  className={`relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl p-5 pb-8 animate-in slide-in-from-bottom duration-200 max-h-[85%] flex flex-col w-full ${isTablet ? "" : "max-w-sm mx-auto"}`}
                   onClick={(e) => e.stopPropagation()}
                 >
                   <div className="w-10 h-1 bg-slate-200 rounded-full mx-auto mb-4" />
                   <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#009A60] to-[#0A5536] text-white font-black text-sm flex items-center justify-center shadow-md select-none border border-emerald-600/20 shrink-0">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#009A60] to-[#0A5536] text-white font-bold text-sm flex items-center justify-center shadow-md select-none border border-emerald-600/20 shrink-0">
                         {currentInitials}
                       </div>
                       <div className="min-w-0 flex-1">
@@ -16073,7 +17749,7 @@ class TournamentsView extends StatelessWidget {
                 onClick={() => setShowUserSettingsModal(false)}
               >
                 <div
-                  className="relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl p-5 pb-6 animate-in slide-in-from-bottom duration-200 max-h-[88%] flex flex-col w-full max-w-sm mx-auto"
+                  className={`relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl p-5 pb-6 animate-in slide-in-from-bottom duration-200 max-h-[88%] flex flex-col w-full ${isTablet ? "" : "max-w-sm mx-auto"}`}
                   onClick={(e) => e.stopPropagation()}
                 >
                   {/* Drag Handle */}
@@ -16130,7 +17806,7 @@ class TournamentsView extends StatelessWidget {
 
                     {/* Section 1: Notifications */}
                     <div className="space-y-2.5">
-                      <label className="text-[11px] font-extrabold uppercase tracking-wider text-[#8CA0BA] block">
+                      <label className="text-[11px] font-bold uppercase tracking-wider text-[#8CA0BA] block">
                         Notifications & Alerts
                       </label>
                       <div className="bg-white border border-slate-200/80 rounded-2xl p-3 space-y-3">
@@ -16195,7 +17871,7 @@ class TournamentsView extends StatelessWidget {
 
                     {/* Section 2: Golf Gameplay Preferences */}
                     <div className="space-y-2.5">
-                      <label className="text-[11px] font-extrabold uppercase tracking-wider text-[#8CA0BA] block">
+                      <label className="text-[11px] font-bold uppercase tracking-wider text-[#8CA0BA] block">
                         Golf Gameplay
                       </label>
                       <div className="bg-white border border-slate-200/80 rounded-2xl p-3 space-y-3">
@@ -16254,7 +17930,7 @@ class TournamentsView extends StatelessWidget {
 
                     {/* Section 3: Privacy & Visibility */}
                     <div className="space-y-2.5">
-                      <label className="text-[11px] font-extrabold uppercase tracking-wider text-[#8CA0BA] block">
+                      <label className="text-[11px] font-bold uppercase tracking-wider text-[#8CA0BA] block">
                         Privacy & Visibility
                       </label>
                       <div className="bg-white border border-slate-200/80 rounded-2xl p-3 space-y-3">
@@ -16485,7 +18161,7 @@ class TournamentsView extends StatelessWidget {
                 Screens
               </span>
               <span className="text-[10px] font-medium text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded-md">
-                11 Views
+                17 Views
               </span>
             </div>
 
@@ -16502,6 +18178,8 @@ class TournamentsView extends StatelessWidget {
                 { id: "attestation", label: "Attestation", icon: UserCheck },
                 { id: "hub", label: "Home", icon: Home },
                 { id: "tournaments", label: "Tournaments", icon: Trophy },
+                { id: "tournament-filter", label: "Tournament Filter", icon: SlidersHorizontal },
+                { id: "tournament-details", label: "Tournament Details", icon: Trophy },
                 { id: "add-friends", label: "Add Golf Friends", icon: UserPlus },
                 { id: "sync-contacts", label: "Sync Your Contacts", icon: BookUser },
                 { id: "notifications", label: "Notifications", icon: Bell },
@@ -17118,7 +18796,7 @@ class TournamentsView extends StatelessWidget {
             {/* Header: FINAL SCORECARD • ROUND 1  &  Total: ... */}
             <div className="flex items-center justify-between pb-3.5 border-b border-slate-100">
               <div>
-                <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#8CA0BA]">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#8CA0BA]">
                   FINAL SCORECARD • {activeRound?.dayText || "ROUND 1"}
                 </span>
                 <p className="text-[12px] font-bold text-[#0F172A] mt-0.5">
@@ -17128,7 +18806,7 @@ class TournamentsView extends StatelessWidget {
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-1.5 text-[14px]">
                   <span className="font-bold text-[#0F172A]">Total:</span>
-                  <span className="font-extrabold text-[#0F172A]">
+                  <span className="font-bold text-[#0F172A]">
                     {Object.values(holeScores).reduce((acc, h) => acc + h.strokes, 0) || activeTournament?.coursePar || 72}
                   </span>
                 </div>
@@ -17165,7 +18843,7 @@ class TournamentsView extends StatelessWidget {
                   </div>
                 </div>
                 <div className="flex items-center pt-0.5">
-                  <span className="w-4 shrink-0 text-left text-[13px] font-black text-[#0F172A]">S</span>
+                  <span className="w-4 shrink-0 text-left text-[13px] font-bold text-[#0F172A]">S</span>
                   <div className="flex-1 grid grid-cols-9 gap-1 text-center">
                     {courseHoles.slice(0, 9).map((h, i) => {
                       const score = holeScores[i]?.strokes || h.par;
@@ -17176,7 +18854,7 @@ class TournamentsView extends StatelessWidget {
                       return (
                         <div
                           key={`ms-${h.number}`}
-                          className={`h-9 flex items-center justify-center rounded-xl border text-[13px] font-extrabold shadow-2xs ${badgeStyle}`}
+                          className={`h-9 flex items-center justify-center rounded-xl border text-[13px] font-bold shadow-2xs ${badgeStyle}`}
                         >
                           {score}
                         </div>
@@ -17186,7 +18864,7 @@ class TournamentsView extends StatelessWidget {
                 </div>
               </div>
               <div className="text-right pt-2 pb-0.5">
-                <span className="text-[11px] font-extrabold text-[#8CA0BA] tracking-wider">
+                <span className="text-[11px] font-bold text-[#8CA0BA] tracking-wider">
                   OUT: {courseHoles.slice(0, 9).reduce((acc, h, i) => acc + (holeScores[i]?.strokes || h.par), 0)}
                 </span>
               </div>
@@ -17216,7 +18894,7 @@ class TournamentsView extends StatelessWidget {
                   </div>
                 </div>
                 <div className="flex items-center pt-0.5">
-                  <span className="w-4 shrink-0 text-left text-[13px] font-black text-[#0F172A]">S</span>
+                  <span className="w-4 shrink-0 text-left text-[13px] font-bold text-[#0F172A]">S</span>
                   <div className="flex-1 grid grid-cols-9 gap-1 text-center">
                     {courseHoles.slice(9, 18).map((h, i) => {
                       const score = holeScores[i + 9]?.strokes || h.par;
@@ -17227,7 +18905,7 @@ class TournamentsView extends StatelessWidget {
                       return (
                         <div
                           key={`ms-${h.number}`}
-                          className={`h-9 flex items-center justify-center rounded-xl border text-[13px] font-extrabold shadow-2xs ${badgeStyle}`}
+                          className={`h-9 flex items-center justify-center rounded-xl border text-[13px] font-bold shadow-2xs ${badgeStyle}`}
                         >
                           {score}
                         </div>
@@ -17237,7 +18915,7 @@ class TournamentsView extends StatelessWidget {
                 </div>
               </div>
               <div className="text-right pt-2 pb-0.5">
-                <span className="text-[11px] font-extrabold text-[#8CA0BA] tracking-wider">
+                <span className="text-[11px] font-bold text-[#8CA0BA] tracking-wider">
                   IN: {courseHoles.slice(9, 18).reduce((acc, h, i) => acc + (holeScores[i + 9]?.strokes || h.par), 0)}
                 </span>
               </div>
@@ -17296,7 +18974,7 @@ class TournamentsView extends StatelessWidget {
             <div className="pt-3 border-t border-slate-800 flex items-center justify-end gap-2">
               <button
                 onClick={() => setShowAttestModal(false)}
-                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-semibold"
+                className="px-4 py-2 rounded-xl bg-red-500/15 hover:bg-red-500/25 border border-red-500/30 text-red-400 text-sm font-semibold capitalize transition-all"
               >
                 Cancel
               </button>

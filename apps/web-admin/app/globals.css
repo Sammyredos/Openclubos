@@ -1,9 +1,10 @@
 @import "tailwindcss";
 
 @theme inline {
-  --font-sans: var(--font-dm-sans), 'DM Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-space-grotesk: var(--font-dm-sans), 'DM Sans', sans-serif;
-  --font-dm-sans: var(--font-dm-sans), 'DM Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-sans: var(--font-plus-jakarta-sans), 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-space-grotesk: var(--font-plus-jakarta-sans), 'Plus Jakarta Sans', sans-serif;
+  --font-dm-sans: var(--font-plus-jakarta-sans), 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-plus-jakarta-sans: var(--font-plus-jakarta-sans), 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -73,6 +74,10 @@
   --color-neutral-dark: #0F172A;
   --color-neutral-text: #111827;
   --color-slate-accent: #5B6B7F;
+
+  /* Font-weight ceiling: Never exceed 700 */
+  --font-weight-extrabold: 700;
+  --font-weight-black: 700;
 
   --animate-marquee: marquee 40s linear infinite;
 
@@ -302,6 +307,14 @@
 
 .animate-fadeIn {
   animation: fadeIn 0.4s ease forwards;
+}
+
+/* Hard font-weight ceiling: No weight greater than 700 */
+.font-extrabold,
+.font-black,
+[class*="font-extrabold"],
+[class*="font-black"] {
+  font-weight: 700 !important;
 }
 
 

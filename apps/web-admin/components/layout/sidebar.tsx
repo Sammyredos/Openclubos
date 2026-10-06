@@ -375,7 +375,7 @@ function SidebarInner() {
             <div className="h-7 w-7 rounded-lg bg-[#009A60] flex items-center justify-center text-white shadow-xs">
               <Icons.logo className="h-4 w-4" />
             </div>
-            <span className="text-[17px] font-extrabold tracking-tight text-gray-900">
+            <span className="text-[17px] font-bold tracking-tight text-gray-900">
               Openclub<span className="text-[#009A60]">OS</span>
             </span>
           </div>

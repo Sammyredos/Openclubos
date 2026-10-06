@@ -106,7 +106,7 @@ export function BrandLogo({
       {variant === "full" && (
         <span
           className={cn(
-            "font-extrabold tracking-tight leading-none",
+            "font-bold tracking-tight leading-none",
             theme === "dark" ? "text-white" : "text-[#0F172A]",
             config.textSize,
             textClassName

@@ -204,7 +204,7 @@ class _CheckInboxScreenState extends ConsumerState<CheckInboxScreen> {
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 26,
-                  fontWeight: FontWeight.w900,
+                  fontWeight: FontWeight.w700,
                   color: kTextDark,
                   letterSpacing: -0.5,
                 ),
@@ -283,7 +283,7 @@ class _CheckInboxScreenState extends ConsumerState<CheckInboxScreen> {
                       'RESEND IN ${_countdown}s',
                       style: const TextStyle(
                         fontSize: 12,
-                        fontWeight: FontWeight.w900,
+                        fontWeight: FontWeight.w700,
                         color: kTournamentEmerald,
                         letterSpacing: 0.5,
                       ),
@@ -295,7 +295,7 @@ class _CheckInboxScreenState extends ConsumerState<CheckInboxScreen> {
                         _isResending ? 'RESENDING...' : 'RESEND NOW',
                         style: const TextStyle(
                           fontSize: 12,
-                          fontWeight: FontWeight.w900,
+                          fontWeight: FontWeight.w700,
                           color: kTournamentEmerald,
                           letterSpacing: 0.5,
                           decoration: TextDecoration.underline,

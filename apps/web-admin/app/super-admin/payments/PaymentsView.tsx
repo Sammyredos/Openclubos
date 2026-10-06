@@ -1228,7 +1228,7 @@ export function SuperAdminPaymentsView({ initialTab = "withdrawals" }: SuperAdmi
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">AMOUNT TO TRANSFER</span>
-                <span className="text-2xl font-black text-[#009A60] tracking-tight">{formatCurrency(approvingWithdrawal.amount)}</span>
+                <span className="text-2xl font-bold text-[#009A60] tracking-tight">{formatCurrency(approvingWithdrawal.amount)}</span>
               </div>
               <div className="flex items-center justify-between pt-0.5">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">BANK</span>
@@ -1290,7 +1290,7 @@ export function SuperAdminPaymentsView({ initialTab = "withdrawals" }: SuperAdmi
                   </div>
                   <span
                     className={cn(
-                      "text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider inline-flex items-center gap-1 shadow-2xs",
+                      "text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider inline-flex items-center gap-1 shadow-2xs",
                       (approvingWithdrawal.wallet.lockedBalance ?? 0) >= approvingWithdrawal.amount
                         ? "bg-[#009A60] text-white"
                         : "bg-red-600 text-white"
@@ -1568,7 +1568,7 @@ export function SuperAdminPaymentsView({ initialTab = "withdrawals" }: SuperAdmi
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">AMOUNT</span>
-                <span className="text-2xl font-black text-[#009A60] tracking-tight">{formatCurrency(selectedWithdrawal.amount).replace(/\.00$/, "")}</span>
+                <span className="text-2xl font-bold text-[#009A60] tracking-tight">{formatCurrency(selectedWithdrawal.amount).replace(/\.00$/, "")}</span>
               </div>
               <div className="flex items-center justify-between pt-0.5">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">BANK</span>

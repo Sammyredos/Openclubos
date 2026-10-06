@@ -88,7 +88,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
     return Center(
       child: Text(
         initials,
-        style: GoogleFonts.dmSans(
+        style: GoogleFonts.plusJakartaSans(
           fontSize: 10.0,
           fontWeight: FontWeight.w700,
           color: const Color(0xFF10B981),
@@ -1766,7 +1766,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                             children: [
                               Text(
                                 'Active Players',
-                                style: GoogleFonts.dmSans(
+                                style: GoogleFonts.plusJakartaSans(
                                   fontSize: 17,
                                   fontWeight: FontWeight.w700,
                                   color: const Color(0xFF0F172A),
@@ -1774,7 +1774,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                               ),
                               Text(
                                 'Currently competing on the course',
-                                style: GoogleFonts.dmSans(
+                                style: GoogleFonts.plusJakartaSans(
                                   fontSize: 12.5,
                                   color: const Color(0xFF64748B),
                                 ),
@@ -1814,10 +1814,10 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                           Expanded(
                             child: TextField(
                               controller: searchController,
-                              style: GoogleFonts.dmSans(fontSize: 13, color: const Color(0xFF0F172A)),
+                              style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF0F172A)),
                               decoration: InputDecoration(
                                 hintText: 'Search player, flight, or hole...',
-                                hintStyle: GoogleFonts.dmSans(fontSize: 13, color: const Color(0xFF8CA0BA)),
+                                hintStyle: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF8CA0BA)),
                                 border: InputBorder.none,
                                 isDense: true,
                               ),
@@ -1843,7 +1843,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                       children: [
                         Text(
                           searchQuery.isEmpty ? 'ON-COURSE COMPETITORS (${onCourseCompetitors.length})' : 'RESULTS (${filteredList.length})',
-                          style: GoogleFonts.dmSans(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 10.5,
                             fontWeight: FontWeight.w700,
                             letterSpacing: 0.8,
@@ -1856,7 +1856,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                             const SizedBox(width: 4),
                             Text(
                               'Live Telemetry',
-                              style: GoogleFonts.dmSans(
+                              style: GoogleFonts.plusJakartaSans(
                                 fontSize: 10.5,
                                 fontWeight: FontWeight.w700,
                                 color: const Color(0xFF009A60),
@@ -1883,7 +1883,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                     const SizedBox(height: 8),
                                     Text(
                                       'No active competitors matching "$searchQuery"',
-                                      style: GoogleFonts.dmSans(fontSize: 13, color: const Color(0xFF64748B)),
+                                      style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF64748B)),
                                     ),
                                   ],
                                 ),
@@ -1924,7 +1924,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                             alignment: Alignment.center,
                                             child: Text(
                                               (player['initials'] as String?) ?? 'P',
-                                              style: GoogleFonts.dmSans(
+                                              style: GoogleFonts.plusJakartaSans(
                                                 fontSize: 13,
                                                 fontWeight: FontWeight.w700,
                                                 color: Colors.white,
@@ -1958,7 +1958,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                                 Flexible(
                                                   child: Text(
                                                     player['name'] as String,
-                                                    style: GoogleFonts.dmSans(
+                                                    style: GoogleFonts.plusJakartaSans(
                                                       fontSize: 13.5,
                                                       fontWeight: FontWeight.w700,
                                                       color: const Color(0xFF0F172A),
@@ -1986,9 +1986,9 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                                   ),
                                                   child: Text(
                                                     toParLabel,
-                                                    style: GoogleFonts.dmSans(
+                                                    style: GoogleFonts.plusJakartaSans(
                                                       fontSize: 10,
-                                                      fontWeight: FontWeight.w800,
+                                                      fontWeight: FontWeight.w700,
                                                       color: toPar < 0
                                                           ? const Color(0xFF009A60)
                                                           : toPar == 0
@@ -2002,7 +2002,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                             const SizedBox(height: 2),
                                             Text(
                                               'Hole ${player['currentHole']} • Thru ${player['thru']} • Gross ${player['gross']}',
-                                              style: GoogleFonts.dmSans(
+                                              style: GoogleFonts.plusJakartaSans(
                                                 fontSize: 11,
                                                 color: const Color(0xFF64748B),
                                               ),
@@ -2039,7 +2039,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                             children: [
                                               Text(
                                                 'Score',
-                                                style: GoogleFonts.dmSans(
+                                                style: GoogleFonts.plusJakartaSans(
                                                   fontSize: 11.5,
                                                   fontWeight: FontWeight.w700,
                                                   color: Colors.white,
@@ -2153,7 +2153,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                             children: [
                               Text(
                                 'My Bookings',
-                                style: GoogleFonts.dmSans(
+                                style: GoogleFonts.plusJakartaSans(
                                   fontSize: 17,
                                   fontWeight: FontWeight.w700,
                                   color: const Color(0xFF0F172A),
@@ -2161,7 +2161,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                               ),
                               Text(
                                 'Sessions & lessons booked with a Pro',
-                                style: GoogleFonts.dmSans(
+                                style: GoogleFonts.plusJakartaSans(
                                   fontSize: 12.5,
                                   color: const Color(0xFF64748B),
                                 ),
@@ -2208,7 +2208,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                     const SizedBox(height: 10),
                                     Text(
                                       'No active bookings with a Pro',
-                                      style: GoogleFonts.dmSans(
+                                      style: GoogleFonts.plusJakartaSans(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w700,
                                         color: const Color(0xFF0F172A),
@@ -2217,7 +2217,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                     const SizedBox(height: 4),
                                     Text(
                                       'Book a PGA certified professional for private coaching',
-                                      style: GoogleFonts.dmSans(
+                                      style: GoogleFonts.plusJakartaSans(
                                         fontSize: 12,
                                         color: const Color(0xFF64748B),
                                       ),
@@ -2263,9 +2263,9 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                             alignment: Alignment.center,
                                             child: Text(
                                               'MD',
-                                              style: GoogleFonts.dmSans(
+                                              style: GoogleFonts.plusJakartaSans(
                                                 fontSize: 13,
-                                                fontWeight: FontWeight.w800,
+                                                fontWeight: FontWeight.w700,
                                                 color: const Color(0xFF009A60),
                                               ),
                                             ),
@@ -2277,7 +2277,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                               children: [
                                                 Text(
                                                   b['proName'] ?? 'Club Pro',
-                                                  style: GoogleFonts.dmSans(
+                                                  style: GoogleFonts.plusJakartaSans(
                                                     fontSize: 13.5,
                                                     fontWeight: FontWeight.w700,
                                                     color: const Color(0xFF0F172A),
@@ -2285,7 +2285,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                                 ),
                                                 Text(
                                                   '${b['proRole'] ?? 'Teaching Pro'} • ${b['proClub'] ?? 'OpenClub'}',
-                                                  style: GoogleFonts.dmSans(
+                                                  style: GoogleFonts.plusJakartaSans(
                                                     fontSize: 11,
                                                     color: const Color(0xFF64748B),
                                                   ),
@@ -2302,9 +2302,9 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                             ),
                                             child: Text(
                                               (b['status'] ?? 'CONFIRMED').toString(),
-                                              style: GoogleFonts.dmSans(
+                                              style: GoogleFonts.plusJakartaSans(
                                                 fontSize: 9.5,
-                                                fontWeight: FontWeight.w800,
+                                                fontWeight: FontWeight.w700,
                                                 color: const Color(0xFF009A60),
                                               ),
                                             ),
@@ -2324,7 +2324,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                           children: [
                                             Text(
                                               b['serviceName'] ?? 'Golf Lesson',
-                                              style: GoogleFonts.dmSans(
+                                              style: GoogleFonts.plusJakartaSans(
                                                 fontSize: 12.5,
                                                 fontWeight: FontWeight.w700,
                                                 color: const Color(0xFF0F172A),
@@ -2337,7 +2337,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                                 const SizedBox(width: 4),
                                                 Text(
                                                   '${b['date']} • ${b['time']}',
-                                                  style: GoogleFonts.dmSans(fontSize: 11.5, color: const Color(0xFF475569)),
+                                                  style: GoogleFonts.plusJakartaSans(fontSize: 11.5, color: const Color(0xFF475569)),
                                                 ),
                                               ],
                                             ),
@@ -2349,7 +2349,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                                 Expanded(
                                                   child: Text(
                                                     b['location'] ?? 'Academy',
-                                                    style: GoogleFonts.dmSans(fontSize: 11, color: const Color(0xFF64748B)),
+                                                    style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF64748B)),
                                                     overflow: TextOverflow.ellipsis,
                                                   ),
                                                 ),
@@ -2381,7 +2381,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                                 alignment: Alignment.center,
                                                 child: Text(
                                                   'Add to Calendar',
-                                                  style: GoogleFonts.dmSans(
+                                                  style: GoogleFonts.plusJakartaSans(
                                                     fontSize: 11,
                                                     fontWeight: FontWeight.w700,
                                                     color: const Color(0xFF009A60),
@@ -2409,7 +2409,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                               alignment: Alignment.center,
                                               child: Text(
                                                 'Reschedule',
-                                                style: GoogleFonts.dmSans(
+                                                style: GoogleFonts.plusJakartaSans(
                                                   fontSize: 11,
                                                   fontWeight: FontWeight.w700,
                                                   color: const Color(0xFF475569),
@@ -2460,7 +2460,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                             const SizedBox(width: 6),
                             Text(
                               'Book Another Session with a Pro',
-                              style: GoogleFonts.dmSans(
+                              style: GoogleFonts.plusJakartaSans(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
                                 color: Colors.white,
@@ -2540,7 +2540,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                             children: [
                               Text(
                                 'Settings & Preferences',
-                                style: GoogleFonts.dmSans(
+                                style: GoogleFonts.plusJakartaSans(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w700,
                                   color: const Color(0xFF0F172A),
@@ -2548,7 +2548,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                               ),
                               Text(
                                 'Manage preferences & database sync',
-                                style: GoogleFonts.dmSans(
+                                style: GoogleFonts.plusJakartaSans(
                                   fontSize: 12,
                                   color: const Color(0xFF64748B),
                                   fontWeight: FontWeight.w500,
@@ -2611,7 +2611,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                     const SizedBox(width: 6),
                                     Text(
                                       'PostgreSQL Database Active',
-                                      style: GoogleFonts.dmSans(
+                                      style: GoogleFonts.plusJakartaSans(
                                         fontSize: 12,
                                         fontWeight: FontWeight.w700,
                                         color: const Color(0xFF0F172A),
@@ -2622,7 +2622,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                 const SizedBox(height: 2),
                                 Text(
                                   'Real-time competitor profile sync enabled',
-                                  style: GoogleFonts.dmSans(
+                                  style: GoogleFonts.plusJakartaSans(
                                     fontSize: 11,
                                     color: const Color(0xFF64748B),
                                   ),
@@ -2638,9 +2638,9 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                     // Settings List
                     Text(
                       'NOTIFICATIONS & ALERTS',
-                      style: GoogleFonts.dmSans(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 10,
-                        fontWeight: FontWeight.w800,
+                        fontWeight: FontWeight.w700,
                         color: const Color(0xFF8CA0BA),
                         letterSpacing: 0.8,
                       ),
@@ -2658,8 +2658,8 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                           SwitchListTile(
                             dense: true,
                             activeColor: const Color(0xFF009A60),
-                            title: Text('Tournament Push Alerts', style: GoogleFonts.dmSans(fontSize: 12.5, fontWeight: FontWeight.w600, color: const Color(0xFF0F172A))),
-                            subtitle: Text('Tee times & live scoring notifications', style: GoogleFonts.dmSans(fontSize: 11, color: const Color(0xFF64748B))),
+                            title: Text('Tournament Push Alerts', style: GoogleFonts.plusJakartaSans(fontSize: 12.5, fontWeight: FontWeight.w600, color: const Color(0xFF0F172A))),
+                            subtitle: Text('Tee times & live scoring notifications', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF64748B))),
                             value: pushAlerts,
                             onChanged: (val) => setModalState(() => pushAlerts = val),
                           ),
@@ -2667,8 +2667,8 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                           SwitchListTile(
                             dense: true,
                             activeColor: const Color(0xFF009A60),
-                            title: Text('Weekly Email Digest', style: GoogleFonts.dmSans(fontSize: 12.5, fontWeight: FontWeight.w600, color: const Color(0xFF0F172A))),
-                            subtitle: Text('Club recaps & handicap revisions', style: GoogleFonts.dmSans(fontSize: 11, color: const Color(0xFF64748B))),
+                            title: Text('Weekly Email Digest', style: GoogleFonts.plusJakartaSans(fontSize: 12.5, fontWeight: FontWeight.w600, color: const Color(0xFF0F172A))),
+                            subtitle: Text('Club recaps & handicap revisions', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF64748B))),
                             value: emailDigest,
                             onChanged: (val) => setModalState(() => emailDigest = val),
                           ),
@@ -2676,8 +2676,8 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                           SwitchListTile(
                             dense: true,
                             activeColor: const Color(0xFF009A60),
-                            title: Text('Friend Activity', style: GoogleFonts.dmSans(fontSize: 12.5, fontWeight: FontWeight.w600, color: const Color(0xFF0F172A))),
-                            subtitle: Text('Notify when friends tee off', style: GoogleFonts.dmSans(fontSize: 11, color: const Color(0xFF64748B))),
+                            title: Text('Friend Activity', style: GoogleFonts.plusJakartaSans(fontSize: 12.5, fontWeight: FontWeight.w600, color: const Color(0xFF0F172A))),
+                            subtitle: Text('Notify when friends tee off', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF64748B))),
                             value: friendActivity,
                             onChanged: (val) => setModalState(() => friendActivity = val),
                           ),
@@ -2688,9 +2688,9 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
 
                     Text(
                       'GAMEPLAY PREFERENCES',
-                      style: GoogleFonts.dmSans(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 10,
-                        fontWeight: FontWeight.w800,
+                        fontWeight: FontWeight.w700,
                         color: const Color(0xFF8CA0BA),
                         letterSpacing: 0.8,
                       ),
@@ -2712,8 +2712,8 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('Distance Units', style: GoogleFonts.dmSans(fontSize: 12.5, fontWeight: FontWeight.w600, color: const Color(0xFF0F172A))),
-                                  Text('GPS & scorecard yardages', style: GoogleFonts.dmSans(fontSize: 11, color: const Color(0xFF64748B))),
+                                  Text('Distance Units', style: GoogleFonts.plusJakartaSans(fontSize: 12.5, fontWeight: FontWeight.w600, color: const Color(0xFF0F172A))),
+                                  Text('GPS & scorecard yardages', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF64748B))),
                                 ],
                               ),
                               Container(
@@ -2734,7 +2734,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                           borderRadius: BorderRadius.circular(8),
                                           boxShadow: distanceUnit == 'Yards' ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 2)] : null,
                                         ),
-                                        child: Text('Yards', style: GoogleFonts.dmSans(fontSize: 11, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A))),
+                                        child: Text('Yards', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A))),
                                       ),
                                     ),
                                     GestureDetector(
@@ -2746,7 +2746,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                           borderRadius: BorderRadius.circular(8),
                                           boxShadow: distanceUnit == 'Meters' ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 2)] : null,
                                         ),
-                                        child: Text('Meters', style: GoogleFonts.dmSans(fontSize: 11, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A))),
+                                        child: Text('Meters', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A))),
                                       ),
                                     ),
                                   ],
@@ -2759,8 +2759,8 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                             contentPadding: EdgeInsets.zero,
                             dense: true,
                             activeColor: const Color(0xFF009A60),
-                            title: Text('Auto-Sync WHS Handicap', style: GoogleFonts.dmSans(fontSize: 12.5, fontWeight: FontWeight.w600, color: const Color(0xFF0F172A))),
-                            subtitle: Text('Sync revisions with official WHS database', style: GoogleFonts.dmSans(fontSize: 11, color: const Color(0xFF64748B))),
+                            title: Text('Auto-Sync WHS Handicap', style: GoogleFonts.plusJakartaSans(fontSize: 12.5, fontWeight: FontWeight.w600, color: const Color(0xFF0F172A))),
+                            subtitle: Text('Sync revisions with official WHS database', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF64748B))),
                             value: autoSyncHandicap,
                             onChanged: (val) => setModalState(() => autoSyncHandicap = val),
                           ),
@@ -2798,7 +2798,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                         alignment: Alignment.center,
                         child: Text(
                           'Save Settings to Database',
-                          style: GoogleFonts.dmSans(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
                             color: Colors.white,
@@ -2844,12 +2844,12 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
               children: [
                 Text(
                   sender,
-                  style: GoogleFonts.dmSans(fontSize: 12.5, fontWeight: FontWeight.w600, color: const Color(0xFF0F172A)),
+                  style: GoogleFonts.plusJakartaSans(fontSize: 12.5, fontWeight: FontWeight.w600, color: const Color(0xFF0F172A)),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   preview,
-                  style: GoogleFonts.dmSans(fontSize: 11.5, color: const Color(0xFF64748B)),
+                  style: GoogleFonts.plusJakartaSans(fontSize: 11.5, color: const Color(0xFF64748B)),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -2857,7 +2857,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
             ),
           ),
           const SizedBox(width: 8),
-          Text(time, style: GoogleFonts.dmSans(fontSize: 10, color: const Color(0xFF94A3B8))),
+          Text(time, style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF94A3B8))),
         ],
       ),
     );
@@ -3037,10 +3037,10 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                                 child: Center(
                                                   child: Text(
                                                     '${_incomingFriendRequests.length}',
-                                                    style: GoogleFonts.dmSans(
+                                                    style: GoogleFonts.plusJakartaSans(
                                                       color: Colors.white,
                                                       fontSize: 9.5,
-                                                      fontWeight: FontWeight.w800,
+                                                      fontWeight: FontWeight.w700,
                                                       height: 1.0,
                                                     ),
                                                   ),
@@ -3108,10 +3108,10 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                               child: Center(
                                                 child: Text(
                                                   '${_proBookings.length}',
-                                                  style: GoogleFonts.dmSans(
+                                                  style: GoogleFonts.plusJakartaSans(
                                                     color: Colors.white,
                                                     fontSize: 9.5,
-                                                    fontWeight: FontWeight.w800,
+                                                    fontWeight: FontWeight.w700,
                                                     height: 1.0,
                                                   ),
                                                 ),
@@ -3184,9 +3184,9 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                                       errorBuilder: (ctx, err, stack) => Center(
                                                         child: Text(
                                                           initials,
-                                                          style: GoogleFonts.dmSans(
+                                                          style: GoogleFonts.plusJakartaSans(
                                                             fontSize: 19,
-                                                            fontWeight: FontWeight.w800,
+                                                            fontWeight: FontWeight.w700,
                                                             color: Colors.white,
                                                             letterSpacing: 0.5,
                                                           ),
@@ -3203,11 +3203,11 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                                                 base64Decode(base64Str),
                                                                 fit: BoxFit.cover,
                                                                 errorBuilder: (_, __, ___) => Center(
-                                                                  child: Text(initials, style: GoogleFonts.dmSans(fontSize: 19, fontWeight: FontWeight.w800, color: Colors.white)),
+                                                                  child: Text(initials, style: GoogleFonts.plusJakartaSans(fontSize: 19, fontWeight: FontWeight.w700, color: Colors.white)),
                                                                 ),
                                                               );
                                                             } catch (_) {
-                                                              return Center(child: Text(initials, style: GoogleFonts.dmSans(fontSize: 19, fontWeight: FontWeight.w800, color: Colors.white)));
+                                                              return Center(child: Text(initials, style: GoogleFonts.plusJakartaSans(fontSize: 19, fontWeight: FontWeight.w700, color: Colors.white)));
                                                             }
                                                           },
                                                         )
@@ -3217,9 +3217,9 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                                           errorBuilder: (ctx, err, stack) => Center(
                                                             child: Text(
                                                               initials,
-                                                              style: GoogleFonts.dmSans(
+                                                              style: GoogleFonts.plusJakartaSans(
                                                                 fontSize: 19,
-                                                                fontWeight: FontWeight.w800,
+                                                                fontWeight: FontWeight.w700,
                                                                 color: Colors.white,
                                                                 letterSpacing: 0.5,
                                                               ),
@@ -3229,9 +3229,9 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                               : Center(
                                                   child: Text(
                                                     initials,
-                                                    style: GoogleFonts.dmSans(
+                                                    style: GoogleFonts.plusJakartaSans(
                                                       fontSize: 19,
-                                                      fontWeight: FontWeight.w800,
+                                                      fontWeight: FontWeight.w700,
                                                       color: Colors.white,
                                                       letterSpacing: 0.5,
                                                     ),
@@ -3268,7 +3268,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                   // 2. Sporty Welcome Eyebrow
                                   Text(
                                     'READY TO TEE OFF',
-                                    style: GoogleFonts.dmSans(
+                                    style: GoogleFonts.plusJakartaSans(
                                       fontSize: 10.5,
                                       fontWeight: FontWeight.w600,
                                       letterSpacing: 1.2,
@@ -3311,9 +3311,9 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                               ),
                                               child: Text(
                                                 'PRO.',
-                                                style: GoogleFonts.dmSans(
+                                                style: GoogleFonts.plusJakartaSans(
                                                   fontSize: 11,
-                                                  fontWeight: FontWeight.w800,
+                                                  fontWeight: FontWeight.w700,
                                                   letterSpacing: 0.8,
                                                   color: const Color(0xFF6EE7B7),
                                                 ),
@@ -3322,7 +3322,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                           ],
                                           Text(
                                             firstName,
-                                            style: GoogleFonts.dmSans(
+                                            style: GoogleFonts.plusJakartaSans(
                                               fontSize: 24,
                                               fontWeight: FontWeight.w700,
                                               letterSpacing: -0.4,
@@ -3367,7 +3367,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                         const SizedBox(width: 4),
                                         Text(
                                           locationText,
-                                          style: GoogleFonts.dmSans(
+                                          style: GoogleFonts.plusJakartaSans(
                                             color: Colors.white,
                                             fontSize: 10.5,
                                             fontWeight: FontWeight.w600,
@@ -3449,10 +3449,10 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                                 children: [
                                                   Text(
                                                     'Book a Pro',
-                                                    style: GoogleFonts.dmSans(
+                                                    style: GoogleFonts.plusJakartaSans(
                                                       color: const Color(0xFF009A60),
                                                       fontSize: 17,
-                                                      fontWeight: FontWeight.w800,
+                                                      fontWeight: FontWeight.w700,
                                                       letterSpacing: -0.3,
                                                     ),
                                                     maxLines: 1,
@@ -3461,7 +3461,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                                   const SizedBox(height: 1),
                                                   Text(
                                                     'Book the club pro',
-                                                    style: GoogleFonts.dmSans(
+                                                    style: GoogleFonts.plusJakartaSans(
                                                       color: const Color(0xFF64748B),
                                                       fontSize: 10,
                                                       fontWeight: FontWeight.w500,
@@ -3473,7 +3473,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                                   ),
                                                   Text(
                                                     'for golfing sessions',
-                                                    style: GoogleFonts.dmSans(
+                                                    style: GoogleFonts.plusJakartaSans(
                                                       color: const Color(0xFF64748B),
                                                       fontSize: 10,
                                                       fontWeight: FontWeight.w500,
@@ -3554,10 +3554,10 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                                 children: [
                                                   Text(
                                                     '$handicapValue HCP',
-                                                    style: GoogleFonts.dmSans(
+                                                    style: GoogleFonts.plusJakartaSans(
                                                       color: const Color(0xFF009A60),
                                                       fontSize: 17,
-                                                      fontWeight: FontWeight.w800,
+                                                      fontWeight: FontWeight.w700,
                                                       letterSpacing: -0.3,
                                                     ),
                                                     maxLines: 1,
@@ -3566,7 +3566,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                                   const SizedBox(height: 1),
                                                   Text(
                                                     'Your verified',
-                                                    style: GoogleFonts.dmSans(
+                                                    style: GoogleFonts.plusJakartaSans(
                                                       color: const Color(0xFF64748B),
                                                       fontSize: 10,
                                                       fontWeight: FontWeight.w500,
@@ -3578,7 +3578,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                                   ),
                                                   Text(
                                                     'handicap index',
-                                                    style: GoogleFonts.dmSans(
+                                                    style: GoogleFonts.plusJakartaSans(
                                                       color: const Color(0xFF64748B),
                                                       fontSize: 10,
                                                       fontWeight: FontWeight.w500,
@@ -3659,7 +3659,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                                 children: [
                                                   Text(
                                                     'HOLE',
-                                                    style: GoogleFonts.dmSans(
+                                                    style: GoogleFonts.plusJakartaSans(
                                                       fontSize: 9.5,
                                                       fontWeight: FontWeight.w700,
                                                       color: const Color(0xFF10B981).withOpacity(0.9),
@@ -3669,9 +3669,9 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                                   const SizedBox(height: 2),
                                                   Text(
                                                     '${_activeRound!['holeNumber']}',
-                                                    style: GoogleFonts.dmSans(
+                                                    style: GoogleFonts.plusJakartaSans(
                                                       fontSize: 28,
-                                                      fontWeight: FontWeight.w900,
+                                                      fontWeight: FontWeight.w700,
                                                       color: const Color(0xFF10B981),
                                                       height: 1.0,
                                                     ),
@@ -3696,7 +3696,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                                           const SizedBox(width: 8),
                                                           Text(
                                                             (_activeRound!['dayText'] as String?) ?? 'ROUND 2',
-                                                            style: GoogleFonts.dmSans(
+                                                            style: GoogleFonts.plusJakartaSans(
                                                               fontSize: 11,
                                                               fontWeight: FontWeight.w700,
                                                               color: const Color(0xFF8FAEA2),
@@ -3736,7 +3736,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                                   // Row 2: Tournament Name (Full display)
                                                   Text(
                                                     toTitleCase(_activeRound!['tournamentName'] as String),
-                                                    style: GoogleFonts.dmSans(
+                                                    style: GoogleFonts.plusJakartaSans(
                                                       fontSize: 16,
                                                       fontWeight: FontWeight.w700,
                                                       color: Colors.white,
@@ -3749,7 +3749,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                                     const SizedBox(height: 2),
                                                     Text(
                                                       _activeRound!['courseName'] as String,
-                                                      style: GoogleFonts.dmSans(
+                                                      style: GoogleFonts.plusJakartaSans(
                                                         fontSize: 12,
                                                         fontWeight: FontWeight.w600,
                                                         color: const Color(0xFF10B981),
@@ -3763,7 +3763,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                                   // Row 4: Hole Information (Par & Distance)
                                                   Text(
                                                     ((_activeRound!['holeInfo'] as String?) ?? 'Par 4 • 345 yds').replaceAll('yards', 'yds'),
-                                                    style: GoogleFonts.dmSans(
+                                                    style: GoogleFonts.plusJakartaSans(
                                                       fontSize: 11.5,
                                                       fontWeight: FontWeight.w500,
                                                       color: const Color(0xFF8FAEA2),
@@ -3846,7 +3846,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                                           if (_hasInactivityWarning)
                                                             Text(
                                                               'INACTIVE FOR 30 MINUTES',
-                                                              style: GoogleFonts.dmSans(
+                                                              style: GoogleFonts.plusJakartaSans(
                                                                 fontSize: 10,
                                                                 fontWeight: FontWeight.w700,
                                                                 color: const Color(0xFFF59E0B),
@@ -3860,7 +3860,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                                                       .replaceAll(RegExp(r'\s*•\s*Players in Flight', caseSensitive: false), '')
                                                                       .replaceAll(RegExp(r'Players in Flight', caseSensitive: false), '')
                                                                       .trim() ?? 'Flight 1',
-                                                              style: GoogleFonts.dmSans(
+                                                              style: GoogleFonts.plusJakartaSans(
                                                                 fontSize: 11.5,
                                                                 fontWeight: FontWeight.w500,
                                                                 color: const Color(0xFFD1F2DE),
@@ -3927,7 +3927,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                                     children: [
                                                       Text(
                                                         'Resume Play',
-                                                        style: GoogleFonts.dmSans(
+                                                        style: GoogleFonts.plusJakartaSans(
                                                           fontSize: 13,
                                                           fontWeight: FontWeight.w700,
                                                           color: Colors.white,
@@ -3984,9 +3984,9 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                                               // Centered Title
                                                               Text(
                                                                 'Withdraw from Round?',
-                                                                style: GoogleFonts.dmSans(
+                                                                style: GoogleFonts.plusJakartaSans(
                                                                   fontSize: 22,
-                                                                  fontWeight: FontWeight.w900,
+                                                                  fontWeight: FontWeight.w700,
                                                                   color: const Color(0xFF0F172A),
                                                                   letterSpacing: -0.4,
                                                                 ),
@@ -3997,7 +3997,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                                               RichText(
                                                                 textAlign: TextAlign.center,
                                                                 text: TextSpan(
-                                                                  style: GoogleFonts.dmSans(
+                                                                  style: GoogleFonts.plusJakartaSans(
                                                                     fontSize: 13.5,
                                                                     color: const Color(0xFF64748B),
                                                                     height: 1.45,
@@ -4037,7 +4037,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                                                   },
                                                                   child: Text(
                                                                     'Yes, Forfeit Match',
-                                                                    style: GoogleFonts.dmSans(fontSize: 14, fontWeight: FontWeight.w700),
+                                                                    style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700),
                                                                   ),
                                                                 ),
                                                               ),
@@ -4056,7 +4056,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                                                   onPressed: () => Navigator.pop(ctx),
                                                                   child: Text(
                                                                     'Cancel, Stay in Play',
-                                                                    style: GoogleFonts.dmSans(fontSize: 14, fontWeight: FontWeight.w700),
+                                                                    style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700),
                                                                   ),
                                                                 ),
                                                               ),
@@ -4084,7 +4084,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                                   alignment: Alignment.center,
                                                   child: Text(
                                                     'Forfeit',
-                                                    style: GoogleFonts.dmSans(
+                                                    style: GoogleFonts.plusJakartaSans(
                                                       fontSize: 13,
                                                       fontWeight: FontWeight.w700,
                                                       color: const Color(0xFFFB7185),
@@ -4110,7 +4110,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                           children: [
                             Text(
                               'Friends Playing Now',
-                              style: GoogleFonts.dmSans(
+                              style: GoogleFonts.plusJakartaSans(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w700,
                                 color: const Color(0xFF0F172A),
@@ -4122,7 +4122,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                 onTap: _showActivePlayersModal,
                                 child: Text(
                                   'View Players',
-                                  style: GoogleFonts.dmSans(
+                                  style: GoogleFonts.plusJakartaSans(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w600,
                                     color: const Color(0xFF009A60),
@@ -4168,9 +4168,9 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                           children: [
                                             Text(
                                               'OPEN',
-                                              style: GoogleFonts.dmSans(
+                                              style: GoogleFonts.plusJakartaSans(
                                                 fontSize: 7.5,
-                                                fontWeight: FontWeight.w900,
+                                                fontWeight: FontWeight.w700,
                                                 color: const Color(0xFF009A60),
                                                 letterSpacing: 0.5,
                                                 height: 1,
@@ -4179,9 +4179,9 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                             const SizedBox(height: 2),
                                             Text(
                                               'CLUB',
-                                              style: GoogleFonts.dmSans(
+                                              style: GoogleFonts.plusJakartaSans(
                                                 fontSize: 8,
-                                                fontWeight: FontWeight.w900,
+                                                fontWeight: FontWeight.w700,
                                                 color: const Color(0xFF009A60),
                                                 letterSpacing: 0.5,
                                                 height: 1,
@@ -4190,7 +4190,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                             const SizedBox(height: 1),
                                             Text(
                                               'GOLF',
-                                              style: GoogleFonts.dmSans(
+                                              style: GoogleFonts.plusJakartaSans(
                                                 fontSize: 6.5,
                                                 fontWeight: FontWeight.w700,
                                                 color: const Color(0xFF009A60).withOpacity(0.85),
@@ -4204,7 +4204,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                       const SizedBox(height: 6),
                                       Text(
                                         'Invite',
-                                        style: GoogleFonts.dmSans(
+                                        style: GoogleFonts.plusJakartaSans(
                                           fontSize: 11,
                                           fontWeight: FontWeight.w600,
                                           color: const Color(0xFF009A60),
@@ -4259,7 +4259,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                                 alignment: Alignment.center,
                                                 child: Text(
                                                   f['initials'] as String,
-                                                  style: GoogleFonts.dmSans(
+                                                  style: GoogleFonts.plusJakartaSans(
                                                     fontSize: 14,
                                                     fontWeight: FontWeight.w700,
                                                     color: Colors.white,
@@ -4289,7 +4289,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                               maxLines: 1,
                                               overflow: TextOverflow.ellipsis,
                                               textAlign: TextAlign.center,
-                                              style: GoogleFonts.dmSans(
+                                              style: GoogleFonts.plusJakartaSans(
                                                 fontSize: 11,
                                                 fontWeight: FontWeight.w600,
                                                 color: const Color(0xFF334155),
@@ -4352,7 +4352,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                         children: [
                                           Text(
                                             'No friends on the course yet',
-                                            style: GoogleFonts.dmSans(
+                                            style: GoogleFonts.plusJakartaSans(
                                               fontSize: 14,
                                               fontWeight: FontWeight.w700,
                                               color: const Color(0xFF0F172A),
@@ -4364,7 +4364,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                           const SizedBox(height: 2),
                                           Text(
                                             'Invite fellow golfers or join active rounds',
-                                            style: GoogleFonts.dmSans(
+                                            style: GoogleFonts.plusJakartaSans(
                                               fontSize: 11.5,
                                               fontWeight: FontWeight.w400,
                                               color: const Color(0xFF64748B),
@@ -4391,7 +4391,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                       ),
                                       child: Text(
                                         '+ Add Friends',
-                                        style: GoogleFonts.dmSans(
+                                        style: GoogleFonts.plusJakartaSans(
                                           fontSize: 11.5,
                                           fontWeight: FontWeight.w700,
                                           color: Colors.white,
@@ -4436,9 +4436,9 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                   children: [
                                     Text(
                                       'OPENCLUBOS',
-                                      style: GoogleFonts.dmSans(
+                                      style: GoogleFonts.plusJakartaSans(
                                         fontSize: 10,
-                                        fontWeight: FontWeight.w900,
+                                        fontWeight: FontWeight.w700,
                                         letterSpacing: 0.8,
                                         color: const Color(0xFF009A60),
                                       ),
@@ -4452,9 +4452,9 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                       ),
                                       child: Text(
                                         'SYSTEM',
-                                        style: GoogleFonts.dmSans(
+                                        style: GoogleFonts.plusJakartaSans(
                                           fontSize: 7.5,
-                                          fontWeight: FontWeight.w900,
+                                          fontWeight: FontWeight.w700,
                                           letterSpacing: 0.8,
                                           color: Colors.white,
                                         ),
@@ -4465,9 +4465,9 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                 const SizedBox(height: 5),
                                 Text(
                                   'Host. Score. Win.',
-                                  style: GoogleFonts.dmSans(
+                                  style: GoogleFonts.plusJakartaSans(
                                     fontSize: 17,
-                                    fontWeight: FontWeight.w800,
+                                    fontWeight: FontWeight.w700,
                                     color: const Color(0xFF0F172A),
                                     letterSpacing: -0.3,
                                   ),
@@ -4475,7 +4475,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                 const SizedBox(height: 2),
                                 Text(
                                   'Full Tournament OS',
-                                  style: GoogleFonts.dmSans(
+                                  style: GoogleFonts.plusJakartaSans(
                                     fontSize: 12.5,
                                     fontWeight: FontWeight.w700,
                                     color: const Color(0xFFF97316),
@@ -4509,9 +4509,9 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                     alignment: Alignment.center,
                                     child: Text(
                                       'EXPLORE',
-                                      style: GoogleFonts.dmSans(
+                                      style: GoogleFonts.plusJakartaSans(
                                         fontSize: 10,
-                                        fontWeight: FontWeight.w800,
+                                        fontWeight: FontWeight.w700,
                                         letterSpacing: 0.8,
                                         color: Colors.white,
                                       ),
@@ -4633,7 +4633,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                             children: [
                               Text(
                                 'Featured Tournaments',
-                                style: GoogleFonts.dmSans(
+                                style: GoogleFonts.plusJakartaSans(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w700,
                                   color: const Color(0xFF0F172A),
@@ -4652,7 +4652,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                 },
                                 child: Text(
                                   'View More',
-                                  style: GoogleFonts.dmSans(
+                                  style: GoogleFonts.plusJakartaSans(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w600,
                                     color: const Color(0xFF009A60),
@@ -4711,7 +4711,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                       const SizedBox(height: 10),
                                       Text(
                                         'No Active Tournaments',
-                                        style: GoogleFonts.dmSans(
+                                        style: GoogleFonts.plusJakartaSans(
                                           fontSize: 14.5,
                                           fontWeight: FontWeight.w700,
                                           color: const Color(0xFF0F172A),
@@ -4724,7 +4724,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                         child: Text(
                                           'Stay on the lookout for upcoming tournaments and club championship events.',
                                           textAlign: TextAlign.center,
-                                          style: GoogleFonts.dmSans(
+                                          style: GoogleFonts.plusJakartaSans(
                                             fontSize: 12,
                                             color: const Color(0xFF64748B),
                                             height: 1.4,
@@ -4762,7 +4762,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
             children: [
               Text(
                 'Rounds (${_recentRounds.length})',
-                style: GoogleFonts.dmSans(
+                style: GoogleFonts.plusJakartaSans(
                   fontSize: 17,
                   fontWeight: FontWeight.w700,
                   color: const Color(0xFF0F172A),
@@ -4780,7 +4780,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                 },
                 child: Text(
                   'View History',
-                  style: GoogleFonts.dmSans(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                     color: const Color(0xFF009A60),
@@ -4827,7 +4827,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                     ),
                     child: Text(
                       '${_recentRounds.length}',
-                      style: GoogleFonts.dmSans(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
                         color: const Color(0xFF009A60),
@@ -4844,7 +4844,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                     children: [
                       Text(
                         'Upcoming Rounds',
-                        style: GoogleFonts.dmSans(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
                           color: const Color(0xFF0F172A),
@@ -4853,7 +4853,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                       const SizedBox(height: 2),
                       Text(
                         'No rounds scheduled yet',
-                        style: GoogleFonts.dmSans(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 12.5,
                           color: const Color(0xFF94A3B8),
                         ),
@@ -4942,7 +4942,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                 children: [
                                   Text(
                                     round['month'] ?? 'OCT',
-                                    style: GoogleFonts.dmSans(
+                                    style: GoogleFonts.plusJakartaSans(
                                       fontSize: 11,
                                       fontWeight: FontWeight.bold,
                                       color: const Color(0xFF009A60),
@@ -4951,9 +4951,9 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                   ),
                                   Text(
                                     round['day'] ?? '12',
-                                    style: GoogleFonts.dmSans(
+                                    style: GoogleFonts.plusJakartaSans(
                                       fontSize: 20,
-                                      fontWeight: FontWeight.w900,
+                                      fontWeight: FontWeight.w700,
                                       color: const Color(0xFF009A60),
                                       height: 1.05,
                                     ),
@@ -4970,7 +4970,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                 children: [
                                   Text(
                                     round['clubName'] ?? 'Ikoyi Club 1938',
-                                    style: GoogleFonts.dmSans(
+                                    style: GoogleFonts.plusJakartaSans(
                                       fontSize: 15,
                                       fontWeight: FontWeight.w700,
                                       color: const Color(0xFF0F172A),
@@ -4981,7 +4981,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                     children: [
                                       Text(
                                         '${round['holes'] ?? 18} Holes',
-                                        style: GoogleFonts.dmSans(
+                                        style: GoogleFonts.plusJakartaSans(
                                           fontSize: 12.5,
                                           color: const Color(0xFF94A3B8),
                                         ),
@@ -4994,7 +4994,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                       const SizedBox(width: 6),
                                       Text(
                                         round['status'] ?? 'COMPLETED',
-                                        style: GoogleFonts.dmSans(
+                                        style: GoogleFonts.plusJakartaSans(
                                           fontSize: 11,
                                           fontWeight: FontWeight.bold,
                                           color: const Color(0xFF009A60),
@@ -5013,9 +5013,9 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                               children: [
                                 Text(
                                   '${round['netScore'] ?? 72}',
-                                  style: GoogleFonts.dmSans(
+                                  style: GoogleFonts.plusJakartaSans(
                                     fontSize: 22,
-                                    fontWeight: FontWeight.w900,
+                                    fontWeight: FontWeight.w700,
                                     color: const Color(0xFF0F172A),
                                     letterSpacing: -0.5,
                                     height: 1.0,
@@ -5024,9 +5024,9 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                 const SizedBox(height: 4),
                                 Text(
                                   'NET SCORE',
-                                  style: GoogleFonts.dmSans(
+                                  style: GoogleFonts.plusJakartaSans(
                                     fontSize: 9.5,
-                                    fontWeight: FontWeight.w800,
+                                    fontWeight: FontWeight.w700,
                                     color: const Color(0xFF94A3B8),
                                     letterSpacing: 0.5,
                                   ),
@@ -5113,7 +5113,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
           ? 'HCP ${t['minHandicap'] ?? 0}–${t['maxHandicap'] ?? 36}'
           : 'No Limit';
       final deadline = t['registrationCloseAt'] != null
-          ? t['registrationCloseAt'].toString().split('T').first
+          ? formatDateWithOrdinal(t['registrationCloseAt'])
           : 'Open';
 
       final rawBanner = (t['bannerUrl'] as String?) ?? '';
@@ -5163,11 +5163,11 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
         const SizedBox(width: 6),
         Text(
           '$label: ',
-          style: GoogleFonts.dmSans(fontSize: 11, color: const Color(0xFF94A3B8)),
+          style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF94A3B8)),
         ),
         Text(
           value,
-          style: GoogleFonts.dmSans(
+          style: GoogleFonts.plusJakartaSans(
             fontSize: 11,
             fontWeight: FontWeight.w600,
             color: const Color(0xFF0F172A),
@@ -5337,7 +5337,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                     ),
                                     child: Text(
                                       gender.toUpperCase(),
-                                      style: GoogleFonts.dmSans(
+                                      style: GoogleFonts.plusJakartaSans(
                                         fontSize: 9,
                                         fontWeight: FontWeight.w700,
                                         color: const Color(0xFF0F172A),
@@ -5354,7 +5354,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                   ),
                                   child: Text(
                                     divisions.toUpperCase(),
-                                    style: GoogleFonts.dmSans(
+                                    style: GoogleFonts.plusJakartaSans(
                                       fontSize: 9,
                                       fontWeight: FontWeight.w700,
                                       color: const Color(0xFF6EE7B7),
@@ -5376,9 +5376,9 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                       titleLines['line1']!,
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
-                                      style: GoogleFonts.dmSans(
+                                      style: GoogleFonts.plusJakartaSans(
                                         fontSize: 15,
-                                        fontWeight: FontWeight.w800,
+                                        fontWeight: FontWeight.w700,
                                         color: Colors.white,
                                         height: 1.15,
                                         letterSpacing: -0.2,
@@ -5389,9 +5389,9 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                         titleLines['line2']!,
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
-                                        style: GoogleFonts.dmSans(
+                                        style: GoogleFonts.plusJakartaSans(
                                           fontSize: 15,
-                                          fontWeight: FontWeight.w800,
+                                          fontWeight: FontWeight.w700,
                                           color: Colors.white,
                                           height: 1.15,
                                           letterSpacing: -0.2,
@@ -5516,7 +5516,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                               children: [
                                 Text(
                                   'Register Now',
-                                  style: GoogleFonts.dmSans(
+                                  style: GoogleFonts.plusJakartaSans(
                                     fontSize: 12.5,
                                     fontWeight: FontWeight.w700,
                                     color: Colors.white,
@@ -5560,7 +5560,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                 const SizedBox(width: 4),
                                 Text(
                                   'Share',
-                                  style: GoogleFonts.dmSans(
+                                  style: GoogleFonts.plusJakartaSans(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w700,
                                     color: const Color(0xFF0F172A),
@@ -5602,7 +5602,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                     backgroundColor: const Color(0xFF009A60),
                     child: Text(
                       '${firstName.isNotEmpty ? firstName[0] : 'S'}${lastName.isNotEmpty ? lastName[0] : 'O'}'.toUpperCase(),
-                      style: GoogleFonts.dmSans(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                      style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -5612,7 +5612,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                       children: [
                         Text(
                           '$firstName $lastName'.trim(),
-                          style: GoogleFonts.dmSans(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
                             color: const Color(0xFF0F172A),
@@ -5620,7 +5620,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                         ),
                         Text(
                           email,
-                          style: GoogleFonts.dmSans(fontSize: 11.5, color: const Color(0xFF64748B)),
+                          style: GoogleFonts.plusJakartaSans(fontSize: 11.5, color: const Color(0xFF64748B)),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -5635,22 +5635,22 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
             // Navigation Items
             ListTile(
               leading: const Icon(Icons.person_outline_rounded, color: Color(0xFF009A60), size: 20),
-              title: Text('My Competitor Profile', style: GoogleFonts.dmSans(fontSize: 13.5, color: const Color(0xFF0F172A), fontWeight: FontWeight.w500)),
+              title: Text('My Competitor Profile', style: GoogleFonts.plusJakartaSans(fontSize: 13.5, color: const Color(0xFF0F172A), fontWeight: FontWeight.w500)),
               onTap: () => Navigator.pop(context),
             ),
             ListTile(
               leading: const Icon(Icons.shield_outlined, color: Color(0xFF009A60), size: 20),
-              title: Text('Verified Handicap Index', style: GoogleFonts.dmSans(fontSize: 13.5, color: const Color(0xFF0F172A), fontWeight: FontWeight.w500)),
+              title: Text('Verified Handicap Index', style: GoogleFonts.plusJakartaSans(fontSize: 13.5, color: const Color(0xFF0F172A), fontWeight: FontWeight.w500)),
               onTap: () => Navigator.pop(context),
             ),
             ListTile(
               leading: const Icon(Icons.golf_course_rounded, color: Color(0xFF009A60), size: 20),
-              title: Text('Home Club Directory', style: GoogleFonts.dmSans(fontSize: 13.5, color: const Color(0xFF0F172A), fontWeight: FontWeight.w500)),
+              title: Text('Home Club Directory', style: GoogleFonts.plusJakartaSans(fontSize: 13.5, color: const Color(0xFF0F172A), fontWeight: FontWeight.w500)),
               onTap: () => Navigator.pop(context),
             ),
             ListTile(
               leading: const Icon(Icons.calendar_month_outlined, color: Color(0xFF009A60), size: 20),
-              title: Text('My Pro Bookings', style: GoogleFonts.dmSans(fontSize: 13.5, color: const Color(0xFF0F172A), fontWeight: FontWeight.w500)),
+              title: Text('My Pro Bookings', style: GoogleFonts.plusJakartaSans(fontSize: 13.5, color: const Color(0xFF0F172A), fontWeight: FontWeight.w500)),
               trailing: _proBookings.isNotEmpty
                   ? Container(
                       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
@@ -5660,7 +5660,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                       ),
                       child: Text(
                         '${_proBookings.length} Active',
-                        style: GoogleFonts.dmSans(fontSize: 11, fontWeight: FontWeight.w700, color: const Color(0xFF009A60)),
+                        style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w700, color: const Color(0xFF009A60)),
                       ),
                     )
                   : null,
@@ -5671,7 +5671,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.settings_outlined, color: Color(0xFF009A60), size: 20),
-              title: Text('Settings & Preferences', style: GoogleFonts.dmSans(fontSize: 13.5, color: const Color(0xFF0F172A), fontWeight: FontWeight.w500)),
+              title: Text('Settings & Preferences', style: GoogleFonts.plusJakartaSans(fontSize: 13.5, color: const Color(0xFF0F172A), fontWeight: FontWeight.w500)),
               onTap: () {
                 Navigator.pop(context);
                 _showSettingsModal();
@@ -5684,7 +5684,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
             // Sign Out
             ListTile(
               leading: const Icon(Icons.logout_rounded, color: Colors.roseAccent, size: 20),
-              title: Text('Sign Out', style: GoogleFonts.dmSans(color: Colors.roseAccent, fontSize: 13.5, fontWeight: FontWeight.w600)),
+              title: Text('Sign Out', style: GoogleFonts.plusJakartaSans(color: Colors.roseAccent, fontSize: 13.5, fontWeight: FontWeight.w600)),
               onTap: () {
                 Navigator.pop(context);
                 _handleLogout();
@@ -5833,9 +5833,9 @@ extension on _CompetitorHomeScreenState {
                         children: [
                           Text(
                             'PLAY',
-                            style: GoogleFonts.dmSans(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 9,
-                              fontWeight: FontWeight.w900,
+                              fontWeight: FontWeight.w700,
                               color: Colors.white,
                               letterSpacing: 0.5,
                               height: 1.05,
@@ -5843,9 +5843,9 @@ extension on _CompetitorHomeScreenState {
                           ),
                           Text(
                             'GOLF',
-                            style: GoogleFonts.dmSans(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 9,
-                              fontWeight: FontWeight.w900,
+                              fontWeight: FontWeight.w700,
                               color: Colors.white,
                               letterSpacing: 0.5,
                               height: 1.05,
@@ -5923,7 +5923,7 @@ extension on _CompetitorHomeScreenState {
             const SizedBox(height: 3),
             Text(
               label,
-              style: GoogleFonts.dmSans(
+              style: GoogleFonts.plusJakartaSans(
                 fontSize: 10.5,
                 fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
                 color: isActive ? activeColor : inactiveColor,
@@ -5979,9 +5979,9 @@ class _BlinkingLiveBadgeState extends State<_BlinkingLiveBadge> with SingleTicke
         ),
         child: Text(
           'LIVE',
-          style: GoogleFonts.dmSans(
+          style: GoogleFonts.plusJakartaSans(
             fontSize: 9,
-            fontWeight: FontWeight.w900,
+            fontWeight: FontWeight.w700,
             color: Colors.white,
             letterSpacing: 0.8,
           ),

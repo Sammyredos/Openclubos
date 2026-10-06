@@ -155,7 +155,7 @@ export default function TVLeaderboardPage() {
       {/* Header */}
       <div className="sticky top-0 z-10 bg-[#0B1120]/95 backdrop-blur-md border-b border-white/10 px-12 py-8 flex items-center justify-between shadow-2xl">
         <div>
-          <h1 className="text-5xl font-black tracking-tight text-white uppercase drop-shadow-lg">
+          <h1 className="text-5xl font-bold tracking-tight text-white uppercase drop-shadow-lg">
             {tournament?.name}
           </h1>
           <p className="text-2xl text-emerald-400 font-semibold mt-3 flex items-center gap-3">
@@ -164,7 +164,7 @@ export default function TVLeaderboardPage() {
           </p>
         </div>
         <div className="text-right">
-          <div className="text-6xl font-black text-white/90">
+          <div className="text-6xl font-bold text-white/90">
             {new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
           </div>
         </div>
@@ -216,7 +216,7 @@ export default function TVLeaderboardPage() {
                 player.status === "DISQUALIFIED" || player.madeCut === false ? "opacity-50" : ""
               )}
             >
-              <div className="w-32 text-center text-4xl font-black text-white/60">
+              <div className="w-32 text-center text-4xl font-bold text-white/60">
                 {posDisplay}
               </div>
               <div className="flex-1 flex items-center gap-6">
@@ -236,7 +236,7 @@ export default function TVLeaderboardPage() {
                 {player.grossStrokes > 0 ? (tournament?.scoringType === 'NET' ? player.netStrokes : player.grossStrokes) : "-"}
               </div>
               <div className={cn(
-                "w-48 text-center text-4xl font-black flex items-center justify-center gap-2",
+                "w-48 text-center text-4xl font-bold flex items-center justify-center gap-2",
                 isUnderPar ? "text-rose-500" : isOverPar ? "text-emerald-500" : "text-white"
               )}>
                 {player.grossStrokes > 0 ? toParStr : "-"}

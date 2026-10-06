@@ -585,7 +585,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
           'Create Player Account',
           style: TextStyle(
             fontSize: 24,
-            fontWeight: FontWeight.w800,
+            fontWeight: FontWeight.w700,
             color: kTextDark,
             letterSpacing: -0.5,
           ),
@@ -976,7 +976,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                                               opt['badge']!,
                                               style: const TextStyle(
                                                 fontSize: 9,
-                                                fontWeight: FontWeight.w900,
+                                                fontWeight: FontWeight.w700,
                                                 color: Colors.white,
                                                 letterSpacing: 0.5,
                                               ),
@@ -1843,7 +1843,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
           'Your Golf Profile',
           style: TextStyle(
             fontSize: 24,
-            fontWeight: FontWeight.w800,
+            fontWeight: FontWeight.w700,
             color: kTextDark,
             letterSpacing: -0.5,
           ),
@@ -2112,7 +2112,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
           'Player Contact & Avatar',
           style: TextStyle(
             fontSize: 24,
-            fontWeight: FontWeight.w800,
+            fontWeight: FontWeight.w700,
             color: kTextDark,
             letterSpacing: -0.5,
           ),
@@ -2537,7 +2537,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
           'Review your details',
           style: TextStyle(
             fontSize: 24,
-            fontWeight: FontWeight.w900,
+            fontWeight: FontWeight.w700,
             color: Color(0xFF0F172A),
             letterSpacing: -0.5,
           ),

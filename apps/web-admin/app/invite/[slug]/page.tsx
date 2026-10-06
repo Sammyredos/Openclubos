@@ -104,7 +104,7 @@ export default function MemberInvitePage({ params }: InvitePageProps) {
 
           {/* Inviter Avatar Squircle Badge */}
           <div className="relative mt-2 mb-4">
-            <div className="w-20 h-20 rounded-[24px] bg-[#EAF7EE] border-2 border-[#C6F0DB] flex items-center justify-center text-[#009A60] font-black text-2xl shadow-xs">
+            <div className="w-20 h-20 rounded-[24px] bg-[#EAF7EE] border-2 border-[#C6F0DB] flex items-center justify-center text-[#009A60] font-bold text-2xl shadow-xs">
               {getInitials(matchedProfile.name)}
             </div>
             <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-[#009A60] border-2 border-white flex items-center justify-center text-white shadow-xs">
@@ -113,7 +113,7 @@ export default function MemberInvitePage({ params }: InvitePageProps) {
           </div>
 
           {/* Headline & Inviter Info */}
-          <h1 className="text-xl sm:text-2xl font-black text-[#0F172A] tracking-tight leading-snug">
+          <h1 className="text-xl sm:text-2xl font-bold text-[#0F172A] tracking-tight leading-snug">
             {matchedProfile.name} invited you to connect
           </h1>
 

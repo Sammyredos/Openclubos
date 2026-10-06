@@ -101,7 +101,7 @@ export function LandingPageDirect() {
               <div className="w-10 h-10 bg-[#009A60] rounded-xl flex items-center justify-center shadow-lg shadow-[#009A60]/20">
                 <Lightbulb className="w-5 h-5 text-white" />
               </div>
-              <span className="text-xl font-extrabold tracking-tighter text-[#0F172A]">
+              <span className="text-xl font-bold tracking-tighter text-[#0F172A]">
                 Openclub<span className="text-[#009A60]">OS</span>
               </span>
             </Link>
@@ -167,7 +167,7 @@ export function LandingPageDirect() {
           {/* Pill Badge */}
           <div className="inline-flex items-center gap-2 bg-[#F5FAF6] border border-[#E1EFE5] px-4 py-2 rounded-full mb-8 shadow-xs">
             <span className="flex h-2 w-2 rounded-full bg-[#009A60]"></span>
-            <span className="text-xs font-extrabold text-[#009A60] tracking-wider uppercase">
+            <span className="text-xs font-bold text-[#009A60] tracking-wider uppercase">
               Introducing Openclub OS 2.0
             </span>
             <span className="text-[#5B6B7F] mx-2">•</span>
@@ -176,7 +176,7 @@ export function LandingPageDirect() {
             </span>
           </div>
 
-          <h1 className="text-5xl md:text-7xl font-black text-[#0F172A] leading-[1.1] mb-6 tracking-tight max-w-5xl mx-auto">
+          <h1 className="text-5xl md:text-7xl font-bold text-[#0F172A] leading-[1.1] mb-6 tracking-tight max-w-5xl mx-auto">
             The Modern Operating System for{" "}
             <span className="text-[#009A60] italic">Golf Tournaments</span> & Clubs
           </h1>
@@ -189,14 +189,14 @@ export function LandingPageDirect() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-20">
             <Link
               href="/signup-organisation"
-              className="w-full sm:w-auto bg-[#009A60] hover:bg-[#008754] text-white px-10 py-5 rounded-2xl font-extrabold text-lg transition-all shadow-2xl shadow-[#009A60]/20 flex items-center justify-center gap-2 group no-underline"
+              className="w-full sm:w-auto bg-[#009A60] hover:bg-[#008754] text-white px-10 py-5 rounded-2xl font-bold text-lg transition-all shadow-2xl shadow-[#009A60]/20 flex items-center justify-center gap-2 group no-underline"
             >
               <span>Start Free Trial</span>
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Link>
             <Link
               href="/mobile-preview"
-              className="w-full sm:w-auto bg-white border border-[#E1EFE5] px-10 py-5 rounded-2xl font-extrabold text-lg hover:bg-[#F5FAF6] transition-all flex items-center justify-center gap-2 text-[#0F172A] no-underline"
+              className="w-full sm:w-auto bg-white border border-[#E1EFE5] px-10 py-5 rounded-2xl font-bold text-lg hover:bg-[#F5FAF6] transition-all flex items-center justify-center gap-2 text-[#0F172A] no-underline"
             >
               <Play className="w-4 h-4 text-[#009A60] fill-[#009A60]" />
               <span>Explore Live Demo</span>
@@ -293,7 +293,7 @@ export function LandingPageDirect() {
                     <div className="h-2 w-3/4 bg-gray-50 rounded"></div>
                     <Link
                       href="/mobile-preview"
-                      className="h-10 w-full bg-[#009A60] rounded-xl flex items-center justify-center text-[10px] font-black text-white uppercase tracking-widest no-underline"
+                      className="h-10 w-full bg-[#009A60] rounded-xl flex items-center justify-center text-[10px] font-bold text-white uppercase tracking-widest no-underline"
                     >
                       Enter Score
                     </Link>
@@ -309,7 +309,7 @@ export function LandingPageDirect() {
                 className="block bg-[#0F172A] rounded-2xl p-5 shadow-2xl border border-white/10 glass text-left no-underline"
               >
                 <div className="flex justify-between items-center mb-4">
-                  <span className="text-[10px] font-black text-[#009A60] uppercase tracking-widest">
+                  <span className="text-[10px] font-bold text-[#009A60] uppercase tracking-widest">
                     Live Leaderboard
                   </span>
                   <span className="flex h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse"></span>
@@ -325,7 +325,7 @@ export function LandingPageDirect() {
                       />
                       <span className="text-xs font-bold text-white">A. Wright</span>
                     </div>
-                    <span className="text-xs font-black text-[#009A60]">-4</span>
+                    <span className="text-xs font-bold text-[#009A60]">-4</span>
                   </div>
                   <div className="flex items-center justify-between bg-white/5 p-2 rounded-lg border border-white/5">
                     <div className="flex items-center gap-3">
@@ -337,7 +337,7 @@ export function LandingPageDirect() {
                       />
                       <span className="text-xs font-bold text-white">J. Palmer</span>
                     </div>
-                    <span className="text-xs font-black text-white">-2</span>
+                    <span className="text-xs font-bold text-white">-2</span>
                   </div>
                 </div>
               </Link>
@@ -349,25 +349,25 @@ export function LandingPageDirect() {
       {/* 3. Social Proof & Trust Bar */}
       <section className="py-12 border-y border-[#E1EFE5] bg-[#F5FAF6]/30">
         <div className="max-w-7xl mx-auto px-6">
-          <p className="text-center text-[10px] font-black text-[#5B6B7F] uppercase tracking-[0.3em] mb-10">
+          <p className="text-center text-[10px] font-bold text-[#5B6B7F] uppercase tracking-[0.3em] mb-10">
             Trusted by Premier Clubs & Regional Tours
           </p>
           <div className="flex flex-wrap justify-center items-center gap-12 md:gap-24 opacity-60 grayscale hover:grayscale-0 transition-all">
             <div className="flex items-center gap-3">
               <Shield className="w-6 h-6 text-[#009A60]" />
-              <span className="font-black text-xl tracking-tighter text-[#0F172A]">OAKWOOD CC</span>
+              <span className="font-bold text-xl tracking-tighter text-[#0F172A]">OAKWOOD CC</span>
             </div>
             <div className="flex items-center gap-3">
               <Crown className="w-6 h-6 text-[#009A60]" />
-              <span className="font-black text-xl tracking-tighter text-[#0F172A]">PGA REGIONAL</span>
+              <span className="font-bold text-xl tracking-tighter text-[#0F172A]">PGA REGIONAL</span>
             </div>
             <div className="flex items-center gap-3">
               <Trophy className="w-6 h-6 text-[#009A60]" />
-              <span className="font-black text-xl tracking-tighter text-[#0F172A]">MASTERS SERIES</span>
+              <span className="font-bold text-xl tracking-tighter text-[#0F172A]">MASTERS SERIES</span>
             </div>
             <div className="flex items-center gap-3">
               <Landmark className="w-6 h-6 text-[#009A60]" />
-              <span className="font-black text-xl tracking-tighter text-[#0F172A]">STATE ASSOC.</span>
+              <span className="font-bold text-xl tracking-tighter text-[#0F172A]">STATE ASSOC.</span>
             </div>
           </div>
         </div>
@@ -378,25 +378,25 @@ export function LandingPageDirect() {
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div className="text-center p-8 bg-[#F5FAF6] rounded-3xl border border-[#E1EFE5] group hover:bg-[#E8F5ED] transition-colors">
-              <h3 className="text-4xl font-black text-[#009A60] mb-2">90%</h3>
+              <h3 className="text-4xl font-bold text-[#009A60] mb-2">90%</h3>
               <p className="text-xs font-bold text-[#5B6B7F] uppercase tracking-wider leading-relaxed">
                 Less time spent on manual pairings & data entry
               </p>
             </div>
             <div className="text-center p-8 bg-[#F5FAF6] rounded-3xl border border-[#E1EFE5] group hover:bg-[#E8F5ED] transition-colors">
-              <h3 className="text-4xl font-black text-[#009A60] mb-2">&lt; 1 sec</h3>
+              <h3 className="text-4xl font-bold text-[#009A60] mb-2">&lt; 1 sec</h3>
               <p className="text-xs font-bold text-[#5B6B7F] uppercase tracking-wider leading-relaxed">
                 Live score broadcast latency to clubhouse TVs
               </p>
             </div>
             <div className="text-center p-8 bg-[#F5FAF6] rounded-3xl border border-[#E1EFE5] group hover:bg-[#E8F5ED] transition-colors">
-              <h3 className="text-4xl font-black text-[#009A60] mb-2">100%</h3>
+              <h3 className="text-4xl font-bold text-[#009A60] mb-2">100%</h3>
               <p className="text-xs font-bold text-[#5B6B7F] uppercase tracking-wider leading-relaxed">
                 Tamper-evident verification on all scorecards
               </p>
             </div>
             <div className="text-center p-8 bg-[#F5FAF6] rounded-3xl border border-[#E1EFE5] group hover:bg-[#E8F5ED] transition-colors">
-              <h3 className="text-4xl font-black text-[#009A60] mb-2">$0</h3>
+              <h3 className="text-4xl font-bold text-[#009A60] mb-2">$0</h3>
               <p className="text-xs font-bold text-[#5B6B7F] uppercase tracking-wider leading-relaxed">
                 Revenue leakage with automated fee tracking
               </p>
@@ -410,7 +410,7 @@ export function LandingPageDirect() {
         <div className="absolute right-0 top-0 w-1/2 h-full pattern-grid opacity-20 -z-10 transform rotate-12"></div>
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-black text-[#0F172A] mb-4 tracking-tight">
+            <h2 className="text-4xl font-bold text-[#0F172A] mb-4 tracking-tight">
               One Platform, Endless Precision
             </h2>
             <p className="text-[#5B6B7F] font-medium max-w-2xl mx-auto">
@@ -426,7 +426,7 @@ export function LandingPageDirect() {
                 <div className="w-12 h-12 bg-[#009A60]/10 text-[#009A60] rounded-xl flex items-center justify-center mb-6">
                   <Sparkles className="w-6 h-6 text-[#009A60]" />
                 </div>
-                <h3 className="text-2xl font-black text-[#0F172A] mb-4">
+                <h3 className="text-2xl font-bold text-[#0F172A] mb-4">
                   10-Step Tournament Builder
                 </h3>
                 <p className="text-[#5B6B7F] font-medium max-w-md mb-8">
@@ -435,7 +435,7 @@ export function LandingPageDirect() {
                 </p>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
-                    <span className="block text-[10px] font-black text-[#009A60] uppercase mb-1">
+                    <span className="block text-[10px] font-bold text-[#009A60] uppercase mb-1">
                       Configurability
                     </span>
                     <p className="text-xs text-[#0F172A] font-bold">
@@ -443,7 +443,7 @@ export function LandingPageDirect() {
                     </p>
                   </div>
                   <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
-                    <span className="block text-[10px] font-black text-[#009A60] uppercase mb-1">
+                    <span className="block text-[10px] font-bold text-[#009A60] uppercase mb-1">
                       Flights & Cuts
                     </span>
                     <p className="text-xs text-[#0F172A] font-bold">
@@ -466,7 +466,7 @@ export function LandingPageDirect() {
                 <div className="w-12 h-12 bg-white/10 text-white rounded-xl flex items-center justify-center mb-6">
                   <Smartphone className="w-6 h-6 text-white" />
                 </div>
-                <h3 className="text-2xl font-black mb-4 leading-tight">
+                <h3 className="text-2xl font-bold mb-4 leading-tight">
                   Real-Time Digital Scorecard
                 </h3>
                 <p className="text-white/80 font-medium mb-8 text-sm">
@@ -474,7 +474,7 @@ export function LandingPageDirect() {
                 </p>
                 <div className="flex items-center gap-3 py-3 px-4 bg-white/10 rounded-2xl border border-white/10">
                   <ShieldCheck className="w-4 h-4 text-white" />
-                  <span className="text-[10px] font-black uppercase tracking-widest">
+                  <span className="text-[10px] font-bold uppercase tracking-widest">
                     Cryptographic Attestation
                   </span>
                 </div>
@@ -490,7 +490,7 @@ export function LandingPageDirect() {
                 <div className="w-12 h-12 bg-white/10 text-white rounded-xl flex items-center justify-center mb-6">
                   <Tv className="w-6 h-6 text-[#009A60]" />
                 </div>
-                <h3 className="text-2xl font-black mb-4 leading-tight">
+                <h3 className="text-2xl font-bold mb-4 leading-tight">
                   Clubhouse TV Broadcast Mode
                 </h3>
                 <p className="text-white/60 font-medium mb-8 text-sm">
@@ -505,21 +505,21 @@ export function LandingPageDirect() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8 h-full text-left">
                 <div className="flex flex-col h-full">
                   <Calendar className="w-7 h-7 text-[#009A60] mb-6" />
-                  <h4 className="font-black text-[#0F172A] mb-2">Smart Tee Sheet</h4>
+                  <h4 className="font-bold text-[#0F172A] mb-2">Smart Tee Sheet</h4>
                   <p className="text-xs text-[#5B6B7F] font-medium leading-relaxed">
                     Algorithmic pairings by handicap index or shotgun starts.
                   </p>
                 </div>
                 <div className="flex flex-col h-full">
                   <Wallet className="w-7 h-7 text-[#009A60] mb-6" />
-                  <h4 className="font-black text-[#0F172A] mb-2">Integrated Wallet</h4>
+                  <h4 className="font-bold text-[#0F172A] mb-2">Integrated Wallet</h4>
                   <p className="text-xs text-[#5B6B7F] font-medium leading-relaxed">
                     Automated fee collection, refunds, and bank withdrawals.
                   </p>
                 </div>
                 <div className="flex flex-col h-full">
                   <UserCheck className="w-7 h-7 text-[#009A60] mb-6" />
-                  <h4 className="font-black text-[#0F172A] mb-2">Player Experience</h4>
+                  <h4 className="font-bold text-[#0F172A] mb-2">Player Experience</h4>
                   <p className="text-xs text-[#5B6B7F] font-medium leading-relaxed">
                     Seamless registration, classification, and flight rankings.
                   </p>
@@ -535,7 +535,7 @@ export function LandingPageDirect() {
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex flex-col lg:flex-row items-start gap-20">
             <div className="lg:w-1/3 text-left">
-              <h2 className="text-4xl font-black text-[#0F172A] mb-6 tracking-tight">
+              <h2 className="text-4xl font-bold text-[#0F172A] mb-6 tracking-tight">
                 Precision in Motion
               </h2>
               <p className="text-[#5B6B7F] font-medium mb-12">
@@ -562,13 +562,13 @@ export function LandingPageDirect() {
                     >
                       <div>
                         <span
-                          className={`text-[10px] font-black uppercase tracking-widest block mb-1 ${
+                          className={`text-[10px] font-bold uppercase tracking-widest block mb-1 ${
                             isActive ? "text-[#009A60]" : "text-[#5B6B7F]"
                           }`}
                         >
                           {tab.label}
                         </span>
-                        <h4 className="font-extrabold text-[#0F172A]">{tab.title}</h4>
+                        <h4 className="font-bold text-[#0F172A]">{tab.title}</h4>
                       </div>
                       <ChevronRight
                         className={`w-4 h-4 text-[#009A60] transition-opacity ${
@@ -594,7 +594,7 @@ export function LandingPageDirect() {
                     {activePhase === 4 && <Trophy className="w-10 h-10 text-white" />}
                   </div>
                   <div>
-                    <h3 className="text-3xl font-black text-[#0F172A] mb-2">
+                    <h3 className="text-3xl font-bold text-[#0F172A] mb-2">
                       Phase {activePhase}: {current.title}
                     </h3>
                     <p className="text-[#5B6B7F] font-medium">{current.subtitle}</p>
@@ -629,10 +629,10 @@ export function LandingPageDirect() {
         <div className="absolute top-0 right-0 w-1/3 h-full bg-[#009A60]/5 transform skew-x-12"></div>
         <div className="max-w-7xl mx-auto px-6 relative z-10">
           <div className="text-center mb-16">
-            <span className="text-[#009A60] font-black uppercase tracking-[0.4em] text-[10px]">
+            <span className="text-[#009A60] font-bold uppercase tracking-[0.4em] text-[10px]">
               Tiered Subscription Plans
             </span>
-            <h2 className="text-4xl font-black text-white mt-4 tracking-tight">
+            <h2 className="text-4xl font-bold text-white mt-4 tracking-tight">
               Transparent Pricing for Every Club
             </h2>
           </div>
@@ -640,12 +640,12 @@ export function LandingPageDirect() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-left">
             {/* Club Basic */}
             <div className="bg-white/5 border border-white/10 rounded-[32px] p-10 flex flex-col hover:bg-white/[0.08] transition-all">
-              <h3 className="text-xl font-extrabold text-white mb-2">Club Basic</h3>
+              <h3 className="text-xl font-bold text-white mb-2">Club Basic</h3>
               <p className="text-white/60 text-sm font-medium mb-8">
                 For single-course clubs running monthly member medals.
               </p>
               <div className="flex items-baseline gap-1 mb-10">
-                <span className="text-4xl font-black text-white">$249</span>
+                <span className="text-4xl font-bold text-white">$249</span>
                 <span className="text-white/40 font-bold">/mo</span>
               </div>
               <ul className="space-y-4 mb-10 flex-grow">
@@ -672,15 +672,15 @@ export function LandingPageDirect() {
 
             {/* Championship Pro */}
             <div className="bg-white rounded-[32px] border-4 border-[#009A60] p-10 flex flex-col relative transform scale-105 shadow-2xl">
-              <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-[#009A60] text-white text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-full">
+              <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-[#009A60] text-white text-[10px] font-bold uppercase tracking-widest px-4 py-2 rounded-full">
                 Most Popular
               </div>
-              <h3 className="text-xl font-extrabold text-[#0F172A] mb-2">Championship Pro</h3>
+              <h3 className="text-xl font-bold text-[#0F172A] mb-2">Championship Pro</h3>
               <p className="text-[#5B6B7F] text-sm font-medium mb-8">
                 Unlimited tournaments and professional broadcast features.
               </p>
               <div className="flex items-baseline gap-1 mb-10">
-                <span className="text-4xl font-black text-[#0F172A]">$599</span>
+                <span className="text-4xl font-bold text-[#0F172A]">$599</span>
                 <span className="text-[#5B6B7F] font-bold">/mo</span>
               </div>
               <ul className="space-y-4 mb-10 flex-grow">
@@ -703,7 +703,7 @@ export function LandingPageDirect() {
               </ul>
               <Link
                 href="/signup-organisation"
-                className="w-full py-4 rounded-xl bg-[#009A60] text-white font-black shadow-lg shadow-[#009A60]/20 hover:bg-[#008754] transition-all text-center no-underline block"
+                className="w-full py-4 rounded-xl bg-[#009A60] text-white font-bold shadow-lg shadow-[#009A60]/20 hover:bg-[#008754] transition-all text-center no-underline block"
               >
                 Start Free Trial
               </Link>
@@ -711,12 +711,12 @@ export function LandingPageDirect() {
 
             {/* Enterprise */}
             <div className="bg-white/5 border border-white/10 rounded-[32px] p-10 flex flex-col hover:bg-white/[0.08] transition-all">
-              <h3 className="text-xl font-extrabold text-white mb-2">Enterprise</h3>
+              <h3 className="text-xl font-bold text-white mb-2">Enterprise</h3>
               <p className="text-white/60 text-sm font-medium mb-8">
                 For multi-course federations and tour associations.
               </p>
               <div className="flex items-baseline gap-1 mb-10">
-                <span className="text-4xl font-black text-white">Custom</span>
+                <span className="text-4xl font-bold text-white">Custom</span>
               </div>
               <ul className="space-y-4 mb-10 flex-grow">
                 <li className="flex items-center gap-3 text-sm text-white/80 font-medium">
@@ -755,7 +755,7 @@ export function LandingPageDirect() {
           style={{ backgroundImage: "url('/images/landing/carbon-fibre.png')" }}
         ></div>
         <div className="max-w-5xl mx-auto px-6 text-center relative z-10">
-          <h2 className="text-4xl md:text-6xl font-black text-white mb-8 tracking-tight leading-tight">
+          <h2 className="text-4xl md:text-6xl font-bold text-white mb-8 tracking-tight leading-tight">
             Ready to Run Your Best Tournament Ever?
           </h2>
           <p className="text-[#F5FAF6] text-xl font-medium mb-12 opacity-90 max-w-2xl mx-auto">
@@ -764,13 +764,13 @@ export function LandingPageDirect() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
               href="/signup-organisation"
-              className="w-full sm:w-auto bg-white text-[#009A60] px-12 py-6 rounded-2xl font-black text-xl shadow-2xl hover:bg-[#F5FAF6] transition-all active:scale-95 no-underline block text-center"
+              className="w-full sm:w-auto bg-white text-[#009A60] px-12 py-6 rounded-2xl font-bold text-xl shadow-2xl hover:bg-[#F5FAF6] transition-all active:scale-95 no-underline block text-center"
             >
               Start Your 14-Day Free Trial
             </Link>
             <Link
               href="/mobile-preview"
-              className="w-full sm:w-auto bg-[#008754] text-white px-12 py-6 rounded-2xl font-black text-xl hover:bg-[#008754]/80 transition-all no-underline block text-center"
+              className="w-full sm:w-auto bg-[#008754] text-white px-12 py-6 rounded-2xl font-bold text-xl hover:bg-[#008754]/80 transition-all no-underline block text-center"
             >
               Book a Live Demo
             </Link>
@@ -790,7 +790,7 @@ export function LandingPageDirect() {
                 <div className="w-10 h-10 bg-[#009A60] rounded-xl flex items-center justify-center shadow-lg shadow-[#009A60]/20">
                   <Lightbulb className="w-5 h-5 text-white" />
                 </div>
-                <span className="text-xl font-extrabold tracking-tighter text-[#0F172A]">
+                <span className="text-xl font-bold tracking-tighter text-[#0F172A]">
                   Openclub<span className="text-[#009A60]">OS</span>
                 </span>
               </div>
@@ -838,7 +838,7 @@ export function LandingPageDirect() {
             </div>
 
             <div>
-              <h5 className="text-[10px] font-black text-[#0F172A] uppercase tracking-widest mb-6">
+              <h5 className="text-[10px] font-bold text-[#0F172A] uppercase tracking-widest mb-6">
                 Features
               </h5>
               <ul className="space-y-4">
@@ -878,7 +878,7 @@ export function LandingPageDirect() {
             </div>
 
             <div>
-              <h5 className="text-[10px] font-black text-[#0F172A] uppercase tracking-widest mb-6">
+              <h5 className="text-[10px] font-bold text-[#0F172A] uppercase tracking-widest mb-6">
                 Solutions
               </h5>
               <ul className="space-y-4">
@@ -910,7 +910,7 @@ export function LandingPageDirect() {
             </div>
 
             <div>
-              <h5 className="text-[10px] font-black text-[#0F172A] uppercase tracking-widest mb-6">
+              <h5 className="text-[10px] font-bold text-[#0F172A] uppercase tracking-widest mb-6">
                 Resources
               </h5>
               <ul className="space-y-4">
@@ -950,7 +950,7 @@ export function LandingPageDirect() {
             </div>
 
             <div>
-              <h5 className="text-[10px] font-black text-[#0F172A] uppercase tracking-widest mb-6">
+              <h5 className="text-[10px] font-bold text-[#0F172A] uppercase tracking-widest mb-6">
                 Company
               </h5>
               <ul className="space-y-4">
@@ -997,13 +997,13 @@ export function LandingPageDirect() {
             <div className="flex items-center gap-8">
               <div className="flex items-center gap-2">
                 <i className="fa-solid fa-shield-halved text-[#009A60] text-sm"></i>
-                <span className="text-[10px] font-black text-[#5B6B7F] uppercase tracking-widest">
+                <span className="text-[10px] font-bold text-[#5B6B7F] uppercase tracking-widest">
                   SOC2 TYPE II COMPLIANT
                 </span>
               </div>
               <div className="flex items-center gap-2">
                 <i className="fa-solid fa-lock text-[#009A60] text-sm"></i>
-                <span className="text-[10px] font-black text-[#5B6B7F] uppercase tracking-widest">
+                <span className="text-[10px] font-bold text-[#5B6B7F] uppercase tracking-widest">
                   GDPR READY
                 </span>
               </div>

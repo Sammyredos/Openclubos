@@ -332,9 +332,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                         alignment: Alignment.center,
                         child: Text(
                           _getInitials(senderName),
-                          style: GoogleFonts.dmSans(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 11,
-                            fontWeight: FontWeight.w900,
+                            fontWeight: FontWeight.w700,
                             color: const Color(0xFF009A60),
                           ),
                         ),
@@ -372,7 +372,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                           Expanded(
                             child: Text(
                               senderName,
-                              style: GoogleFonts.dmSans(
+                              style: GoogleFonts.plusJakartaSans(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w700,
                                 color: const Color(0xFF0F172A),
@@ -382,7 +382,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                           ),
                           Text(
                             timeStr,
-                            style: GoogleFonts.dmSans(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 11,
                               fontWeight: FontWeight.w500,
                               color: const Color(0xFF8CA0BA),
@@ -395,7 +395,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                         senderClub.isNotEmpty
                             ? '$senderClub${senderHcp.isNotEmpty ? " • HCP $senderHcp" : ""}'
                             : 'Sent you a friend request',
-                        style: GoogleFonts.dmSans(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
                           color: const Color(0xFF64748B),
@@ -421,9 +421,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                   ),
                                   child: Text(
                                     'ACCEPT',
-                                    style: GoogleFonts.dmSans(
+                                    style: GoogleFonts.plusJakartaSans(
                                       fontSize: 11,
-                                      fontWeight: FontWeight.w800,
+                                      fontWeight: FontWeight.w700,
                                       letterSpacing: 0.8,
                                     ),
                                   ),
@@ -446,9 +446,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                 ),
                                 child: Text(
                                   'DECLINE',
-                                  style: GoogleFonts.dmSans(
+                                  style: GoogleFonts.plusJakartaSans(
                                     fontSize: 11,
-                                    fontWeight: FontWeight.w800,
+                                    fontWeight: FontWeight.w700,
                                     letterSpacing: 0.8,
                                   ),
                                 ),
@@ -633,7 +633,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                     children: [
                                       Text(
                                         'Flight Grouping',
-                                        style: GoogleFonts.dmSans(
+                                        style: GoogleFonts.plusJakartaSans(
                                           fontSize: 14,
                                           fontWeight: FontWeight.w700,
                                           color: const Color(0xFF0F172A),
@@ -651,7 +651,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                           flightPartners.isNotEmpty
                                               ? '${flightPartners.length} PLAYERS'
                                               : 'PLAYERS',
-                                          style: GoogleFonts.dmSans(
+                                          style: GoogleFonts.plusJakartaSans(
                                             fontSize: 10,
                                             fontWeight: FontWeight.w700,
                                             color: const Color(0xFF009A60),
@@ -662,7 +662,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                   )
                                 : Text(
                                     title,
-                                    style: GoogleFonts.dmSans(
+                                    style: GoogleFonts.plusJakartaSans(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w700,
                                       color: const Color(0xFF0F172A),
@@ -673,7 +673,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                             children: [
                               Text(
                                 timeStr,
-                                style: GoogleFonts.dmSans(
+                                style: GoogleFonts.plusJakartaSans(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w500,
                                   color: const Color(0xFF8CA0BA),
@@ -699,7 +699,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                           const SizedBox(height: 2),
                           Text(
                             toTitleCase(tournamentName),
-                            style: GoogleFonts.dmSans(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 12,
                               fontWeight: FontWeight.w500,
                               color: const Color(0xFF64748B),
@@ -720,9 +720,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                   flightName.isNotEmpty
                                       ? '${flightName.toUpperCase()} • GROUPED WITH:'
                                       : 'GROUPED WITH:',
-                                  style: GoogleFonts.dmSans(
+                                  style: GoogleFonts.plusJakartaSans(
                                     fontSize: 10,
-                                    fontWeight: FontWeight.w800,
+                                    fontWeight: FontWeight.w700,
                                     color: const Color(0xFF8CA0BA),
                                     letterSpacing: 0.8,
                                   ),
@@ -746,9 +746,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                             alignment: Alignment.center,
                                             child: Text(
                                               _getInitials(p),
-                                              style: GoogleFonts.dmSans(
+                                              style: GoogleFonts.plusJakartaSans(
                                                 fontSize: 9,
-                                                fontWeight: FontWeight.w900,
+                                                fontWeight: FontWeight.w700,
                                                 color: const Color(0xFF009A60),
                                               ),
                                             ),
@@ -757,7 +757,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                           Expanded(
                                             child: Text(
                                               p,
-                                              style: GoogleFonts.dmSans(
+                                              style: GoogleFonts.plusJakartaSans(
                                                 fontSize: 12.5,
                                                 fontWeight: FontWeight.w600,
                                                 color: const Color(0xFF0F172A),
@@ -776,7 +776,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                           const SizedBox(height: 4),
                           Text(
                             message,
-                            style: GoogleFonts.dmSans(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 12.5,
                               color: const Color(0xFF475569),
                               height: 1.35,
@@ -787,7 +787,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                         const SizedBox(height: 4),
                         Text(
                           message,
-                          style: GoogleFonts.dmSans(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 12.5,
                             color: const Color(0xFF475569),
                             height: 1.35,
@@ -946,7 +946,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                         ),
                         Text(
                           'Notifications',
-                          style: GoogleFonts.dmSans(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 18,
                             fontWeight: FontWeight.w700,
                             color: const Color(0xFF0F172A),
@@ -992,7 +992,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                 const SizedBox(height: 16),
                                 Text(
                                   'No Notifications',
-                                  style: GoogleFonts.dmSans(
+                                  style: GoogleFonts.plusJakartaSans(
                                     fontSize: 17,
                                     fontWeight: FontWeight.w700,
                                     color: const Color(0xFF0F172A),
@@ -1002,7 +1002,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                 Text(
                                   'All caught up! Real-time tournament updates, pairings, and announcements from the database will appear here.',
                                   textAlign: TextAlign.center,
-                                  style: GoogleFonts.dmSans(
+                                  style: GoogleFonts.plusJakartaSans(
                                     fontSize: 13,
                                     color: const Color(0xFF64748B),
                                     height: 1.45,
@@ -1023,9 +1023,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                       children: [
                                         Text(
                                           'TODAY',
-                                          style: GoogleFonts.dmSans(
+                                          style: GoogleFonts.plusJakartaSans(
                                             fontSize: 11,
-                                            fontWeight: FontWeight.w800,
+                                            fontWeight: FontWeight.w700,
                                             color: const Color(0xFF8CA0BA),
                                             letterSpacing: 1.2,
                                           ),
@@ -1052,9 +1052,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                       children: [
                                         Text(
                                           'YESTERDAY',
-                                          style: GoogleFonts.dmSans(
+                                          style: GoogleFonts.plusJakartaSans(
                                             fontSize: 11,
-                                            fontWeight: FontWeight.w800,
+                                            fontWeight: FontWeight.w700,
                                             color: const Color(0xFF8CA0BA),
                                             letterSpacing: 1.2,
                                           ),
@@ -1078,9 +1078,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                     padding: const EdgeInsets.only(left: 4, right: 4, bottom: 10, top: 12),
                                     child: Text(
                                       'EARLIER',
-                                      style: GoogleFonts.dmSans(
+                                      style: GoogleFonts.plusJakartaSans(
                                         fontSize: 11,
-                                        fontWeight: FontWeight.w800,
+                                        fontWeight: FontWeight.w700,
                                         color: const Color(0xFF8CA0BA),
                                         letterSpacing: 1.2,
                                       ),

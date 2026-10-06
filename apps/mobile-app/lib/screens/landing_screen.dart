@@ -167,9 +167,9 @@ class _LandingScreenState extends State<LandingScreen> {
                       const SizedBox(width: 8),
                       RichText(
                         text: TextSpan(
-                          style: GoogleFonts.dmSans(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 18,
-                            fontWeight: FontWeight.w900,
+                            fontWeight: FontWeight.w700,
                             letterSpacing: -0.4,
                             color: Colors.white,
                           ),
@@ -233,9 +233,9 @@ class _LandingScreenState extends State<LandingScreen> {
                   RichText(
                     textAlign: TextAlign.center,
                     text: TextSpan(
-                      style: GoogleFonts.dmSans(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 25,
-                        fontWeight: FontWeight.w900,
+                        fontWeight: FontWeight.w700,
                         color: const Color(0xFF111827),
                         letterSpacing: -0.5,
                         height: 1.22,

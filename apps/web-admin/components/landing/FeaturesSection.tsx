@@ -18,7 +18,7 @@ export function FeaturesSection() {
       <div className="absolute right-0 top-0 w-1/2 h-full pattern-grid opacity-20 -z-10 transform rotate-12 pointer-events-none" />
       <div className="max-w-7xl mx-auto px-6">
         <div className="text-center mb-16">
-          <h2 className="text-4xl font-black text-[#0F172A] mb-4 tracking-tight">
+          <h2 className="text-4xl font-bold text-[#0F172A] mb-4 tracking-tight">
             One Platform, Endless Precision
           </h2>
           <p className="text-[#5B6B7F] font-medium max-w-2xl mx-auto">
@@ -36,7 +36,7 @@ export function FeaturesSection() {
               <div className="w-12 h-12 bg-[#009A60]/10 text-[#009A60] rounded-xl flex items-center justify-center mb-6">
                 <Sparkles className="w-6 h-6 text-[#009A60]" />
               </div>
-              <h3 className="text-2xl font-black text-[#0F172A] mb-4 group-hover:text-[#009A60] transition-colors">
+              <h3 className="text-2xl font-bold text-[#0F172A] mb-4 group-hover:text-[#009A60] transition-colors">
                 10-Step Tournament Builder
               </h3>
               <p className="text-[#5B6B7F] font-medium max-w-md mb-8">
@@ -44,7 +44,7 @@ export function FeaturesSection() {
               </p>
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
-                  <span className="block text-[10px] font-black text-[#009A60] uppercase mb-1">
+                  <span className="block text-[10px] font-bold text-[#009A60] uppercase mb-1">
                     Configurability
                   </span>
                   <p className="text-xs text-[#0F172A] font-bold">
@@ -52,7 +52,7 @@ export function FeaturesSection() {
                   </p>
                 </div>
                 <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
-                  <span className="block text-[10px] font-black text-[#009A60] uppercase mb-1">
+                  <span className="block text-[10px] font-bold text-[#009A60] uppercase mb-1">
                     Flights & Cuts
                   </span>
                   <p className="text-xs text-[#0F172A] font-bold">
@@ -75,7 +75,7 @@ export function FeaturesSection() {
               <div className="w-12 h-12 bg-white/10 text-white rounded-xl flex items-center justify-center mb-6">
                 <Smartphone className="w-6 h-6 text-white" />
               </div>
-              <h3 className="text-2xl font-black mb-4 leading-tight">
+              <h3 className="text-2xl font-bold mb-4 leading-tight">
                 Real-Time Digital Scorecard
               </h3>
               <p className="text-white/80 font-medium mb-8 text-sm">
@@ -83,7 +83,7 @@ export function FeaturesSection() {
               </p>
               <div className="flex items-center gap-3 py-3 px-4 bg-white/10 rounded-2xl border border-white/10">
                 <ShieldCheck className="w-4 h-4 text-white" />
-                <span className="text-[10px] font-black uppercase tracking-widest">
+                <span className="text-[10px] font-bold uppercase tracking-widest">
                   Cryptographic Attestation
                 </span>
               </div>
@@ -99,7 +99,7 @@ export function FeaturesSection() {
               <div className="w-12 h-12 bg-white/10 text-white rounded-xl flex items-center justify-center mb-6">
                 <Tv className="w-6 h-6 text-[#009A60]" />
               </div>
-              <h3 className="text-2xl font-black mb-4 leading-tight">
+              <h3 className="text-2xl font-bold mb-4 leading-tight">
                 Clubhouse TV Broadcast Mode
               </h3>
               <p className="text-white/60 font-medium mb-8 text-sm">
@@ -115,7 +115,7 @@ export function FeaturesSection() {
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-6">
                   <CalendarDays className="w-7 h-7 text-[#009A60]" />
                 </div>
-                <h4 className="font-black text-[#0F172A] mb-2 group-hover:text-[#009A60] transition-colors">
+                <h4 className="font-bold text-[#0F172A] mb-2 group-hover:text-[#009A60] transition-colors">
                   Smart Tee Sheet
                 </h4>
                 <p className="text-xs text-[#5B6B7F] font-medium leading-relaxed">
@@ -127,7 +127,7 @@ export function FeaturesSection() {
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-6">
                   <Wallet className="w-7 h-7 text-[#009A60]" />
                 </div>
-                <h4 className="font-black text-[#0F172A] mb-2 group-hover:text-[#009A60] transition-colors">
+                <h4 className="font-bold text-[#0F172A] mb-2 group-hover:text-[#009A60] transition-colors">
                   Integrated Wallet
                 </h4>
                 <p className="text-xs text-[#5B6B7F] font-medium leading-relaxed">
@@ -139,7 +139,7 @@ export function FeaturesSection() {
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-6">
                   <UserCheck className="w-7 h-7 text-[#009A60]" />
                 </div>
-                <h4 className="font-black text-[#0F172A] mb-2 group-hover:text-[#009A60] transition-colors">
+                <h4 className="font-bold text-[#0F172A] mb-2 group-hover:text-[#009A60] transition-colors">
                   Player Experience
                 </h4>
                 <p className="text-xs text-[#5B6B7F] font-medium leading-relaxed">

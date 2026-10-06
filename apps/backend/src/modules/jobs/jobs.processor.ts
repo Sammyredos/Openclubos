@@ -384,25 +384,36 @@ export class JobsProcessor extends WorkerHost {
   private async runDataRetentionCleanup() {
     this.logger.log('Starting DATA_RETENTION_CLEANUP...');
 
-    // 1. Audit logs: archive after 90 days
+    // 1. Audit logs: Immutable and append-only per security architecture (docs/architecture/security-model.md).
+    // Application-level Prisma client and PostgreSQL kernel trigger `trg_protect_audit_log` forbid all mutations/deletions.
+    // We log count of logs past the retention threshold for operational visibility without mutating the immutable table.
     const ninetyDaysAgo = new Date();
     ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
-    const deletedLogs = await this.prisma.auditLog.deleteMany({
+    const matureLogsCount = await this.prisma.auditLog.count({
       where: { createdAt: { lt: ninetyDaysAgo } },
     });
     this.logger.log(
-      `Deleted ${deletedLogs.count} audit logs older than 90 days.`,
+      `AuditLog retention check: ${matureLogsCount} audit logs older than 90 days retained (immutable append-only policy active).`,
     );
 
-    // 2. Soft-deleted users: hard delete after 30 days
+    // 2. Soft-deleted users: hard delete after 30 days if they have no immutable audit logs
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const deletedUsers = await this.prisma.user.deleteMany({
-      where: { deletedAt: { lt: thirtyDaysAgo } },
-    });
-    this.logger.log(
-      `Hard deleted ${deletedUsers.count} users who were soft-deleted more than 30 days ago.`,
-    );
+    try {
+      const deletedUsers = await this.prisma.user.deleteMany({
+        where: {
+          deletedAt: { lt: thirtyDaysAgo },
+          auditLogs: { none: {} },
+        },
+      });
+      this.logger.log(
+        `Hard deleted ${deletedUsers.count} users who were soft-deleted more than 30 days ago.`,
+      );
+    } catch (err: unknown) {
+      this.logger.warn(
+        `Soft-deleted user cleanup skipped or deferred due to constraint: ${(err as Error)?.message || err}`,
+      );
+    }
 
     // 3. Completed tournaments: archive scores after 1 year
     const oneYearAgo = new Date();
@@ -410,36 +421,42 @@ export class JobsProcessor extends WorkerHost {
 
     // Prisma does not currently support `deleteMany` across relation boundaries directly.
     // We must query the affected score IDs first, then delete them.
-    const oldScores = await this.prisma.score.findMany({
-      where: {
-        group: {
-          tournament: {
-            status: 'COMPLETED',
-            endDate: { lt: oneYearAgo },
+    try {
+      const oldScores = await this.prisma.score.findMany({
+        where: {
+          group: {
+            tournament: {
+              status: 'COMPLETED',
+              endDate: { lt: oneYearAgo },
+            },
           },
         },
-      },
-      select: { id: true },
-    });
+        select: { id: true },
+      });
 
-    if (oldScores.length > 0) {
-      const scoreIds = oldScores.map((s) => s.id);
+      if (oldScores.length > 0) {
+        const scoreIds = oldScores.map((s) => s.id);
 
-      // Delete in batches to avoid query size limits if there are millions of scores
-      const batchSize = 5000;
-      let totalDeleted = 0;
-      for (let i = 0; i < scoreIds.length; i += batchSize) {
-        const batch = scoreIds.slice(i, i + batchSize);
-        const res = await this.prisma.score.deleteMany({
-          where: { id: { in: batch } },
-        });
-        totalDeleted += res.count;
+        // Delete in batches to avoid query size limits if there are millions of scores
+        const batchSize = 5000;
+        let totalDeleted = 0;
+        for (let i = 0; i < scoreIds.length; i += batchSize) {
+          const batch = scoreIds.slice(i, i + batchSize);
+          const res = await this.prisma.score.deleteMany({
+            where: { id: { in: batch } },
+          });
+          totalDeleted += res.count;
+        }
+        this.logger.log(
+          `Deleted ${totalDeleted} scores for completed tournaments older than 1 year.`,
+        );
+      } else {
+        this.logger.log('No old scores found to delete.');
       }
-      this.logger.log(
-        `Deleted ${totalDeleted} scores for completed tournaments older than 1 year.`,
+    } catch (err: unknown) {
+      this.logger.warn(
+        `Archived score cleanup encountered an error: ${(err as Error)?.message || err}`,
       );
-    } else {
-      this.logger.log('No old scores found to delete.');
     }
   }
 

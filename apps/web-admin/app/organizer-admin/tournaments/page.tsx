@@ -51,7 +51,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input, SearchableSelect } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { cn, formatThousandsInput, formatWithCommas, formatTitleCase, formatTournamentFee, formatCurrency, formatWithOrdinal } from "@/lib/utils";
+import { cn, formatThousandsInput, formatWithCommas, formatTitleCase, formatTournamentFee, formatCurrency, formatWithOrdinal, formatDateRange } from "@/lib/utils";
 import { Pagination } from "@/components/ui/pagination";
 import { Label } from "@/components/ui/label";
 import { Modal } from "@/components/ui/modal";
@@ -147,13 +147,6 @@ const VISIBILITY_META: Record<"PUBLIC" | "PRIVATE" | "INVITE_ONLY", { label: str
   INVITE_ONLY: { label: "Invite Only/Closed Tournament", badge: "bg-amber-50 text-amber-600", icon: Shield },
 };
 
-function formatDateRange(startISO: string, endISO: string | null) {
-  const start = new Date(startISO);
-  const end = endISO ? new Date(endISO) : null;
-  const fmt = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" });
-  if (!end) return formatWithOrdinal(fmt.format(start));
-  return `${formatWithOrdinal(fmt.format(start))} - ${formatWithOrdinal(fmt.format(end))}`;
-}
 
 function formatPlayers(current: number, maxPlayers: number | null) {
   if (maxPlayers == null) return formatWithCommas(current);

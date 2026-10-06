@@ -259,7 +259,7 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 26,
-                      fontWeight: FontWeight.w900,
+                      fontWeight: FontWeight.w700,
                       color: Color(0xFF111827),
                       letterSpacing: -0.5,
                     ),

@@ -184,9 +184,9 @@ class _SyncContactsScreenState extends State<SyncContactsScreen> {
                             Text(
                               'Sync Your Contacts',
                               textAlign: TextAlign.center,
-                              style: GoogleFonts.dmSans(
+                              style: GoogleFonts.plusJakartaSans(
                                 fontSize: 26,
-                                fontWeight: FontWeight.w900,
+                                fontWeight: FontWeight.w700,
                                 color: const Color(0xFF0F172A),
                                 letterSpacing: -0.5,
                               ),
@@ -198,7 +198,7 @@ class _SyncContactsScreenState extends State<SyncContactsScreen> {
                             RichText(
                               textAlign: TextAlign.center,
                               text: TextSpan(
-                                style: GoogleFonts.dmSans(
+                                style: GoogleFonts.plusJakartaSans(
                                   fontSize: 13.5,
                                   color: const Color(0xFF64748B),
                                   height: 1.45,
@@ -267,7 +267,7 @@ class _SyncContactsScreenState extends State<SyncContactsScreen> {
                                           Expanded(
                                             child: Text(
                                               'Auto-Connect with Friends',
-                                              style: GoogleFonts.dmSans(
+                                              style: GoogleFonts.plusJakartaSans(
                                                 fontSize: 12,
                                                 fontWeight: FontWeight.w700,
                                                 color: const Color(0xFF5E718D),
@@ -330,7 +330,7 @@ class _SyncContactsScreenState extends State<SyncContactsScreen> {
                                           Expanded(
                                             child: Text(
                                               'Secure & Private Sync',
-                                              style: GoogleFonts.dmSans(
+                                              style: GoogleFonts.plusJakartaSans(
                                                 fontSize: 12,
                                                 fontWeight: FontWeight.w700,
                                                 color: const Color(0xFF5E718D),
@@ -378,7 +378,7 @@ class _SyncContactsScreenState extends State<SyncContactsScreen> {
                                         )
                                       : Text(
                                           'Allow Access',
-                                          style: GoogleFonts.dmSans(
+                                          style: GoogleFonts.plusJakartaSans(
                                             fontSize: 14,
                                             fontWeight: FontWeight.w700,
                                             color: Colors.white,
@@ -396,7 +396,7 @@ class _SyncContactsScreenState extends State<SyncContactsScreen> {
                                   padding: const EdgeInsets.symmetric(vertical: 8),
                                   child: Text(
                                     'Maybe Later',
-                                    style: GoogleFonts.dmSans(
+                                    style: GoogleFonts.plusJakartaSans(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w700,
                                       color: const Color(0xFF8CA0BA),

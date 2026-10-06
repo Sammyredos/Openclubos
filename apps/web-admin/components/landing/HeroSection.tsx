@@ -16,13 +16,13 @@ export function HeroSection() {
         {/* Pill Badge */}
         <div className="inline-flex items-center gap-2 bg-[#F5FAF6] border border-[#E1EFE5] px-4 py-2 rounded-full mb-8 shadow-xs">
           <span className="flex h-2 w-2 rounded-full bg-[#009A60]" />
-          <span className="text-xs font-extrabold text-[#009A60] tracking-wider uppercase">
+          <span className="text-xs font-bold text-[#009A60] tracking-wider uppercase">
             Introducing Openclub OS 2.0
           </span>
         </div>
 
         {/* Heading */}
-        <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black tracking-tight text-[#0F172A] leading-[1.05] max-w-5xl mx-auto mb-8">
+        <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold tracking-tight text-[#0F172A] leading-[1.05] max-w-5xl mx-auto mb-8">
           The Operating System for <span className="text-[#009A60] italic">Elite</span> Golf Venues.
         </h1>
 
@@ -81,7 +81,7 @@ export function HeroSection() {
                   <div className="flex justify-between items-center mb-6 sm:mb-8">
                     <div className="space-y-2">
                       <div className="h-6 w-48 bg-[#0F172A]/10 rounded-lg flex items-center px-3">
-                        <span className="text-[11px] font-black text-[#0F172A] uppercase tracking-wider">
+                        <span className="text-[11px] font-bold text-[#0F172A] uppercase tracking-wider">
                           Tournament Hub
                         </span>
                       </div>
@@ -98,24 +98,24 @@ export function HeroSection() {
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
                     <div className="h-28 bg-[#F5FAF6] border border-[#E1EFE5] rounded-2xl p-4 flex flex-col justify-between">
                       <div className="flex justify-between items-center">
-                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#009A60]">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-[#009A60]">
                           Active Events
                         </span>
                         <div className="h-2 w-2 rounded-full bg-[#009A60]" />
                       </div>
-                      <div className="text-2xl font-black text-[#0F172A]">12</div>
+                      <div className="text-2xl font-bold text-[#0F172A]">12</div>
                     </div>
                     <div className="h-28 bg-gray-50 border border-gray-100 rounded-2xl p-4 flex flex-col justify-between">
-                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#5B6B7F]">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#5B6B7F]">
                         Purse Balance
                       </span>
-                      <div className="text-2xl font-black text-[#0F172A]">$45,000</div>
+                      <div className="text-2xl font-bold text-[#0F172A]">$45,000</div>
                     </div>
                     <div className="h-28 bg-gray-50 border border-gray-100 rounded-2xl p-4 flex flex-col justify-between">
-                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#5B6B7F]">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#5B6B7F]">
                         Live Scoring
                       </span>
-                      <div className="text-2xl font-black text-[#009A60]">Active</div>
+                      <div className="text-2xl font-bold text-[#009A60]">Active</div>
                     </div>
                   </div>
 
@@ -133,13 +133,13 @@ export function HeroSection() {
                         Lakowe Lakes Championship • Round 2 Live
                       </div>
                       <div className="flex -space-x-2">
-                        <div className="w-7 h-7 rounded-full border-2 border-white bg-slate-200 text-[#0F172A] text-[10px] font-black flex items-center justify-center">
+                        <div className="w-7 h-7 rounded-full border-2 border-white bg-slate-200 text-[#0F172A] text-[10px] font-bold flex items-center justify-center">
                           AW
                         </div>
-                        <div className="w-7 h-7 rounded-full border-2 border-white bg-slate-300 text-[#0F172A] text-[10px] font-black flex items-center justify-center">
+                        <div className="w-7 h-7 rounded-full border-2 border-white bg-slate-300 text-[#0F172A] text-[10px] font-bold flex items-center justify-center">
                           JP
                         </div>
-                        <div className="w-7 h-7 rounded-full border-2 border-white bg-slate-400 text-[#0F172A] text-[10px] font-black flex items-center justify-center">
+                        <div className="w-7 h-7 rounded-full border-2 border-white bg-slate-400 text-[#0F172A] text-[10px] font-bold flex items-center justify-center">
                           CS
                         </div>
                       </div>
@@ -174,7 +174,7 @@ export function HeroSection() {
                   <div className="h-2 w-3/4 bg-gray-50 rounded" />
                   <Link
                     href="/mobile-preview"
-                    className="h-10 w-full bg-[#009A60] hover:bg-[#008754] rounded-xl flex items-center justify-center text-[10px] font-black text-white uppercase tracking-widest no-underline transition-colors shadow-xs"
+                    className="h-10 w-full bg-[#009A60] hover:bg-[#008754] rounded-xl flex items-center justify-center text-[10px] font-bold text-white uppercase tracking-widest no-underline transition-colors shadow-xs"
                   >
                     Enter Score
                   </Link>
@@ -190,7 +190,7 @@ export function HeroSection() {
               className="block bg-[#0F172A] rounded-2xl p-5 shadow-2xl border border-white/10 glass text-left no-underline group"
             >
               <div className="flex justify-between items-center mb-4">
-                <span className="text-[10px] font-black text-[#009A60] uppercase tracking-widest">
+                <span className="text-[10px] font-bold text-[#009A60] uppercase tracking-widest">
                   Live Leaderboard
                 </span>
                 <span className="flex h-2 w-2 rounded-full bg-red-500 animate-pulse" />
@@ -206,7 +206,7 @@ export function HeroSection() {
                     />
                     <span className="text-xs font-bold text-white">A. Wright</span>
                   </div>
-                  <span className="text-xs font-black text-[#009A60]">-4</span>
+                  <span className="text-xs font-bold text-[#009A60]">-4</span>
                 </div>
                 <div className="flex items-center justify-between bg-white/5 p-2 rounded-lg border border-white/5">
                   <div className="flex items-center gap-3">
@@ -218,7 +218,7 @@ export function HeroSection() {
                     />
                     <span className="text-xs font-bold text-white">J. Palmer</span>
                   </div>
-                  <span className="text-xs font-black text-white">-2</span>
+                  <span className="text-xs font-bold text-white">-2</span>
                 </div>
               </div>
             </Link>

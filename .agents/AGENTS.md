@@ -1,3 +1,7 @@
+## Font Weight Ceiling Rule
+- Never use a font-weight greater than 700 (`font-bold`, `FontWeight.w700`, `FontWeight.bold`) anywhere in the application (web admin and mobile app).
+- `font-bold` (700) is the absolute upper limit for boldness. Never use `font-extrabold` (800), `font-black` (900), `FontWeight.w800`, or `FontWeight.w900`. Always use `font-bold` (700) or `font-semibold` (600) instead.
+
 ## Number Formatting Rules
 - Always use the global \formatNumber\ or \formatCurrency\ utilities from \lib/utils.ts\ to format large numbers.
 - When formatting millions, use lowercase 'm' (e.g. 1.5m), lowercase 'b' for billions, and lowercase 'k' for thousands.
@@ -90,8 +94,8 @@ Always ensure that every page has a distinct title shown in the browser tab.
   - **Standardized Maximum Width**: Must strictly use `w-full max-w-sm mx-auto` (384px maximum width, horizontally centered) in Web Preview, and `BoxConstraints(maxWidth: 440)` with `Center()` in Flutter native screens. This prevents forms from stretching excessively when viewed on tablets (iPad Pro, iPad Mini, Galaxy Tab) or larger viewports.
   - **Header & Progress Bar Alignment**: Navigation headers, progress indicators (e.g., Step 1 of 4, 4-segment progress bars), and back buttons must also be enclosed within `w-full max-w-sm mx-auto` so that the navigation elements align flush with the centered form card rather than drifting to the outer display edges on wide screens.
   - **Scrollable Form Body & Content**: The scrollable body (`flex-1 overflow-y-auto`) must wrap its form fields, headings, social auth buttons, and primary action buttons inside `w-full max-w-sm mx-auto` with `space-y-3.5` or `space-y-4`.
-  - **Pinned Screen Footers**: Pinned bottom footers (e.g., "Remember your password? Back to Login", "New to OpenclubOS? Create Player Account", "VERIFICATION EXPIRES IN 10 MINUTES", device session disclaimers) must maintain `w-full max-w-sm mx-auto` to remain centered directly beneath the form column.
-  - **Bottom Sheet Modals**: All bottom sheets and selector modals (e.g., Select Home Golf Club, Select Player Classification, Country Picker, State Picker, City Picker) must apply `w-full max-w-sm mx-auto` to their inner sheet card container (`bg-white rounded-t-[28px]`) so they display as a clean, properly proportioned mobile bottom sheet on tablets rather than spanning the entire tablet width.
+  - **Bottom Sheet Modals**: All bottom sheets and selector modals (e.g., Select Home Golf Club, Select Player Classification, Country Picker, State Picker, City Picker, Menu Drawer, Settings & Preferences, Bookings, Active Players, Tournament Filters, Forfeit Dialog, Unfriend/Block/Report Modals) must display full width across tablet screens (using `${isTablet ? "" : "max-w-sm mx-auto"}` in Web Preview, and full width in Flutter) rather than being constrained with side margins on tablets.
+  - **Category Filter Pills Centering**: Category filter pills (e.g. "All", "Ongoing", "Upcoming", "Completed") across tournament screens must be centered horizontally on both mobile and tablet viewports while preserving horizontal scrollability when overflow occurs.
 
 ## In-App Input Styling Rules
 - All form inputs, search fields, credential inputs, and modal search bars across mobile screens and modals (including Add Golf Friends search, Country/State/City pickers, and authentication inputs) must strictly use the unified soft-mint background `bg-[#f5faf6]` (`Color(0xFFF5FAF6)` in Flutter) with a subtle mint border `border-[#e1efe5]` (`Color(0xFFE1EFE5)` in Flutter).
@@ -113,3 +117,54 @@ Always ensure that every page has a distinct title shown in the browser tab.
   - **Inactive Pill Border**: Inactive tabs must apply `border border-transparent` to prevent 1px layout shift during selection state transitions.
   - **Active Typography**: Dark slate or brand emerald (`text-slate-900` or `text-openclub-700`) with medium or semibold weight (`font-semibold` or `font-medium`). Inactive tabs use `text-slate-500 hover:text-slate-900 font-medium`.
 
+## Mobile Button Typography & Capitalization Rules
+- **Universal Capitalize Text Transform**: All interactive action buttons, CTAs, submit triggers, navigation controls, and state indicator buttons throughout the mobile application (in both the Web Admin Mobile Preview Simulator and the Flutter native app) must strictly use **Capitalized letters** (`capitalize` / Title Case, e.g., `Join Tournament`, `View Info`, `Register Now`, `Registration Closed`, `Official Registration Closed`, `Apply Filters`, `Clear Search & Filters`, `Reset All`, `Sign In`, `Verify Email`, `Continue to Contact →`, `Resend Code`).
+- **No All-Caps or All-Lowercase on Mobile Buttons**: Never use all-uppercase uppercase (`JOIN TOURNAMENT`) or all-lowercase (`join tournament`) for action button text in mobile views. Buttons must consistently use `capitalize` styling.
+- **Optical Typography Scale & Weights**: Button typography should combine semibold or bold font weights (`font-semibold` or `font-bold`) with normal tracking (`tracking-normal`) for clean, elegant readability on mobile screens.
+- **Icon Alignment**: Trailing icons (such as `ArrowRight`) and leading icons (such as `CalendarPlus` or `Share2`) must maintain vertical optical centering with capitalized button labels.
+
+## Cancel Button Styling Rules
+- All Cancel buttons across mobile bottom sheets, modals, confirmation dialogs, and forms must strictly use a subtle red background tint with soft red borders:
+  - **Styling**: `bg-red-50 hover:bg-red-100 border border-red-200/70 text-red-600 active:scale-[0.98]` (`Color(0xFFFEF2F2)` background, `Color(0xFFFECACA)` border, `Color(0xFFDC2626)` text in Flutter).
+  - Never use generic gray `bg-[#F1F5F9]` or white borders for Cancel buttons.
+  - Cancel buttons must strictly use `capitalize` styling (e.g. `Cancel`, `Cancel, Stay in Play`, `Cancel, Keep Friend`, `Cancel, Keep Unblocked`).
+
+## Section Eyebrow Label & Inter-Section Spacing Standardization Rules
+- **Section Eyebrow Typography**: All section eyebrow headers, filter category titles, and detail tab section labels across the application (e.g., `ABOUT THE EVENT`, `COURSE SPECS`, `LOCATION & PROXIMITY`, `HOST GOLF CLUB`, `WHEN`, `EVENT TYPE`, `GAME FORMAT`, `ENTRY FEE`, `YOUR HANDICAP RANGE`, `TOURNAMENT SCHEDULE`, `ORGANIZER`, `COMPETITION RULES`, `REGISTERED PLAYERS`, `OFFICIAL PURSE & HONORS`):
+  - Must strictly use `text-[11px] font-bold tracking-[0.14em] text-[#64748B] uppercase block` (`Color(0xFF64748B)` in Flutter).
+  - Never use low-contrast `#8CA0BA`, lighter font weights, unspaced tracking, or mixed casing for section eyebrow labels.
+  - **Label Bottom Margin**: Maintain a uniform `12px-14px` (`mb-3` or `mb-3.5`) bottom separation to the input, control, or card grid below it.
+- **Inter-Section Vertical Rhythm**:
+  - Major section groups in forms, sheets, and filter modals must strictly maintain a generous vertical spacing of `28px` to `32px` (`space-y-7` or `space-y-8` in container layout) to provide distinct optical separation between sections.
+  - Never collapse major sections together with cramped 16px (`space-y-4`) spacing.
+
+## Faint Green Metric & Spec Display Background Standardization Rules
+- **Display Card Backgrounds**: All tournament metric cards (`ENTRY FEE`, `DURATION`, `FORMAT`) and course spec summary cards (`PAR`, `HOLES`, `HCP LIMIT`):
+  - **Color & Border**: Must strictly use the soft-mint faint green background `bg-[#f5faf6]` (`Color(0xFFF5FAF6)` in Flutter) paired with delicate border `border border-[#e1efe5]` (`Color(0xFFE1EFE5)` in Flutter) and zero shadow (`shadow-none`).
+  - **Internal Dividers**: Multi-column spec displays (e.g., `PAR | HOLES | HCP LIMIT`) must use matching subtle dividers `divide-[#e1efe5]` (`Color(0xFFE1EFE5)` in Flutter).
+  - Never use generic off-white `bg-[#F8F9FA]`, cool gray `bg-slate-50`, or bright pure white containers for these spec and metric displays.
+
+## Tournament Players Tab Card Standardization Rules
+- **Player Card Data Display**: On the tournament details `PLAYERS` tab (in both the Web Admin Mobile Preview Simulator and the Tournament details page):
+  - **Container & Geometry**: Fainted green background `bg-[#f5faf6]` (`Color(0xFFF5FAF6)` in Flutter), replicated friend request card border radius `rounded-2xl` (`BorderRadius.circular(16)` in Flutter), delicate border `border border-[#e1efe5]` (`Color(0xFFE1EFE5)` in Flutter), compact padding `p-3.5`, and soft drop shadow `shadow-2xs` (`shadow-xs` / `shadow-2xs`).
+  - **Avatar & Verification Indicators**: Avatar image with initials fallback, bottom-right 16px green check status indicator badge (`w-4 h-4 rounded-full bg-[#009A60] border-2 border-white`), and a right-anchored green `Verified` pill badge with reduced font size (`px-2.5 py-0.5 rounded-full bg-[#EAF7EE] border border-[#C6F0DB]/80 text-[10.5px] font-bold text-[#009A60] capitalize`).
+  - **Typography & Subtitle Layout**: Player name in dark slate (`text-[14.5px] font-bold text-[#0F172A] leading-tight`). Subtitle displays `{player.club} | {player.hcp} HCP` with the club name truncated, separated by a light slate demarcation pipe `|` (`mx-1.5 text-slate-300 font-normal shrink-0`) and handicap index (`shrink-0 font-medium text-[#64748B] text-[12px]`).
+
+## Tournament Rules Tab Standardization Rules
+- **Header**: Section eyebrow label `COMPETITION RULES` using `text-[11px] font-bold tracking-[0.14em] text-[#64748B] uppercase block mb-4`.
+- **List Layout & Geometry**: Clean list structure with `space-y-5` vertical rhythm directly on the daylight body (no heavy enclosing card borders or dividers).
+- **Numbered Badge Indicator**: Standardized circular badge `w-7 h-7 rounded-full bg-[#EAF7EE] text-[#009A60] font-bold text-[12px] flex items-center justify-center shrink-0 mt-0.5` displaying zero-padded numbers (`01`, `02`, `03`).
+- **Rule Typography**: Bold dark slate `text-[14.5px] font-bold text-[#0F172A] leading-snug` with `gap-3.5` optical separation from the numbered badge.
+
+## Mobile Screen Horizontal Margin & Padding Standardization Rules
+- **Content Card Columns, Feeds & Metric Displays (Home Screen & All Mobile Screens)**:
+  - All content card lists, interactive action cards, telemetry displays, course spec grids, notifications feeds, friends lists, and leaderboard tables across the application must strictly replicate the **16px horizontal margin/padding** (`px-4` in Tailwind CSS / `EdgeInsets.symmetric(horizontal: 16)` in Flutter) established by the Home screen (`hub`):
+    - **Home Screen (`hub`)**: Header content, dual floating cards (`Book a Pro`, `HCP`), Playing Now section, OpenClubOS system promo card, Featured Tournaments carousel, and Rounds list sections all maintain a consistent `px-4` horizontal gutter inside `w-full max-w-sm mx-auto`.
+    - **Tournaments Screen (`tournaments`)**: Category filter pills (`px-4`), featured event hero card (`mx-4`), and tournament card lists (`px-4`) all align flush at 16px.
+    - **Tournament Details Screen (`tournament-details`)**: Body content container wraps metric cards (`ENTRY FEE`, `DURATION`, `FORMAT`), course specs, description, schedule, registered players, and prize cards strictly at `px-4 pt-5` inside `w-full max-w-sm mx-auto` (matching `tournaments/[id]/page.tsx`'s `px-4 sm:px-0 pt-5`).
+    - **Notifications Screen (`notifications`)**: Scrollable feed wraps all notification cards and friend request cards strictly at `px-4 py-3` inside `w-full max-w-sm mx-auto`.
+    - **Add Friends Screen (`add-friends`)**: Scrollable body wraps contact sync banner and golfer search cards strictly at `px-4 py-4` inside `w-full max-w-sm mx-auto`.
+    - **Player Scorecard Screen (`player-scorecard`)**: Scrollable body wraps telemetry radar card and 18-hole scorecards strictly at `px-4 py-3.5` inside `w-full max-w-sm mx-auto`.
+    - **Leaderboard Screen (`leaderboard`)**: Scrollable body wraps course summary strip and standings table strictly at `px-4 pt-3`.
+  - **Navigation Bars vs. Content Cards**: Top fixed navigation bars with a circular back button maintain `px-6` (24px) for optical back-button margin, while scrollable body card columns consistently use `px-4` (16px) for maximum content readability and uniform card geometry across all screens.
+  - **Authentication & Credential Forms**: Full-width credential input fields (Login, Register Steps 1-4, Forgot Password, Reset Password, Verify OTP, Sync Contacts) use `px-6` (24px) flush with the 24px back button per the Form Screen Width Standardization rules.

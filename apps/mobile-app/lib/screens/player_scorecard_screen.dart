@@ -122,7 +122,7 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                         children: [
                           Text(
                             'Player Scorecard',
-                            style: GoogleFonts.dmSans(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 15,
                               fontWeight: FontWeight.w700,
                               color: kDarkSlate,
@@ -130,7 +130,7 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                           ),
                           Text(
                             (competitor['tournament'] as String?) ?? 'Tournament',
-                            style: GoogleFonts.dmSans(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 11,
                               fontWeight: FontWeight.w500,
                               color: kMutedSlate,
@@ -160,9 +160,9 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                             const SizedBox(width: 4),
                             Text(
                               'LIVE',
-                              style: GoogleFonts.dmSans(
+                              style: GoogleFonts.plusJakartaSans(
                                 fontSize: 9.5,
-                                fontWeight: FontWeight.w800,
+                                fontWeight: FontWeight.w700,
                                 color: kTournamentEmerald,
                                 letterSpacing: 0.5,
                               ),
@@ -229,7 +229,7 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                                         alignment: Alignment.center,
                                         child: Text(
                                           (competitor['initials'] as String?) ?? 'P',
-                                          style: GoogleFonts.dmSans(
+                                          style: GoogleFonts.plusJakartaSans(
                                             fontSize: 15,
                                             fontWeight: FontWeight.w700,
                                             color: Colors.white,
@@ -263,9 +263,9 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                                             Flexible(
                                               child: Text(
                                                 (competitor['name'] as String?) ?? 'Player',
-                                                style: GoogleFonts.dmSans(
+                                                style: GoogleFonts.plusJakartaSans(
                                                   fontSize: 16,
-                                                  fontWeight: FontWeight.w800,
+                                                  fontWeight: FontWeight.w700,
                                                   color: kDarkSlate,
                                                 ),
                                                 overflow: TextOverflow.ellipsis,
@@ -281,7 +281,7 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                                               ),
                                               child: Text(
                                                 'HCP ${(competitor['hcp'] as String?) ?? '0.0'}',
-                                                style: GoogleFonts.dmSans(
+                                                style: GoogleFonts.plusJakartaSans(
                                                   fontSize: 10,
                                                   fontWeight: FontWeight.w700,
                                                   color: kTournamentEmerald,
@@ -293,7 +293,7 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                                         const SizedBox(height: 2),
                                         Text(
                                           '${(competitor['club'] as String?) ?? 'Golf Club'} • ${(competitor['flight'] as String?) ?? 'Flight A'}',
-                                          style: GoogleFonts.dmSans(
+                                          style: GoogleFonts.plusJakartaSans(
                                             fontSize: 11.5,
                                             color: kMutedSlate,
                                           ),
@@ -326,9 +326,9 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                                         ),
                                         child: Text(
                                           toParText,
-                                          style: GoogleFonts.dmSans(
+                                          style: GoogleFonts.plusJakartaSans(
                                             fontSize: 13,
-                                            fontWeight: FontWeight.w900,
+                                            fontWeight: FontWeight.w700,
                                             color: toPar < 0
                                                 ? kTournamentEmerald
                                                 : toPar == 0
@@ -340,9 +340,9 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                                       const SizedBox(height: 3),
                                       Text(
                                         'TO PAR',
-                                        style: GoogleFonts.dmSans(
+                                        style: GoogleFonts.plusJakartaSans(
                                           fontSize: 9,
-                                          fontWeight: FontWeight.w800,
+                                          fontWeight: FontWeight.w700,
                                           color: const Color(0xFF94A3B8),
                                           letterSpacing: 0.6,
                                         ),
@@ -415,9 +415,9 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                                 children: [
                                   Text(
                                     'FINAL SCORECARD • ROUND 1',
-                                    style: GoogleFonts.dmSans(
+                                    style: GoogleFonts.plusJakartaSans(
                                       fontSize: 11,
-                                      fontWeight: FontWeight.w800,
+                                      fontWeight: FontWeight.w700,
                                       color: const Color(0xFF8CA0BA),
                                       letterSpacing: 0.8,
                                     ),
@@ -427,7 +427,7 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                                     children: [
                                       Text(
                                         'Total: ',
-                                        style: GoogleFonts.dmSans(
+                                        style: GoogleFonts.plusJakartaSans(
                                           fontSize: 14,
                                           fontWeight: FontWeight.w700,
                                           color: kDarkSlate,
@@ -435,17 +435,17 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                                       ),
                                       Text(
                                         totalPlayed > 0 ? '$totalGross ' : '$totalPar ',
-                                        style: GoogleFonts.dmSans(
+                                        style: GoogleFonts.plusJakartaSans(
                                           fontSize: 15,
-                                          fontWeight: FontWeight.w900,
+                                          fontWeight: FontWeight.w700,
                                           color: kDarkSlate,
                                         ),
                                       ),
                                       Text(
                                         '(${toPar < 0 ? "$toPar" : toPar == 0 ? "E" : "+$toPar"})',
-                                        style: GoogleFonts.dmSans(
+                                        style: GoogleFonts.plusJakartaSans(
                                           fontSize: 13.5,
-                                          fontWeight: FontWeight.w800,
+                                          fontWeight: FontWeight.w700,
                                           color: toPar < 0
                                               ? kTournamentEmerald
                                               : toPar == 0
@@ -506,9 +506,9 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                                   alignment: Alignment.centerRight,
                                   child: Text(
                                     'OUT: ${outPlayed > 0 ? outGross : outPar}',
-                                    style: GoogleFonts.dmSans(
+                                    style: GoogleFonts.plusJakartaSans(
                                       fontSize: 11,
-                                      fontWeight: FontWeight.w800,
+                                      fontWeight: FontWeight.w700,
                                       color: const Color(0xFF8CA0BA),
                                       letterSpacing: 0.8,
                                     ),
@@ -531,9 +531,9 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                                   alignment: Alignment.centerRight,
                                   child: Text(
                                     'IN: ${inPlayed > 0 ? inGross : inPar}',
-                                    style: GoogleFonts.dmSans(
+                                    style: GoogleFonts.plusJakartaSans(
                                       fontSize: 11,
-                                      fontWeight: FontWeight.w800,
+                                      fontWeight: FontWeight.w700,
                                       color: const Color(0xFF8CA0BA),
                                       letterSpacing: 0.8,
                                     ),
@@ -578,7 +578,7 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                                   children: [
                                     Text(
                                       'USGA Rule 3.3b Peer Attestation',
-                                      style: GoogleFonts.dmSans(
+                                      style: GoogleFonts.plusJakartaSans(
                                         fontSize: 12.5,
                                         fontWeight: FontWeight.w700,
                                         color: kDarkSlate,
@@ -587,7 +587,7 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                                     const SizedBox(height: 2),
                                     Text(
                                       'Scores recorded & confirmed by marker ${(competitor['marker'] as String?) ?? 'Marker'} for ${(competitor['round'] as String?) ?? 'Round 2'}.',
-                                      style: GoogleFonts.dmSans(
+                                      style: GoogleFonts.plusJakartaSans(
                                         fontSize: 11.5,
                                         color: kMutedSlate,
                                         height: 1.35,
@@ -619,7 +619,7 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                               const SizedBox(width: 6),
                               Text(
                                 'Return to Tournament Hub',
-                                style: GoogleFonts.dmSans(fontSize: 13, fontWeight: FontWeight.w700),
+                                style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w700),
                               ),
                             ],
                           ),
@@ -650,9 +650,9 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
           children: [
             Text(
               title,
-              style: GoogleFonts.dmSans(
+              style: GoogleFonts.plusJakartaSans(
                 fontSize: 9.5,
-                fontWeight: FontWeight.w800,
+                fontWeight: FontWeight.w700,
                 color: const Color(0xFF94A3B8),
                 letterSpacing: 0.5,
               ),
@@ -660,9 +660,9 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
             const SizedBox(height: 2),
             Text(
               value,
-              style: GoogleFonts.dmSans(
+              style: GoogleFonts.plusJakartaSans(
                 fontSize: 14,
-                fontWeight: FontWeight.w900,
+                fontWeight: FontWeight.w700,
                 color: isEmerald ? kTournamentEmerald : kDarkSlate,
               ),
             ),
@@ -682,7 +682,7 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
       ),
       child: Text(
         text,
-        style: GoogleFonts.dmSans(
+        style: GoogleFonts.plusJakartaSans(
           fontSize: 10.5,
           fontWeight: FontWeight.w600,
           color: isGreen ? kTournamentEmerald : const Color(0xFF475569),
@@ -712,9 +712,9 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
         ),
         child: Text(
           label,
-          style: GoogleFonts.dmSans(
+          style: GoogleFonts.plusJakartaSans(
             fontSize: 11,
-            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
             color: isSelected ? kDarkSlate : kMutedSlate,
           ),
         ),
@@ -738,7 +738,7 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
         const SizedBox(width: 3.5),
         Text(
           label,
-          style: GoogleFonts.dmSans(
+          style: GoogleFonts.plusJakartaSans(
             fontSize: 9.5,
             fontWeight: FontWeight.w600,
             color: const Color(0xFF8CA0BA),
@@ -758,7 +758,7 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
               width: 18,
               child: Text(
                 'H',
-                style: GoogleFonts.dmSans(
+                style: GoogleFonts.plusJakartaSans(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
                   color: const Color(0xFF8CA0BA),
@@ -770,7 +770,7 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                 child: Center(
                   child: Text(
                     '${h['hole'] ?? 0}',
-                    style: GoogleFonts.dmSans(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
                       color: const Color(0xFF8CA0BA),
@@ -790,7 +790,7 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
               width: 18,
               child: Text(
                 'P',
-                style: GoogleFonts.dmSans(
+                style: GoogleFonts.plusJakartaSans(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
                   color: const Color(0xFF8CA0BA),
@@ -802,7 +802,7 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                 child: Center(
                   child: Text(
                     '${h['par'] ?? 4}',
-                    style: GoogleFonts.dmSans(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
                       color: const Color(0xFF64748B),
@@ -822,9 +822,9 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
               width: 18,
               child: Text(
                 'S',
-                style: GoogleFonts.dmSans(
+                style: GoogleFonts.plusJakartaSans(
                   fontSize: 13,
-                  fontWeight: FontWeight.w900,
+                  fontWeight: FontWeight.w700,
                   color: kDarkSlate,
                 ),
               ),
@@ -870,9 +870,9 @@ class _PlayerScorecardScreenState extends State<PlayerScorecardScreen> {
                   alignment: Alignment.center,
                   child: Text(
                     strokes != null ? '$strokes' : '-',
-                    style: GoogleFonts.dmSans(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 13,
-                      fontWeight: FontWeight.w800,
+                      fontWeight: FontWeight.w700,
                       color: textColor,
                     ),
                   ),

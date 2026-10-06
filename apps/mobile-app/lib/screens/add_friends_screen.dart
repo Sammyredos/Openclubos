@@ -144,7 +144,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
       child: Center(
         child: Text(
           initials,
-          style: GoogleFonts.dmSans(
+          style: GoogleFonts.plusJakartaSans(
             fontSize: size * 0.34,
             fontWeight: FontWeight.w700,
             color: const Color(0xFF009A60),
@@ -456,9 +456,9 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                 // Centered Golfer Full Name
                 Text(
                   compName,
-                  style: GoogleFonts.dmSans(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 22,
-                    fontWeight: FontWeight.w900,
+                    fontWeight: FontWeight.w700,
                     color: const Color(0xFF0F172A),
                     letterSpacing: -0.4,
                   ),
@@ -470,7 +470,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                 RichText(
                   textAlign: TextAlign.center,
                   text: TextSpan(
-                    style: GoogleFonts.dmSans(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 13.5,
                       color: const Color(0xFF64748B),
                     ),
@@ -508,7 +508,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                         const SizedBox(width: 8),
                         Text(
                           'Remove from Friends',
-                          style: GoogleFonts.dmSans(fontSize: 14, fontWeight: FontWeight.w700),
+                          style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700),
                         ),
                       ],
                     ),
@@ -539,7 +539,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                         const SizedBox(width: 8),
                         Text(
                           'Report Golfer',
-                          style: GoogleFonts.dmSans(fontSize: 14, fontWeight: FontWeight.w700),
+                          style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700),
                         ),
                       ],
                     ),
@@ -570,7 +570,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                         const SizedBox(width: 8),
                         Text(
                           'Block Golfer',
-                          style: GoogleFonts.dmSans(fontSize: 14, fontWeight: FontWeight.w700),
+                          style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700),
                         ),
                       ],
                     ),
@@ -592,7 +592,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                     onPressed: () => Navigator.pop(ctx),
                     child: Text(
                       'Cancel',
-                      style: GoogleFonts.dmSans(fontSize: 14, fontWeight: FontWeight.w700),
+                      style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700),
                     ),
                   ),
                 ),
@@ -675,9 +675,9 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                     // Title & Description
                     Text(
                       'Report Golfer',
-                      style: GoogleFonts.dmSans(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 20,
-                        fontWeight: FontWeight.w900,
+                        fontWeight: FontWeight.w700,
                         color: const Color(0xFF0F172A),
                         letterSpacing: -0.3,
                       ),
@@ -687,7 +687,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                     RichText(
                       textAlign: TextAlign.center,
                       text: TextSpan(
-                        style: GoogleFonts.dmSans(fontSize: 13, color: const Color(0xFF64748B), height: 1.4),
+                        style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF64748B), height: 1.4),
                         children: [
                           const TextSpan(text: 'Help maintain a fair, respectful community. Select the infraction regarding '),
                           TextSpan(
@@ -705,9 +705,9 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                       alignment: Alignment.centerLeft,
                       child: Text(
                         'INFRACTION REASON',
-                        style: GoogleFonts.dmSans(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 11,
-                          fontWeight: FontWeight.w800,
+                          fontWeight: FontWeight.w700,
                           color: const Color(0xFF64748B),
                           letterSpacing: 0.6,
                         ),
@@ -752,7 +752,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                               Expanded(
                                 child: Text(
                                   r,
-                                  style: GoogleFonts.dmSans(
+                                  style: GoogleFonts.plusJakartaSans(
                                     fontSize: 13,
                                     fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                                     color: isSelected ? const Color(0xFF009A60) : const Color(0xFF0F172A),
@@ -771,9 +771,9 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                       alignment: Alignment.centerLeft,
                       child: Text(
                         'ADDITIONAL DETAILS (OPTIONAL)',
-                        style: GoogleFonts.dmSans(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 11,
-                          fontWeight: FontWeight.w800,
+                          fontWeight: FontWeight.w700,
                           color: const Color(0xFF64748B),
                           letterSpacing: 0.6,
                         ),
@@ -783,12 +783,12 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                     TextField(
                       controller: detailsController,
                       maxLines: 3,
-                      style: GoogleFonts.dmSans(fontSize: 13, color: const Color(0xFF0F172A)),
+                      style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF0F172A)),
                       decoration: InputDecoration(
                         filled: true,
                         fillColor: const Color(0xFFF5FAF6),
                         hintText: 'Describe what happened or reference specific tournament rounds...',
-                        hintStyle: GoogleFonts.dmSans(fontSize: 12, color: const Color(0xFF8CA0BA)),
+                        hintStyle: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF8CA0BA)),
                         contentPadding: const EdgeInsets.all(12),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -953,7 +953,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                             const SizedBox(width: 8),
                             Text(
                               isSubmitting ? 'Submitting...' : 'Submit Report to Moderation',
-                              style: GoogleFonts.dmSans(fontSize: 14, fontWeight: FontWeight.w700),
+                              style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700),
                             ),
                           ],
                         ),
@@ -975,7 +975,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                         onPressed: () => Navigator.pop(ctx),
                         child: Text(
                           'Cancel',
-                          style: GoogleFonts.dmSans(fontSize: 14, fontWeight: FontWeight.w700),
+                          style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700),
                         ),
                       ),
                     ),
@@ -1037,9 +1037,9 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                 // Centered Title
                 Text(
                   'Remove Friend?',
-                  style: GoogleFonts.dmSans(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 22,
-                    fontWeight: FontWeight.w900,
+                    fontWeight: FontWeight.w700,
                     color: const Color(0xFF0F172A),
                     letterSpacing: -0.4,
                   ),
@@ -1051,7 +1051,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                 RichText(
                   textAlign: TextAlign.center,
                   text: TextSpan(
-                    style: GoogleFonts.dmSans(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 13.5,
                       color: const Color(0xFF64748B),
                       height: 1.45,
@@ -1085,7 +1085,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                     },
                     child: Text(
                       'Yes, Remove Friend',
-                      style: GoogleFonts.dmSans(fontSize: 14, fontWeight: FontWeight.w700),
+                      style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700),
                     ),
                   ),
                 ),
@@ -1105,7 +1105,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                     onPressed: () => Navigator.pop(ctx),
                     child: Text(
                       'Cancel, Keep Friend',
-                      style: GoogleFonts.dmSans(fontSize: 14, fontWeight: FontWeight.w700),
+                      style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700),
                     ),
                   ),
                 ),
@@ -1189,9 +1189,9 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                 // Centered Title
                 Text(
                   'Block Golfer?',
-                  style: GoogleFonts.dmSans(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 22,
-                    fontWeight: FontWeight.w900,
+                    fontWeight: FontWeight.w700,
                     color: const Color(0xFF0F172A),
                     letterSpacing: -0.4,
                   ),
@@ -1203,7 +1203,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                 RichText(
                   textAlign: TextAlign.center,
                   text: TextSpan(
-                    style: GoogleFonts.dmSans(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 13.5,
                       color: const Color(0xFF64748B),
                       height: 1.45,
@@ -1237,7 +1237,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                     },
                     child: Text(
                       'Yes, Block Golfer',
-                      style: GoogleFonts.dmSans(fontSize: 14, fontWeight: FontWeight.w700),
+                      style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700),
                     ),
                   ),
                 ),
@@ -1257,7 +1257,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                     onPressed: () => Navigator.pop(ctx),
                     child: Text(
                       'Cancel, Keep Unblocked',
-                      style: GoogleFonts.dmSans(fontSize: 14, fontWeight: FontWeight.w700),
+                      style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700),
                     ),
                   ),
                 ),
@@ -1391,7 +1391,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                 children: [
                                   Text(
                                     activeTab == 0 ? 'My QR Code' : 'Scan QR Code',
-                                    style: GoogleFonts.dmSans(
+                                    style: GoogleFonts.plusJakartaSans(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w700,
                                       color: const Color(0xFF0F172A),
@@ -1401,7 +1401,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                     activeTab == 0
                                         ? 'Connect with golfers on course instantly'
                                         : 'Point camera or test scan on-course',
-                                    style: GoogleFonts.dmSans(
+                                    style: GoogleFonts.plusJakartaSans(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w500,
                                       color: const Color(0xFF64748B),
@@ -1475,7 +1475,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                         Text(
                                           'My QR Code',
                                           textAlign: TextAlign.center,
-                                          style: GoogleFonts.dmSans(
+                                          style: GoogleFonts.plusJakartaSans(
                                             fontSize: 12,
                                             fontWeight: FontWeight.w700,
                                             color: activeTab == 0 ? const Color(0xFF0F172A) : const Color(0xFF64748B),
@@ -1519,7 +1519,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                         Text(
                                           'Scan QR Code',
                                           textAlign: TextAlign.center,
-                                          style: GoogleFonts.dmSans(
+                                          style: GoogleFonts.plusJakartaSans(
                                             fontSize: 12,
                                             fontWeight: FontWeight.w700,
                                             color: activeTab == 1 ? const Color(0xFF0F172A) : const Color(0xFF64748B),
@@ -1553,11 +1553,11 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                     const SizedBox(height: 6),
                                     Text(
                                       name.toString(),
-                                      style: GoogleFonts.dmSans(fontSize: 15, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A)),
+                                      style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A)),
                                     ),
                                     Text(
                                       '$club | $hcp HCP',
-                                      style: GoogleFonts.dmSans(fontSize: 12, fontWeight: FontWeight.w500, color: const Color(0xFF64748B)),
+                                      style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w500, color: const Color(0xFF64748B)),
                                     ),
                                     const SizedBox(height: 14),
                                     Container(
@@ -1582,7 +1582,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                     const SizedBox(height: 12),
                                     Text(
                                       'Let other golfers scan your code on the course to connect instantly.',
-                                      style: GoogleFonts.dmSans(fontSize: 12, color: const Color(0xFF64748B)),
+                                      style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF64748B)),
                                       textAlign: TextAlign.center,
                                     ),
                                     const SizedBox(height: 16),
@@ -1607,7 +1607,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                           elevation: 0,
                                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                         ),
-                                        child: Text('Share QR Code', style: GoogleFonts.dmSans(fontSize: 13, fontWeight: FontWeight.w700)),
+                                        child: Text('Share QR Code', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w700)),
                                       ),
                                     ),
                                   ],
@@ -1711,7 +1711,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                                   const SizedBox(width: 5),
                                                   Text(
                                                     'Point camera at golfer QR',
-                                                    style: GoogleFonts.dmSans(fontSize: 11, color: Colors.white70),
+                                                    style: GoogleFonts.plusJakartaSans(fontSize: 11, color: Colors.white70),
                                                   ),
                                                 ],
                                               ),
@@ -1748,7 +1748,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                                       Flexible(
                                                         child: Text(
                                                           scannedResult!['name']?.toString() ?? 'Golfer',
-                                                          style: GoogleFonts.dmSans(
+                                                          style: GoogleFonts.plusJakartaSans(
                                                             fontSize: 13,
                                                             fontWeight: FontWeight.w700,
                                                             color: const Color(0xFF0F172A),
@@ -1765,9 +1765,9 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                                         ),
                                                         child: Text(
                                                           'CONNECTED LIVE',
-                                                          style: GoogleFonts.dmSans(
+                                                          style: GoogleFonts.plusJakartaSans(
                                                             fontSize: 8.5,
-                                                            fontWeight: FontWeight.w800,
+                                                            fontWeight: FontWeight.w700,
                                                             color: const Color(0xFF009A60),
                                                           ),
                                                         ),
@@ -1776,7 +1776,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                                   ),
                                                   Text(
                                                     '${scannedResult!['club'] ?? 'OpenClub Golfer'} | ${scannedResult!['hcp'] ?? '0.0'} HCP',
-                                                    style: GoogleFonts.dmSans(
+                                                    style: GoogleFonts.plusJakartaSans(
                                                       fontSize: 11,
                                                       fontWeight: FontWeight.w500,
                                                       color: const Color(0xFF009A60),
@@ -1800,7 +1800,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                       const SizedBox(height: 8),
                                       Text(
                                         '✓ Real-time friend request dispatched directly to ${scannedResult!['name'] ?? 'player'}',
-                                        style: GoogleFonts.dmSans(fontSize: 11, color: const Color(0xFF009A60), fontWeight: FontWeight.w600),
+                                        style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF009A60), fontWeight: FontWeight.w600),
                                         textAlign: TextAlign.center,
                                       ),
                                       const SizedBox(height: 12),
@@ -1815,7 +1815,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                                   side: const BorderSide(color: Color(0xFFCBD5E1)),
                                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                                                 ),
-                                                child: Text('Scan Another', style: GoogleFonts.dmSans(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF334155))),
+                                                child: Text('Scan Another', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF334155))),
                                               ),
                                             ),
                                           ),
@@ -1831,7 +1831,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                                   elevation: 0,
                                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                                                 ),
-                                                child: Text('Done', style: GoogleFonts.dmSans(fontSize: 12, fontWeight: FontWeight.w700)),
+                                                child: Text('Done', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w700)),
                                               ),
                                             ),
                                           ),
@@ -1840,7 +1840,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                     ] else ...[
                                       Text(
                                         'Point your camera at another golfer\'s QR code to connect instantly.',
-                                        style: GoogleFonts.dmSans(fontSize: 11.5, color: const Color(0xFF64748B)),
+                                        style: GoogleFonts.plusJakartaSans(fontSize: 11.5, color: const Color(0xFF64748B)),
                                         textAlign: TextAlign.center,
                                       ),
                                       const SizedBox(height: 14),
@@ -1852,11 +1852,11 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                           children: [
                                             Text(
                                               'Simulate On-Course Scan',
-                                              style: GoogleFonts.dmSans(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A)),
+                                              style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A)),
                                             ),
                                             Text(
                                               'Tap a player to test scan:',
-                                              style: GoogleFonts.dmSans(fontSize: 11, color: const Color(0xFF94A3B8)),
+                                              style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF94A3B8)),
                                             ),
                                           ],
                                         ),
@@ -1888,12 +1888,12 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                                     children: [
                                                       Text(
                                                         compName,
-                                                        style: GoogleFonts.dmSans(fontSize: 12.5, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A)),
+                                                        style: GoogleFonts.plusJakartaSans(fontSize: 12.5, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A)),
                                                         overflow: TextOverflow.ellipsis,
                                                       ),
                                                       Text(
                                                         '${comp['club'] ?? 'OpenClub Golfer'} | ${comp['hcp'] ?? '0.0'} HCP',
-                                                        style: GoogleFonts.dmSans(fontSize: 10.5, color: const Color(0xFF64748B)),
+                                                        style: GoogleFonts.plusJakartaSans(fontSize: 10.5, color: const Color(0xFF64748B)),
                                                       ),
                                                     ],
                                                   ),
@@ -1915,7 +1915,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                                     ),
                                                     label: Text(
                                                       isAlreadySent ? 'Sent' : 'Scan QR',
-                                                      style: GoogleFonts.dmSans(fontSize: 11, fontWeight: FontWeight.w700),
+                                                      style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w700),
                                                     ),
                                                     style: ElevatedButton.styleFrom(
                                                       backgroundColor: isAlreadySent ? const Color(0xFFE2E8F0) : const Color(0xFF009A60),
@@ -2088,7 +2088,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                 children: [
                                   Text(
                                     'Find from Contacts',
-                                    style: GoogleFonts.dmSans(
+                                    style: GoogleFonts.plusJakartaSans(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w700,
                                       color: const Color(0xFF0F172A),
@@ -2096,7 +2096,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                   ),
                                   Text(
                                     'Connect with golfers from your address book',
-                                    style: GoogleFonts.dmSans(
+                                    style: GoogleFonts.plusJakartaSans(
                                       fontSize: 11.5,
                                       color: const Color(0xFF64748B),
                                     ),
@@ -2149,7 +2149,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                   children: [
                                     Text(
                                       'Address Book Synced',
-                                      style: GoogleFonts.dmSans(
+                                      style: GoogleFonts.plusJakartaSans(
                                         fontSize: 12,
                                         fontWeight: FontWeight.w700,
                                         color: const Color(0xFF009A60),
@@ -2157,7 +2157,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                     ),
                                     Text(
                                       '4 golfers found on OpenclubOS',
-                                      style: GoogleFonts.dmSans(
+                                      style: GoogleFonts.plusJakartaSans(
                                         fontSize: 10.5,
                                         color: const Color(0xFF052417).withOpacity(0.8),
                                       ),
@@ -2203,7 +2203,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                             const SizedBox(width: 4),
                                             Text(
                                               'Sync',
-                                              style: GoogleFonts.dmSans(
+                                              style: GoogleFonts.plusJakartaSans(
                                                 fontSize: 11,
                                                 fontWeight: FontWeight.w700,
                                                 color: const Color(0xFF052417),
@@ -2237,14 +2237,14 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                 child: TextField(
                                   controller: sheetSearchController,
                                   onChanged: (val) => setSheetState(() => sheetQuery = val),
-                                  style: GoogleFonts.dmSans(
+                                  style: GoogleFonts.plusJakartaSans(
                                     fontSize: 13,
                                     color: const Color(0xFF0F172A),
                                     fontWeight: FontWeight.w500,
                                   ),
                                   decoration: InputDecoration(
                                     hintText: 'Search contacts by name or phone...',
-                                    hintStyle: GoogleFonts.dmSans(
+                                    hintStyle: GoogleFonts.plusJakartaSans(
                                       fontSize: 12.5,
                                       color: const Color(0xFF8CA0BA),
                                     ),
@@ -2284,7 +2284,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                   child: Text(
                                     'All (${phoneContacts.length})',
                                     textAlign: TextAlign.center,
-                                    style: GoogleFonts.dmSans(
+                                    style: GoogleFonts.plusJakartaSans(
                                       fontSize: 11,
                                       fontWeight: FontWeight.w700,
                                       color: filter == 'all' ? Colors.white : const Color(0xFF64748B),
@@ -2306,7 +2306,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                   child: Text(
                                     'On App (${phoneContacts.where((c) => c['isOnApp'] == true).length})',
                                     textAlign: TextAlign.center,
-                                    style: GoogleFonts.dmSans(
+                                    style: GoogleFonts.plusJakartaSans(
                                       fontSize: 11,
                                       fontWeight: FontWeight.w700,
                                       color: filter == 'on_app' ? Colors.white : const Color(0xFF64748B),
@@ -2328,7 +2328,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                   child: Text(
                                     'Invite (${phoneContacts.where((c) => c['isOnApp'] == false).length})',
                                     textAlign: TextAlign.center,
-                                    style: GoogleFonts.dmSans(
+                                    style: GoogleFonts.plusJakartaSans(
                                       fontSize: 11,
                                       fontWeight: FontWeight.w700,
                                       color: filter == 'invite' ? Colors.white : const Color(0xFF64748B),
@@ -2348,7 +2348,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                             ? Center(
                                 child: Text(
                                   'No contacts found matching "$sheetQuery"',
-                                  style: GoogleFonts.dmSans(fontSize: 12, color: const Color(0xFF94A3B8)),
+                                  style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF94A3B8)),
                                 ),
                               )
                             : ListView.separated(
@@ -2394,7 +2394,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                                 children: [
                                                   Text(
                                                     cName,
-                                                    style: GoogleFonts.dmSans(
+                                                    style: GoogleFonts.plusJakartaSans(
                                                       fontSize: 13,
                                                       fontWeight: FontWeight.w700,
                                                       color: const Color(0xFF0F172A),
@@ -2410,7 +2410,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                                       ),
                                                       child: Text(
                                                         'Friend',
-                                                        style: GoogleFonts.dmSans(
+                                                        style: GoogleFonts.plusJakartaSans(
                                                           fontSize: 9,
                                                           fontWeight: FontWeight.w700,
                                                           color: const Color(0xFF009A60),
@@ -2421,7 +2421,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                               ),
                                               Text(
                                                 cPhone,
-                                                style: GoogleFonts.dmSans(
+                                                style: GoogleFonts.plusJakartaSans(
                                                   fontSize: 11,
                                                   color: const Color(0xFF64748B),
                                                 ),
@@ -2429,7 +2429,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                               if (isOnApp)
                                                 Text(
                                                   '${contact['club']} • ${contact['hcp']} HCP',
-                                                  style: GoogleFonts.dmSans(
+                                                  style: GoogleFonts.plusJakartaSans(
                                                     fontSize: 11,
                                                     fontWeight: FontWeight.w500,
                                                     color: const Color(0xFF009A60),
@@ -2438,7 +2438,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                               else
                                                 Text(
                                                   'Not on OpenclubOS yet',
-                                                  style: GoogleFonts.dmSans(
+                                                  style: GoogleFonts.plusJakartaSans(
                                                     fontSize: 10.5,
                                                     color: const Color(0xFF94A3B8),
                                                   ),
@@ -2489,7 +2489,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                                 ? const Icon(Icons.send_rounded, size: 14, color: Colors.white)
                                                 : Text(
                                                     '+ Add',
-                                                    style: GoogleFonts.dmSans(
+                                                    style: GoogleFonts.plusJakartaSans(
                                                       fontSize: 11,
                                                       fontWeight: FontWeight.w700,
                                                       color: Colors.white,
@@ -2507,7 +2507,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                               ),
                                               child: Text(
                                                 'Invited ✓',
-                                                style: GoogleFonts.dmSans(
+                                                style: GoogleFonts.plusJakartaSans(
                                                   fontSize: 11,
                                                   fontWeight: FontWeight.w700,
                                                   color: const Color(0xFF64748B),
@@ -2542,7 +2542,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                                     const SizedBox(width: 4),
                                                     Text(
                                                       'Invite',
-                                                      style: GoogleFonts.dmSans(
+                                                      style: GoogleFonts.plusJakartaSans(
                                                         fontSize: 11,
                                                         fontWeight: FontWeight.w700,
                                                         color: const Color(0xFF0F172A),
@@ -2576,7 +2576,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                             ),
                             child: Text(
                               'Done',
-                              style: GoogleFonts.dmSans(fontSize: 13, fontWeight: FontWeight.w700),
+                              style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w700),
                             ),
                           ),
                         ),
@@ -2692,7 +2692,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                       Expanded(
                         child: Text(
                           'Add Friends',
-                          style: GoogleFonts.dmSans(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 18,
                             fontWeight: FontWeight.w700,
                             color: const Color(0xFF0F172A),
@@ -2749,14 +2749,14 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                               _searchQuery = val;
                               _displayLimit = 4;
                             }),
-                            style: GoogleFonts.dmSans(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 13.5,
                               color: const Color(0xFF0F172A),
                               fontWeight: FontWeight.w500,
                             ),
                             decoration: InputDecoration(
                               hintText: 'Search by name or email...',
-                              hintStyle: GoogleFonts.dmSans(
+                              hintStyle: GoogleFonts.plusJakartaSans(
                                 fontSize: 13,
                                 color: const Color(0xFF8CA0BA),
                               ),
@@ -2832,7 +2832,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                           children: [
                                             Text(
                                               'Find from Contacts',
-                                              style: GoogleFonts.dmSans(
+                                              style: GoogleFonts.plusJakartaSans(
                                                 fontSize: 15,
                                                 fontWeight: FontWeight.w700,
                                                 color: Colors.white,
@@ -2841,7 +2841,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                             const SizedBox(height: 3),
                                             Text(
                                               'Connect to see who\'s on OpenclubOS',
-                                              style: GoogleFonts.dmSans(
+                                              style: GoogleFonts.plusJakartaSans(
                                                 fontSize: 12,
                                                 color: const Color(0xFF8FAEA2),
                                               ),
@@ -2871,9 +2871,9 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                           ),
                                           child: Text(
                                             'CONNECT',
-                                            style: GoogleFonts.dmSans(
+                                            style: GoogleFonts.plusJakartaSans(
                                               fontSize: 11,
-                                              fontWeight: FontWeight.w800,
+                                              fontWeight: FontWeight.w700,
                                               color: const Color(0xFF052417),
                                               letterSpacing: 0.6,
                                             ),
@@ -2897,9 +2897,9 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                         children: [
                           Text(
                             query.isEmpty ? 'PLAYERS YOU MAY KNOW' : 'SEARCH RESULTS (${allMatchedList.length})',
-                            style: GoogleFonts.dmSans(
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 11,
-                              fontWeight: FontWeight.w800,
+                              fontWeight: FontWeight.w700,
                               color: const Color(0xFF64748B),
                               letterSpacing: 0.8,
                             ),
@@ -2909,7 +2909,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                               filteredList.length < allMatchedList.length
                                   ? 'Showing ${filteredList.length} of ${allMatchedList.length}'
                                   : 'All ${allMatchedList.length}',
-                              style: GoogleFonts.dmSans(
+                              style: GoogleFonts.plusJakartaSans(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w700,
                                 color: const Color(0xFF94A3B8),
@@ -2985,7 +2985,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                       children: [
                                         Text(
                                           name,
-                                          style: GoogleFonts.dmSans(
+                                          style: GoogleFonts.plusJakartaSans(
                                             fontSize: 14,
                                             fontWeight: FontWeight.w700,
                                             color: const Color(0xFF0F172A),
@@ -3001,7 +3001,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                             ),
                                             child: Text(
                                               'Friend',
-                                              style: GoogleFonts.dmSans(
+                                              style: GoogleFonts.plusJakartaSans(
                                                 fontSize: 9,
                                                 fontWeight: FontWeight.w700,
                                                 color: const Color(0xFF009A60),
@@ -3013,7 +3013,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                     const SizedBox(height: 2),
                                     Text(
                                       '$club | $hcp HCP',
-                                      style: GoogleFonts.dmSans(
+                                      style: GoogleFonts.plusJakartaSans(
                                         fontSize: 12,
                                         color: const Color(0xFF64748B),
                                       ),
@@ -3095,7 +3095,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                   children: [
                                     Text(
                                       'SENT',
-                                      style: GoogleFonts.dmSans(
+                                      style: GoogleFonts.plusJakartaSans(
                                         fontSize: 11,
                                         fontWeight: FontWeight.w700,
                                         color: const Color(0xFF94A3B8),
@@ -3169,7 +3169,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                   const SizedBox(width: 6),
                                   Text(
                                     'Show More (${allMatchedList.length - filteredList.length} remaining)',
-                                    style: GoogleFonts.dmSans(
+                                    style: GoogleFonts.plusJakartaSans(
                                       fontSize: 13,
                                       fontWeight: FontWeight.w700,
                                       color: const Color(0xFF009A60),
@@ -3219,7 +3219,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                               const SizedBox(height: 12),
                               Text(
                                 'Share Invitation Link',
-                                style: GoogleFonts.dmSans(
+                                style: GoogleFonts.plusJakartaSans(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w700,
                                   color: const Color(0xFF0F172A),
@@ -3228,7 +3228,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                               const SizedBox(height: 4),
                               Text(
                                 'Invite friends who aren\'t on the platform yet',
-                                style: GoogleFonts.dmSans(
+                                style: GoogleFonts.plusJakartaSans(
                                   fontSize: 12,
                                   color: const Color(0xFF64748B),
                                 ),
@@ -3247,7 +3247,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                     Expanded(
                                       child: Text(
                                         '${UniqueQrCodePainter.appDomain}/invite/$_userInviteCode',
-                                        style: GoogleFonts.dmSans(
+                                        style: GoogleFonts.plusJakartaSans(
                                           fontSize: 12,
                                           color: const Color(0xFF475569),
                                           fontWeight: FontWeight.w500,
@@ -3288,7 +3288,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                         ),
                                         child: Text(
                                           _copiedLink ? 'Copied!' : 'Copy',
-                                          style: GoogleFonts.dmSans(
+                                          style: GoogleFonts.plusJakartaSans(
                                             fontSize: 11.5,
                                             fontWeight: FontWeight.w700,
                                             color: Colors.white,
@@ -3326,7 +3326,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
       child: Center(
         child: Text(
           initial,
-          style: GoogleFonts.dmSans(
+          style: GoogleFonts.plusJakartaSans(
             fontSize: 15,
             fontWeight: FontWeight.w700,
             color: const Color(0xFF009A60),
@@ -3614,7 +3614,7 @@ class UniqueQrCodePainter extends CustomPainter {
       style: const TextStyle(
         color: Colors.white,
         fontSize: 10,
-        fontWeight: FontWeight.w900,
+        fontWeight: FontWeight.w700,
       ),
     );
     final textPainter = TextPainter(

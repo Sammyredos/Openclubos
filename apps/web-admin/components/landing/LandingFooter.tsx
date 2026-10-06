@@ -15,7 +15,7 @@ export function LandingFooter() {
           style={{ backgroundImage: "url('/images/landing/carbon-fibre.png')" }}
         ></div>
         <div className="max-w-5xl mx-auto px-6 text-center relative z-10">
-          <h2 className="text-4xl md:text-6xl font-black text-white mb-8 tracking-tight leading-tight">
+          <h2 className="text-4xl md:text-6xl font-bold text-white mb-8 tracking-tight leading-tight">
             Ready to Run Your Best Tournament Ever?
           </h2>
           <p className="text-[#F5FAF6] text-xl font-medium mb-12 opacity-90 max-w-2xl mx-auto">
@@ -24,13 +24,13 @@ export function LandingFooter() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <Link
               href="/signup-organisation"
-              className="w-full sm:w-auto bg-white text-[#009A60] px-12 py-6 rounded-2xl font-black text-xl hover:bg-[#F5FAF6] transition-all shadow-2xl shadow-black/10 no-underline block text-center"
+              className="w-full sm:w-auto bg-white text-[#009A60] px-12 py-6 rounded-2xl font-bold text-xl hover:bg-[#F5FAF6] transition-all shadow-2xl shadow-black/10 no-underline block text-center"
             >
               Start Free Trial
             </Link>
             <Link
               href="/mobile-preview"
-              className="w-full sm:w-auto bg-[#008754] text-white px-12 py-6 rounded-2xl font-black text-xl hover:bg-[#008754]/80 transition-all no-underline block text-center"
+              className="w-full sm:w-auto bg-[#008754] text-white px-12 py-6 rounded-2xl font-bold text-xl hover:bg-[#008754]/80 transition-all no-underline block text-center"
             >
               Book a Live Demo
             </Link>
@@ -61,7 +61,7 @@ export function LandingFooter() {
                   className="w-10 h-10 rounded-full bg-[#F5FAF6] flex items-center justify-center text-[#009A60] hover:bg-[#009A60] hover:text-white transition-all no-underline"
                   aria-label="X Twitter"
                 >
-                  <span className="font-black text-sm">𝕏</span>
+                  <span className="font-bold text-sm">𝕏</span>
                 </a>
                 <a
                   href="https://linkedin.com"
@@ -70,7 +70,7 @@ export function LandingFooter() {
                   className="w-10 h-10 rounded-full bg-[#F5FAF6] flex items-center justify-center text-[#009A60] hover:bg-[#009A60] hover:text-white transition-all no-underline"
                   aria-label="LinkedIn"
                 >
-                  <span className="font-black text-xs">in</span>
+                  <span className="font-bold text-xs">in</span>
                 </a>
                 <a
                   href="https://instagram.com"
@@ -79,14 +79,14 @@ export function LandingFooter() {
                   className="w-10 h-10 rounded-full bg-[#F5FAF6] flex items-center justify-center text-[#009A60] hover:bg-[#009A60] hover:text-white transition-all no-underline"
                   aria-label="Instagram"
                 >
-                  <span className="font-black text-xs">ig</span>
+                  <span className="font-bold text-xs">ig</span>
                 </a>
               </div>
             </div>
 
             {/* Column 1: Features */}
             <div>
-              <h5 className="text-[10px] font-black text-[#0F172A] uppercase tracking-widest mb-6">
+              <h5 className="text-[10px] font-bold text-[#0F172A] uppercase tracking-widest mb-6">
                 Features
               </h5>
               <ul className="space-y-4">
@@ -127,7 +127,7 @@ export function LandingFooter() {
 
             {/* Column 2: Solutions */}
             <div>
-              <h5 className="text-[10px] font-black text-[#0F172A] uppercase tracking-widest mb-6">
+              <h5 className="text-[10px] font-bold text-[#0F172A] uppercase tracking-widest mb-6">
                 Solutions
               </h5>
               <ul className="space-y-4">
@@ -160,7 +160,7 @@ export function LandingFooter() {
 
             {/* Column 3: Resources */}
             <div>
-              <h5 className="text-[10px] font-black text-[#0F172A] uppercase tracking-widest mb-6">
+              <h5 className="text-[10px] font-bold text-[#0F172A] uppercase tracking-widest mb-6">
                 Resources
               </h5>
               <ul className="space-y-4">
@@ -201,7 +201,7 @@ export function LandingFooter() {
 
             {/* Column 4: Company */}
             <div>
-              <h5 className="text-[10px] font-black text-[#0F172A] uppercase tracking-widest mb-6">
+              <h5 className="text-[10px] font-bold text-[#0F172A] uppercase tracking-widest mb-6">
                 Company
               </h5>
               <ul className="space-y-4">
@@ -249,13 +249,13 @@ export function LandingFooter() {
             <div className="flex items-center gap-8">
               <div className="flex items-center gap-2">
                 <ShieldCheck className="text-[#009A60] w-4 h-4" />
-                <span className="text-[10px] font-black text-[#5B6B7F] uppercase tracking-widest">
+                <span className="text-[10px] font-bold text-[#5B6B7F] uppercase tracking-widest">
                   SOC2 TYPE II COMPLIANT
                 </span>
               </div>
               <div className="flex items-center gap-2">
                 <Lock className="text-[#009A60] w-4 h-4" />
-                <span className="text-[10px] font-black text-[#5B6B7F] uppercase tracking-widest">
+                <span className="text-[10px] font-bold text-[#5B6B7F] uppercase tracking-widest">
                   GDPR READY
                 </span>
               </div>

@@ -104,3 +104,42 @@ String _formatWithDecimals(double value) {
   return '${_formatWithCommas(intPart)}.${parts[1]}';
 }
 
+String getOrdinalSuffix(int day) {
+  final abs = day.abs();
+  final rem100 = abs % 100;
+  if (rem100 >= 11 && rem100 <= 13) return 'th';
+  final rem10 = abs % 10;
+  switch (rem10) {
+    case 1: return 'st';
+    case 2: return 'nd';
+    case 3: return 'rd';
+    default: return 'th';
+  }
+}
+
+String formatDateWithOrdinal(dynamic dateInput) {
+  if (dateInput == null) return '';
+  final str = dateInput.toString().trim();
+  if (str.isEmpty || str.toLowerCase() == 'open' || str.toLowerCase() == 'tbd') return str;
+
+  final isoMatch = RegExp(r'^(\d{4})-(\d{1,2})-(\d{1,2})').firstMatch(str);
+  if (isoMatch != null) {
+    final y = isoMatch.group(1)!;
+    final m = int.tryParse(isoMatch.group(2)!) ?? 1;
+    final d = int.tryParse(isoMatch.group(3)!) ?? 1;
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final monthStr = (m >= 1 && m <= 12) ? months[m - 1] : 'Jan';
+    return '$monthStr $d${getOrdinalSuffix(d)}, $y';
+  }
+
+  final parsed = DateTime.tryParse(str);
+  if (parsed != null) {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final m = months[parsed.month - 1];
+    final d = parsed.day;
+    return '$m $d${getOrdinalSuffix(d)}, ${parsed.year}';
+  }
+
+  return str;
+}
+

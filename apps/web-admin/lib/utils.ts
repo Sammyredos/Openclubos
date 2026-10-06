@@ -447,17 +447,85 @@ export function toTitleCase(input?: string | null): string {
 export const formatTitleCase = toTitleCase;
 
 export function getOrdinalSuffix(day: number): string {
-  const s = ["th", "st", "nd", "rd"];
-  const v = day % 100;
-  return s[(v - 20) % 10] || s[v] || s[0];
+  const abs = Math.abs(day);
+  const rem100 = abs % 100;
+  if (rem100 >= 11 && rem100 <= 13) {
+    return "th";
+  }
+  const rem10 = abs % 10;
+  switch (rem10) {
+    case 1:
+      return "st";
+    case 2:
+      return "nd";
+    case 3:
+      return "rd";
+    default:
+      return "th";
+  }
 }
 
-export function formatWithOrdinal(str?: string | null): string {
+export function formatWithOrdinal(input?: string | Date | null): string {
+  if (!input) return "";
+
+  if (input instanceof Date) {
+    if (isNaN(input.getTime())) return "";
+    const m = input.toLocaleDateString("en-US", { month: "short" });
+    const d = input.getDate();
+    const y = input.getFullYear();
+    return `${m} ${d}${getOrdinalSuffix(d)}, ${y}`;
+  }
+
+  let str = String(input).trim();
   if (!str) return "";
-  return str.replace(/\b(\d{1,2})(st|nd|rd|th)?\b/g, (match, day, existingSuffix, offset, fullStr) => {
+
+  // Auto-heal corrupted strings like "2026-11th-20T00:00:00.000Z" or "2026-11th-20"
+  if (/^\d{4}-\d{1,2}(st|nd|rd|th)-\d{1,2}/i.test(str)) {
+    str = str.replace(/^(\d{4})-(\d{1,2})(st|nd|rd|th)-(\d{1,2})(st|nd|rd|th)?/i, "$1-$2-$4");
+  }
+
+  // Check if string matches ISO or YYYY-MM-DD pattern
+  const isoMatch = str.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?Z?)?/i);
+  if (isoMatch) {
+    const y = parseInt(isoMatch[1], 10);
+    const m = parseInt(isoMatch[2], 10);
+    const d = parseInt(isoMatch[3], 10);
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const monthStr = months[m - 1] || "Jan";
+    return `${monthStr} ${d}${getOrdinalSuffix(d)}, ${y}`;
+  }
+
+  // Check if string is parseable as standard Date containing timezone / ISO indicators
+  const parsed = new Date(str);
+  if (!isNaN(parsed.getTime()) && (str.includes("T") || str.includes("GMT") || str.includes("Z"))) {
+    const m = parsed.toLocaleDateString("en-US", { month: "short" });
+    const d = parsed.getDate();
+    const y = parsed.getFullYear();
+    return `${m} ${d}${getOrdinalSuffix(d)}, ${y}`;
+  }
+
+  // Replace raw day numbers with ordinals in formatted strings like "Nov 20, 2026" or "Oct 24 - 27, 2024"
+  let result = str.replace(
+    /\b(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+(\d{1,2})(?:st|nd|rd|th)?(?:\s*([–—-])\s*(\d{1,2})(?:st|nd|rd|th)?)?(?:,?\s*(\d{4}))?\b/gi,
+    (_, month, d1, sep, d2, year) => {
+      const shortMonth = month.slice(0, 3);
+      const day1 = parseInt(d1, 10);
+      const ord1 = `${day1}${getOrdinalSuffix(day1)}`;
+      const yr = year ? `, ${year}` : "";
+      if (sep && d2) {
+        const day2 = parseInt(d2, 10);
+        const ord2 = `${day2}${getOrdinalSuffix(day2)}`;
+        return `${shortMonth} ${ord1} – ${ord2}${yr}`;
+      }
+      return `${shortMonth} ${ord1}${yr}`;
+    }
+  );
+
+  // Fallback for standalone numbers 1-31 (not monetary, not time, not inside ISO date or phone numbers)
+  result = result.replace(/\b(\d{1,2})(st|nd|rd|th)?\b/gi, (match, day, existingSuffix, offset, fullStr) => {
     const prevChar = offset > 0 ? fullStr[offset - 1] : "";
     const nextChar = offset + match.length < fullStr.length ? fullStr[offset + match.length] : "";
-    if (prevChar === ":" || nextChar === ":") return match;
+    if (prevChar === ":" || nextChar === ":" || prevChar === "/" || nextChar === "/" || prevChar === "-") return match;
     if (prevChar === "₦" || prevChar === "$" || prevChar === "€" || prevChar === "£") return match;
     const num = parseInt(day, 10);
     if (num >= 1 && num <= 31) {
@@ -465,7 +533,127 @@ export function formatWithOrdinal(str?: string | null): string {
     }
     return match;
   });
+
+  return result;
 }
 
 export const formatDateWithOrdinal = formatWithOrdinal;
+
+/**
+ * Compact date formatter for mobile cards: "OCT 27TH", "NOV 1ST", "OCT 24TH – 27TH"
+ */
+export function formatShortDate(
+  startStr?: string | Date | null,
+  endStr?: string | Date | null
+): string {
+  if (!startStr) return "TBD";
+
+  let cleanStart = String(startStr).trim();
+  if (/^\d{4}-\d{1,2}(st|nd|rd|th)-\d{1,2}/i.test(cleanStart)) {
+    cleanStart = cleanStart.replace(/^(\d{4})-(\d{1,2})(st|nd|rd|th)-(\d{1,2})(st|nd|rd|th)?/i, "$1-$2-$4");
+  }
+
+  // If startStr already looks like a formatted range like "Oct 24th – 27th, 2024" or "Oct 24 - 26"
+  const rangeMatch = cleanStart.match(
+    /\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+(\d{1,2})(?:st|nd|rd|th)?(?:\s*[–—-]\s*(?:(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+)?(\d{1,2})(?:st|nd|rd|th)?)?/i
+  );
+  if (rangeMatch && !cleanStart.includes("T00:00")) {
+    const m1 = rangeMatch[1].toUpperCase();
+    const d1 = parseInt(rangeMatch[2], 10);
+    const ord1 = `${d1}${getOrdinalSuffix(d1)}`.toUpperCase();
+    const m2 = rangeMatch[3] ? rangeMatch[3].toUpperCase() : null;
+    const d2 = rangeMatch[4] ? parseInt(rangeMatch[4], 10) : null;
+    if (d2) {
+      const ord2 = `${d2}${getOrdinalSuffix(d2)}`.toUpperCase();
+      if (m2 && m2 !== m1) {
+        return `${m1} ${ord1} – ${m2} ${ord2}`;
+      }
+      return `${m1} ${ord1} – ${ord2}`;
+    }
+    return `${m1} ${ord1}`;
+  }
+
+  // Parse start date
+  const isoStart = cleanStart.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  let startMonth = "";
+  let startDay = 0;
+  if (isoStart) {
+    const m = parseInt(isoStart[2], 10);
+    startDay = parseInt(isoStart[3], 10);
+    const months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+    startMonth = months[m - 1] || "JAN";
+  } else {
+    const d = new Date(cleanStart);
+    if (!isNaN(d.getTime())) {
+      startMonth = d.toLocaleDateString("en-US", { month: "short" }).toUpperCase();
+      startDay = d.getDate();
+    } else {
+      const mMatch = cleanStart.match(/(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)/i);
+      const dMatch = cleanStart.match(/\d+/);
+      if (mMatch && dMatch) {
+        startMonth = mMatch[1].toUpperCase();
+        startDay = parseInt(dMatch[0], 10);
+      } else {
+        return cleanStart.toUpperCase();
+      }
+    }
+  }
+
+  const startOrd = `${startDay}${getOrdinalSuffix(startDay)}`.toUpperCase();
+
+  // If end date is supplied
+  if (endStr) {
+    let cleanEnd = String(endStr).trim();
+    if (/^\d{4}-\d{1,2}(st|nd|rd|th)-\d{1,2}/i.test(cleanEnd)) {
+      cleanEnd = cleanEnd.replace(/^(\d{4})-(\d{1,2})(st|nd|rd|th)-(\d{1,2})(st|nd|rd|th)?/i, "$1-$2-$4");
+    }
+    const isoEnd = cleanEnd.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+    let endMonth = "";
+    let endDay = 0;
+    if (isoEnd) {
+      const m = parseInt(isoEnd[2], 10);
+      endDay = parseInt(isoEnd[3], 10);
+      const months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+      endMonth = months[m - 1] || "JAN";
+    } else {
+      const d = new Date(cleanEnd);
+      if (!isNaN(d.getTime())) {
+        endMonth = d.toLocaleDateString("en-US", { month: "short" }).toUpperCase();
+        endDay = d.getDate();
+      }
+    }
+
+    if (endDay && endDay !== startDay) {
+      const endOrd = `${endDay}${getOrdinalSuffix(endDay)}`.toUpperCase();
+      if (endMonth && endMonth !== startMonth) {
+        return `${startMonth} ${startOrd} – ${endMonth} ${endOrd}`;
+      }
+      return `${startMonth} ${startOrd} – ${endOrd}`;
+    }
+  }
+
+  return `${startMonth} ${startOrd}`;
+}
+
+/**
+ * Formats date range into human-readable format with ordinals: "Nov 20th – 22nd, 2026"
+ */
+export function formatDateRange(
+  startISO?: string | Date | null,
+  endISO?: string | Date | null
+): string {
+  if (!startISO) return "TBD";
+  const startFmt = formatWithOrdinal(startISO);
+  if (!endISO) return startFmt;
+  const endFmt = formatWithOrdinal(endISO);
+  if (startFmt === endFmt || !endFmt) return startFmt;
+
+  const m1 = startFmt.match(/^([A-Za-z]+)\s+(\d{1,2}(?:st|nd|rd|th)),\s*(\d{4})$/);
+  const m2 = endFmt.match(/^([A-Za-z]+)\s+(\d{1,2}(?:st|nd|rd|th)),\s*(\d{4})$/);
+  if (m1 && m2 && m1[1] === m2[1] && m1[3] === m2[3]) {
+    return `${m1[1]} ${m1[2]} – ${m2[2]}, ${m1[3]}`;
+  }
+
+  return `${startFmt} – ${endFmt}`;
+}
 

@@ -519,7 +519,7 @@ function PlayerReportsContent() {
                                   {rep.reportedClub || "Golfer"} • HCP {rep.reportedHcp || "0.0"}
                                 </p>
                                 {rep.reportedUserStatus === "SUSPENDED" && (
-                                  <span className="inline-block mt-1 px-2 py-0.5 rounded text-[10px] font-black bg-red-100 text-red-700">
+                                  <span className="inline-block mt-1 px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700">
                                     ACCOUNT SUSPENDED
                                   </span>
                                 )}

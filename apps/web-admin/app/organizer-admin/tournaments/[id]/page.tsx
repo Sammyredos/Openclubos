@@ -68,7 +68,7 @@ import { Button } from "@/components/ui/button";
 import { Input, SearchableSelect } from "@/components/ui/input";
 import { FilterSelect } from "@/components/ui/filter-select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { cn, formatWithCommas, subscribeAdminEvents, broadcastAdminEvent, getGolfCategory, formatTeeTime, formatTitleCase } from "@/lib/utils";
+import { cn, formatWithCommas, subscribeAdminEvents, broadcastAdminEvent, getGolfCategory, formatTeeTime, formatTitleCase, formatDateRange } from "@/lib/utils";
 import { Pagination } from "@/components/ui/pagination";
 import { Label } from "@/components/ui/label";
 import { Modal } from "@/components/ui/modal";
@@ -172,13 +172,6 @@ const TABS = [
 
 type TabId = typeof TABS[number]["id"];
 
-function formatDateRange(startISO: string, endISO: string | null) {
-  const start = new Date(startISO);
-  const end = endISO ? new Date(endISO) : null;
-  const fmt = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" });
-  if (!end) return fmt.format(start);
-  return `${fmt.format(start)} - ${fmt.format(end)}`;
-}
 
 function formatPlayers(current: number, maxPlayers: number | null) {
   if (maxPlayers == null) return formatWithCommas(current);
