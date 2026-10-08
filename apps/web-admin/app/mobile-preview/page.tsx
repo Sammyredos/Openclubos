@@ -867,6 +867,170 @@ export default function MobilePreviewPage() {
   const regScrollRef = useRef<HTMLDivElement>(null);
   const featuredTournamentsCarouselRef = useRef<HTMLDivElement>(null);
   const playingNowCarouselRef = useRef<HTMLDivElement>(null);
+  const tournamentsHeroCarouselRef = useRef<HTMLDivElement>(null);
+  const [activeHeroTournamentIndex, setActiveHeroTournamentIndex] = useState(0);
+  const [tournamentsDisplayLimit, setTournamentsDisplayLimit] = useState(5);
+
+  const parseHandicapDisplay = (hcpLimit?: string | number | null, minHcp?: number | null, maxHcp?: number | null) => {
+    const hcpStr = hcpLimit != null ? String(hcpLimit) : "";
+    if (!hcpStr || hcpStr === "No Limit" || hcpStr === "None" || hcpStr === "Open" || hcpStr === "All" || hcpStr === "All HCP" || hcpStr === "0") {
+      return {
+        value: "Open",
+        unit: "All HCP",
+      };
+    }
+
+    if (minHcp != null && maxHcp != null) {
+      return {
+        value: `${minHcp} - ${maxHcp}`,
+        unit: "HCP",
+      };
+    }
+
+    const numbers = hcpStr.match(/\d+/g);
+    if (numbers && numbers.length >= 2) {
+      return {
+        value: `${numbers[0]} - ${numbers[1]}`,
+        unit: "HCP",
+      };
+    } else if (numbers && numbers.length === 1) {
+      return {
+        value: `0 - ${numbers[0]}`,
+        unit: "HCP",
+      };
+    }
+
+    if (hcpStr.includes("-") || hcpStr.includes("–")) {
+      return {
+        value: hcpStr.replace(/hcp/gi, "").trim(),
+        unit: "HCP",
+      };
+    }
+
+    return {
+      value: "Open",
+      unit: "All HCP",
+    };
+  };
+
+  const getOrdinalSuffix = (day: number): string => {
+    if (day > 3 && day < 21) return `${day}th`;
+    switch (day % 10) {
+      case 1:
+        return `${day}st`;
+      case 2:
+        return `${day}nd`;
+      case 3:
+        return `${day}rd`;
+      default:
+        return `${day}th`;
+    }
+  };
+
+  const formatFeaturedDateWithSuffix = (dateStr?: string | null) => {
+    if (!dateStr || dateStr === "Open" || dateStr === "Open Entry") return "Open Entry";
+
+    // Remove 4-digit calendar years to keep concise footprint
+    let clean = dateStr.replace(/,\s*\d{4}/g, "").replace(/\s+\d{4}/g, "").trim();
+
+    // Ensure day numbers have proper ordinal suffixes (e.g. 7th, 20th, 24th)
+    clean = clean.replace(/\b(\d{1,2})\b(?!\s*(st|nd|rd|th))/gi, (match) => {
+      const num = parseInt(match, 10);
+      if (num >= 1 && num <= 31) {
+        return getOrdinalSuffix(num);
+      }
+      return match;
+    });
+
+    return clean;
+  };
+
+  const formatCompactDateDisplay = (dateStr?: string | null) => {
+    return formatFeaturedDateWithSuffix(dateStr);
+  };
+
+  const formatBalancedTitle = (title?: string | null) => {
+    if (!title) return "";
+    const formatted = formatTitleCase(title).trim();
+    const lastSpaceIndex = formatted.lastIndexOf(" ");
+    if (lastSpaceIndex === -1) return formatted;
+    // Bind the last space with non-breaking space \u00A0 so lone numbers (like '2') or words never wrap alone
+    return formatted.substring(0, lastSpaceIndex) + "\u00A0" + formatted.substring(lastSpaceIndex + 1);
+  };
+
+  const renderTournamentCardWatermark = (tournamentId: string, index: number) => {
+    let hash = 0;
+    const str = tournamentId || `tour_${index}`;
+    for (let i = 0; i < str.length; i++) {
+      hash = (hash << 5) - hash + str.charCodeAt(i);
+      hash |= 0;
+    }
+    const variant = Math.abs(hash + index) % 5;
+
+    switch (variant) {
+      case 0:
+        // Variant 0: Fairway Contours & Top-Right Rings
+        return (
+          <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none" viewBox="0 0 380 180">
+            <path d="M-20 70 Q 90 22, 180 56 T 315 30 T 405 60" stroke="#009A60" strokeWidth="1.2" fill="none" opacity="0.08" />
+            <path d="M-10 95 Q 100 42, 210 78 T 345 50 T 415 82" stroke="#009A60" strokeWidth="1" fill="none" opacity="0.06" />
+            <path d="M-15 35 Q 110 72, 235 28 T 385 46" stroke="#009A60" strokeWidth="0.8" strokeDasharray="3 3" fill="none" opacity="0.05" />
+            <circle cx="340" cy="48" r="36" stroke="#009A60" strokeWidth="0.9" strokeDasharray="2 3" opacity="0.07" />
+            <circle cx="340" cy="48" r="62" stroke="#009A60" strokeWidth="0.7" opacity="0.05" />
+            <circle cx="340" cy="48" r="90" stroke="#009A60" strokeWidth="0.5" opacity="0.03" />
+          </svg>
+        );
+      case 1:
+        // Variant 1: Rolling Greens & Center-Bottom Target Rings
+        return (
+          <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none" viewBox="0 0 380 180">
+            <path d="M-10 40 Q 80 85, 190 45 T 310 75 T 400 35" stroke="#009A60" strokeWidth="1.2" fill="none" opacity="0.08" />
+            <path d="M-20 65 Q 90 110, 215 68 T 330 98 T 410 58" stroke="#009A60" strokeWidth="1" fill="none" opacity="0.06" />
+            <path d="M-15 115 Q 120 70, 250 120 T 395 80" stroke="#009A60" strokeWidth="0.8" strokeDasharray="3 3" fill="none" opacity="0.05" />
+            <circle cx="295" cy="125" r="32" stroke="#009A60" strokeWidth="0.9" strokeDasharray="2 3" opacity="0.07" />
+            <circle cx="295" cy="125" r="56" stroke="#009A60" strokeWidth="0.7" opacity="0.05" />
+            <circle cx="295" cy="125" r="82" stroke="#009A60" strokeWidth="0.5" opacity="0.03" />
+          </svg>
+        );
+      case 2:
+        // Variant 2: Diagonal Ridges & Dual Topographic Hubs
+        return (
+          <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none" viewBox="0 0 380 180">
+            <path d="M-30 140 Q 110 110, 220 50 T 390 15" stroke="#009A60" strokeWidth="1.2" fill="none" opacity="0.08" />
+            <path d="M-10 165 Q 130 135, 240 75 T 410 40" stroke="#009A60" strokeWidth="1" fill="none" opacity="0.06" />
+            <path d="M-20 100 Q 100 80, 260 25 T 375 -5" stroke="#009A60" strokeWidth="0.8" strokeDasharray="3 3" fill="none" opacity="0.05" />
+            <circle cx="310" cy="30" r="28" stroke="#009A60" strokeWidth="0.9" strokeDasharray="2 3" opacity="0.07" />
+            <circle cx="310" cy="30" r="52" stroke="#009A60" strokeWidth="0.7" opacity="0.05" />
+            <circle cx="70" cy="135" r="24" stroke="#009A60" strokeWidth="0.8" strokeDasharray="2 3" opacity="0.05" />
+          </svg>
+        );
+      case 3:
+        // Variant 3: Meandering Fairway Curves & Pinpoint Beacon
+        return (
+          <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none" viewBox="0 0 380 180">
+            <path d="M-15 25 C 75 70, 140 15, 240 80 S 340 30, 405 65" stroke="#009A60" strokeWidth="1.2" fill="none" opacity="0.08" />
+            <path d="M-10 52 C 85 98, 155 42, 255 105 S 355 58, 415 92" stroke="#009A60" strokeWidth="1" fill="none" opacity="0.06" />
+            <path d="M-25 90 C 70 135, 170 80, 280 140 S 370 95, 410 125" stroke="#009A60" strokeWidth="0.8" strokeDasharray="3 3" fill="none" opacity="0.05" />
+            <circle cx="200" cy="85" r="35" stroke="#009A60" strokeWidth="0.9" strokeDasharray="2 3" opacity="0.07" />
+            <circle cx="200" cy="85" r="62" stroke="#009A60" strokeWidth="0.7" opacity="0.05" />
+            <circle cx="200" cy="85" r="90" stroke="#009A60" strokeWidth="0.5" opacity="0.03" />
+          </svg>
+        );
+      case 4:
+      default:
+        // Variant 4: Coastal Links Horizon & Radial Crests
+        return (
+          <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none" viewBox="0 0 380 180">
+            <path d="M-20 120 Q 130 20, 280 65 T 410 25" stroke="#009A60" strokeWidth="1.2" fill="none" opacity="0.08" />
+            <path d="M-15 145 Q 140 45, 295 90 T 420 50" stroke="#009A60" strokeWidth="1" fill="none" opacity="0.06" />
+            <path d="M-10 85 Q 115 -5, 250 40 T 395 5" stroke="#009A60" strokeWidth="0.8" strokeDasharray="3 3" fill="none" opacity="0.05" />
+            <circle cx="345" cy="70" r="32" stroke="#009A60" strokeWidth="0.9" strokeDasharray="2 3" opacity="0.07" />
+            <circle cx="345" cy="70" r="58" stroke="#009A60" strokeWidth="0.7" opacity="0.05" />
+            <circle cx="345" cy="70" r="85" stroke="#009A60" strokeWidth="0.5" opacity="0.03" />
+          </svg>
+        );
+    }
+  };
 
   const scrollToTopAll = () => {
     if (regScrollRef.current) {
@@ -7559,9 +7723,15 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                                         <span className="text-[8.5px] font-semibold text-slate-300/80 uppercase tracking-wider">
                                           HCP LIMIT
                                         </span>
-                                        <span className="text-[12px] font-bold text-white tracking-tight leading-tight truncate">
-                                          {tourn.hcpLimit}
-                                        </span>
+                                        {(() => {
+                                          const hcpInfo = parseHandicapDisplay(tourn.hcpLimit);
+                                          return (
+                                            <span className="text-[12px] font-bold text-white tracking-tight leading-tight flex items-baseline gap-1 truncate" title={`${hcpInfo.value} ${hcpInfo.unit}`}>
+                                              <span>{hcpInfo.value}</span>
+                                              <span className="text-[9.5px] font-medium text-slate-300 tracking-normal">{hcpInfo.unit}</span>
+                                            </span>
+                                          );
+                                        })()}
                                       </div>
                                     </div>
 
@@ -7950,101 +8120,8 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                       };
                     });
 
-                    // Graceful preview fallbacks if local database is empty/cold-starting
-                    const fallbackTournaments = [
-                      {
-                        id: "ikoyi-open-2024",
-                        name: "Ikoyi Open Championship 2024",
-                        club: "Ikoyi Club 1938",
-                        city: "Lagos, Nigeria",
-                        clubLogo: null,
-                        category: "Ongoing",
-                        fee: "₦150,000",
-                        feeAmount: 150000,
-                        currency: "NGN",
-                        date: "Oct 24th, 2024",
-                        dateFull: "Oct 24th – 27th, 2024",
-                        startDate: "2024-10-24",
-                        endDate: "2024-10-27",
-                        format: "Individual Strokeplay • 54 Holes",
-                        formatType: "Strokeplay",
-                        purse: "₦15,000,000 Total Purse",
-                        rawPurse: 15000000,
-                        holes: 18,
-                        cutLine: "Top 35 Players & Ties",
-                        bannerUrl: "/images/tournaments/ikoyi_sunrise_fairway.jpg",
-                        isFeatured: true,
-                        status: "Live",
-                        isOpen: true,
-                        fieldCount: 120,
-                        maxPlayers: 120,
-                        divisions: "Grand Final Series",
-                        description: "The Ikoyi Open Championship gathers elite amateurs and club members for a competitive 3-day tournament.",
-                        hcpLimit: "Max 18 HCP",
-                      },
-                      {
-                        id: "lagos-amateur-open",
-                        name: "Lagos Amateur Open",
-                        club: "Lakowe Lakes Golf Estate",
-                        city: "Lagos, Nigeria",
-                        clubLogo: null,
-                        category: "Ongoing",
-                        fee: "₦150,000",
-                        feeAmount: 150000,
-                        currency: "NGN",
-                        date: "Nov 12th, 2024",
-                        dateFull: "Nov 12th – 14th, 2024",
-                        startDate: "2024-11-12",
-                        endDate: "2024-11-14",
-                        format: "Individual Strokeplay • 36 Holes",
-                        formatType: "Strokeplay",
-                        purse: "₦12,500,000 Total Purse",
-                        rawPurse: 12500000,
-                        holes: 18,
-                        cutLine: "Top 40 Players & Ties",
-                        bannerUrl: "/images/tournaments/lagos_amateur_open.jpg",
-                        isFeatured: false,
-                        status: "Open",
-                        isOpen: true,
-                        fieldCount: 88,
-                        maxPlayers: 120,
-                        divisions: "Major Event",
-                        description: "Prestigious amateur championship on the fairways of Lakowe Lakes.",
-                        hcpLimit: "Max 24 HCP",
-                      },
-                      {
-                        id: "smokin-hills-memorial",
-                        name: "Smokin Hills Memorial Trophy",
-                        club: "Smokin Hills Golf Resort",
-                        city: "Ilara-Mokin, Ondo",
-                        clubLogo: null,
-                        category: "Major",
-                        fee: "₦120,000",
-                        feeAmount: 120000,
-                        currency: "NGN",
-                        date: "Jan 18th, 2025",
-                        dateFull: "Jan 18th – 20th, 2025",
-                        startDate: "2025-01-18",
-                        endDate: "2025-01-20",
-                        format: "Individual Strokeplay • 54 Holes",
-                        formatType: "Strokeplay",
-                        purse: "₦15,000,000 Total Purse",
-                        rawPurse: 15000000,
-                        holes: 18,
-                        cutLine: "Top 35 Players & Ties",
-                        bannerUrl: "/images/tournaments/course_banner_04.jpg",
-                        isFeatured: false,
-                        status: "Open",
-                        isOpen: true,
-                        fieldCount: 74,
-                        maxPlayers: 100,
-                        divisions: "Championship",
-                        description: "Historic annual memorial trophy contest across Smokin Hills.",
-                        hcpLimit: "Max 18 HCP",
-                      },
-                    ];
-
-                    const combinedTournaments = dynamicFromDb.length > 0 ? dynamicFromDb : fallbackTournaments;
+                    // Strictly display tournaments from the database (no dummy or fallback tournaments)
+                    const combinedTournaments = dynamicFromDb;
 
                     // Filter by search query, categories, formats, fees, host club, and sort order
                     const filteredTournaments = combinedTournaments
@@ -8061,10 +8138,16 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                         }
 
                         // 2. Tournament Lifecycle Status Filter
-                        if (tournamentFilter !== "All") {
-                          if (tournamentFilter === "Ongoing" && t.status !== "Live" && t.category !== "Ongoing" && !t.isFeatured) return false;
-                          if (tournamentFilter === "Upcoming" && (t.status === "Closed" || t.status === "Completed" || !t.isOpen)) return false;
-                          if (tournamentFilter === "Completed" && t.status !== "Closed" && t.status !== "Completed" && t.isOpen) return false;
+                        const isCompletedTournament = t.status === "Closed" || t.status === "Completed" || !t.isOpen;
+                        if (tournamentFilter === "All") {
+                          if (isCompletedTournament) return false;
+                        } else if (tournamentFilter === "Ongoing") {
+                          if (t.status !== "Live" && t.category !== "Ongoing" && !t.isFeatured) return false;
+                          if (isCompletedTournament) return false;
+                        } else if (tournamentFilter === "Upcoming") {
+                          if (isCompletedTournament) return false;
+                        } else if (tournamentFilter === "Completed") {
+                          if (!isCompletedTournament) return false;
                         }
 
                         // 3. Format Filter
@@ -8109,12 +8192,15 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                         return 0;
                       });
 
-                    // 2. Select Dynamic Featured Tournament directly from Database Tournaments
-                    const featuredTournament =
-                      combinedTournaments.find((t) => t.isFeatured) ||
-                      combinedTournaments.find((t) => t.status === "Live") ||
-                      combinedTournaments[0] ||
-                      null;
+                    // 2. Select All Featured Tournaments (isFeatured || Live || Major, excluding completed events)
+                    const featuredTournaments = (() => {
+                      const activeOnly = combinedTournaments.filter((t) => t.status !== "Closed" && t.status !== "Completed" && t.isOpen);
+                      const explicit = activeOnly.filter((t) => t.isFeatured);
+                      if (explicit.length > 0) return explicit;
+                      const liveOrMajor = activeOnly.filter((t) => t.status === "Live" || t.category === "Major");
+                      if (liveOrMajor.length > 0) return liveOrMajor;
+                      return activeOnly.slice(0, 3);
+                    })();
 
                     const isCustomFilterActive = tournamentFilter !== "All" || tournamentFormatFilter !== "All" || tournamentFeeFilter !== "All" || tournamentClubFilter !== "All" || filterFeeMax < 250000 || filterProximityKm !== 25 || filterWhen !== "Anytime" || tournamentSortOrder !== "date";
 
@@ -8338,86 +8424,327 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                             </div>
 
                             {(() => {
-                              const nextEvents = filteredTournaments.filter(
-                                (t) => !featuredTournament || t.id !== featuredTournament.id
+                              const featuredIds = new Set(featuredTournaments.map((t) => t.id));
+                              const unfeaturedEvents = filteredTournaments.filter(
+                                (t) => !featuredIds.has(t.id)
                               );
+                              const nextEvents = unfeaturedEvents.length > 0 ? unfeaturedEvents : filteredTournaments;
 
                               return (
                                 <>
-                                  {/* 2. Featured Event Hero Card (from Database) */}
-                                  {!tournamentSearchQuery && (tournamentFilter === "All" || tournamentFilter === "Ongoing") && featuredTournament && (
-                                    <div
-                                      onClick={() => openTournamentDetails(featuredTournament)}
-                                      className="mx-4 mb-6 rounded-[32px] overflow-hidden relative shadow-[0_12px_36px_rgba(0,0,0,0.22)] border border-slate-200/40 min-h-[380px] shrink-0 group select-none cursor-pointer active:scale-[0.99] transition-transform flex flex-col justify-between p-6"
-                                    >
-                                      <img
-                                        src={featuredTournament.bannerUrl || "/images/tournaments/ikoyi_sunrise_fairway.jpg"}
-                                        alt={featuredTournament.name}
-                                        className="absolute inset-0 w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700"
-                                      />
-                                      <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/45 to-black/25 pointer-events-none" />
+                                  {/* 2. Featured Events Horizontal Scrollable Hero Carousel */}
+                                  {!tournamentSearchQuery && (tournamentFilter === "All" || tournamentFilter === "Ongoing") && featuredTournaments.length > 0 && (
+                                    <div className="mb-6">
+                                      <div
+                                        ref={tournamentsHeroCarouselRef}
+                                        data-hero-carousel="true"
+                                        onMouseDown={(e) => {
+                                          const el = e.currentTarget;
+                                          el.dataset.isDown = "true";
+                                          el.dataset.startX = String(e.pageX - el.offsetLeft);
+                                          el.dataset.scrollLeft = String(el.scrollLeft);
+                                          el.dataset.moved = "false";
+                                        }}
+                                        onMouseLeave={(e) => {
+                                          e.currentTarget.dataset.isDown = "false";
+                                        }}
+                                        onMouseUp={(e) => {
+                                          e.currentTarget.dataset.isDown = "false";
+                                        }}
+                                        onMouseMove={(e) => {
+                                          const el = e.currentTarget;
+                                          if (el.dataset.isDown !== "true") return;
+                                          e.preventDefault();
+                                          const x = e.pageX - el.offsetLeft;
+                                          const startX = Number(el.dataset.startX);
+                                          const scrollLeftStart = Number(el.dataset.scrollLeft);
+                                          const walk = (x - startX) * 1.5;
+                                          if (Math.abs(walk) > 4) {
+                                            el.dataset.moved = "true";
+                                          }
+                                          el.scrollLeft = scrollLeftStart - walk;
+                                        }}
+                                        onTouchStart={(e) => {
+                                          const el = e.currentTarget;
+                                          el.dataset.isDown = "true";
+                                          el.dataset.startX = String(e.touches[0].pageX - el.offsetLeft);
+                                          el.dataset.scrollLeft = String(el.scrollLeft);
+                                          el.dataset.moved = "false";
+                                        }}
+                                        onTouchEnd={(e) => {
+                                          e.currentTarget.dataset.isDown = "false";
+                                        }}
+                                        onTouchMove={(e) => {
+                                          const el = e.currentTarget;
+                                          if (el.dataset.isDown !== "true") return;
+                                          const x = e.touches[0].pageX - el.offsetLeft;
+                                          const startX = Number(el.dataset.startX);
+                                          const scrollLeftStart = Number(el.dataset.scrollLeft);
+                                          const walk = (x - startX) * 1.2;
+                                          if (Math.abs(walk) > 4) {
+                                            el.dataset.moved = "true";
+                                          }
+                                          el.scrollLeft = scrollLeftStart - walk;
+                                        }}
+                                        onScroll={(e) => {
+                                          const el = e.currentTarget;
+                                          const card = el.querySelector<HTMLElement>('[data-hero-card]');
+                                          const cardWidth = card ? card.offsetWidth + 12 : 300;
+                                          const newIndex = Math.round(el.scrollLeft / cardWidth);
+                                          setActiveHeroTournamentIndex(Math.max(0, Math.min(featuredTournaments.length - 1, newIndex)));
+                                        }}
+                                        className="w-full overflow-x-auto scrollbar-hide no-scrollbar scroll-smooth cursor-grab active:cursor-grabbing select-none touch-pan-x snap-x snap-mandatory px-4"
+                                        style={{ scrollbarWidth: "none", msOverflowStyle: "none", WebkitOverflowScrolling: "touch" }}
+                                      >
+                                        <div className="flex items-stretch gap-3 w-max min-w-max pe-4">
+                                          {featuredTournaments.map((tournament, idx) => {
+                                            const hcpInfo = parseHandicapDisplay(tournament.hcpLimit);
 
-                                      {/* Top Row: Status Pill + Club Pill */}
-                                      <div className="relative z-10 flex items-center justify-between w-full">
-                                        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#009A60] text-white text-[11px] font-bold uppercase tracking-wider shadow-sm">
-                                          <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
-                                          <span>{featuredTournament.status === "Live" ? "ONGOING" : featuredTournament.status === "Closed" ? "COMPLETED" : "REGISTRATION OPEN"}</span>
-                                        </div>
+                                            return (
+                                              <div
+                                                key={tournament.id || idx}
+                                                data-hero-card="true"
+                                                onClick={(e) => {
+                                                  const container = e.currentTarget.closest('[data-hero-carousel]') as HTMLElement | null;
+                                                  if (container?.dataset.moved === "true") {
+                                                    container.dataset.moved = "false";
+                                                    return;
+                                                  }
+                                                  openTournamentDetails(tournament);
+                                                }}
+                                                className="w-[315px] h-[224px] rounded-[22px] overflow-hidden shrink-0 relative bg-[#052417] border border-[#10B981]/25 shadow-md hover:shadow-lg transition-all group select-none snap-center cursor-pointer"
+                                              >
+                                                {/* Luxury Forest Green Base Background */}
+                                                <div className="absolute inset-0 bg-gradient-to-br from-[#062c1d] via-[#052417] to-[#02180f] pointer-events-none" />
 
-                                        <div className="px-3.5 py-1.5 rounded-full bg-white/20 backdrop-blur-md border border-white/25 text-white text-[11px] font-bold uppercase tracking-wider shadow-sm truncate max-w-[170px]">
-                                          {featuredTournament.club.toUpperCase()}
+                                                {/* Topographic fairway elevation contours replicating reference design */}
+                                                <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none" viewBox="0 0 380 224">
+                                                  <path d="M-20 80 Q 95 30, 195 72 T 350 40 T 420 78" stroke="#10B981" strokeWidth="1.3" fill="none" opacity="0.65" />
+                                                  <path d="M-10 120 Q 110 50, 230 100 T 380 62 T 440 105" stroke="#10B981" strokeWidth="1.1" fill="none" opacity="0.45" />
+                                                  <path d="M-15 45 Q 120 95, 260 36 T 410 58" stroke="#10B981" strokeWidth="0.9" strokeDasharray="3 3" fill="none" opacity="0.4" />
+                                                  {/* Concentric elevation rings around action zone */}
+                                                  <circle cx="330" cy="55" r="38" stroke="#10B981" strokeWidth="1" strokeDasharray="2 3" opacity="0.55" />
+                                                  <circle cx="330" cy="55" r="65" stroke="#10B981" strokeWidth="0.8" opacity="0.35" />
+                                                  <circle cx="330" cy="55" r="92" stroke="#10B981" strokeWidth="0.6" opacity="0.2" />
+                                                </svg>
+
+                                                {/* Subtle photo texture from tournament banner */}
+                                                <div
+                                                  className="absolute inset-0 bg-cover bg-center opacity-15 mix-blend-luminosity pointer-events-none transition-transform duration-500 group-hover:scale-105"
+                                                  style={{ backgroundImage: `url('${tournament.bannerUrl || "/images/tournaments/ikoyi_sunrise_fairway.jpg"}')` }}
+                                                />
+                                                <div className="absolute inset-0 bg-gradient-to-t from-[#052417]/90 via-transparent to-black/20 pointer-events-none" />
+
+                                                {/* Card Content */}
+                                                <div className="relative z-10 flex flex-col h-full p-3.5 pb-2.5">
+                                                  {/* Top Row: Badges, Title + Action Buttons */}
+                                                  <div className="flex items-start justify-between gap-2">
+                                                    <div className="flex flex-col min-w-0 flex-1 pr-1">
+                                                      {/* Badges: Divisions */}
+                                                      <div className="flex items-center gap-1.5 flex-wrap mb-1.5">
+                                                        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[9.5px] font-bold uppercase tracking-wider bg-[#009A60]/35 text-emerald-300 border border-[#009A60]/50 backdrop-blur-xs shadow-xs">
+                                                          {tournament.divisions || "Championship"}
+                                                        </span>
+                                                      </div>
+
+                                                      {/* Title: Breaks gracefully without lone orphan numbers/words */}
+                                                      <h4
+                                                        className={`font-bold text-white tracking-tight leading-snug drop-shadow-sm max-w-[240px] break-words [text-wrap:balance] ${
+                                                          tournament.name.length > 36
+                                                            ? "text-[12.5px]"
+                                                            : tournament.name.length > 26
+                                                            ? "text-[13px]"
+                                                            : "text-[14px]"
+                                                        }`}
+                                                      >
+                                                        {formatBalancedTitle(tournament.name)}
+                                                      </h4>
+                                                    </div>
+
+                                                    {/* Action Buttons Top Right: Share + Bookmark */}
+                                                    <div className="flex items-center gap-1.5 shrink-0 mt-0.5">
+                                                      <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                          e.stopPropagation();
+                                                          const container = e.currentTarget.closest('[data-hero-carousel]') as HTMLElement | null;
+                                                          if (container?.dataset.moved === "true") {
+                                                            container.dataset.moved = "false";
+                                                            return;
+                                                          }
+                                                          if (typeof navigator !== "undefined" && navigator.clipboard) {
+                                                            navigator.clipboard.writeText(`https://openclub.app/tournaments/${tournament.id}`).catch(() => {});
+                                                          }
+                                                          showToast(`${tournament.name} link copied to clipboard!`, "success", "SHARE TOURNAMENT");
+                                                        }}
+                                                        className="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 border border-white/10 backdrop-blur-xs flex items-center justify-center cursor-pointer transition-all"
+                                                        title="Share Tournament"
+                                                      >
+                                                        <Share2 className="w-3.5 h-3.5 text-white hover:text-emerald-400 transition-colors" />
+                                                      </button>
+                                                      <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                          e.stopPropagation();
+                                                          const container = e.currentTarget.closest('[data-hero-carousel]') as HTMLElement | null;
+                                                          if (container?.dataset.moved === "true") {
+                                                            container.dataset.moved = "false";
+                                                            return;
+                                                          }
+                                                          showToast(`${tournament.name} saved to bookmarks`, "success", "BOOKMARKED");
+                                                        }}
+                                                        className="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 border border-white/10 backdrop-blur-xs flex items-center justify-center cursor-pointer transition-all"
+                                                        title="Bookmark Tournament"
+                                                      >
+                                                        <Bookmark className="w-3.5 h-3.5 text-emerald-400" />
+                                                      </button>
+                                                    </div>
+                                                  </div>
+
+                                                  {/* Tight spacing directly under tournament title */}
+                                                  <div className="h-2" />
+
+                                                  {/* Middle: 2x2 Metadata Grid */}
+                                                  <div className="grid grid-cols-2 gap-x-2.5 gap-y-1.5">
+                                                    {/* 1. Venue */}
+                                                    <div className="flex items-center gap-2 min-w-0">
+                                                      <div className="w-8 h-8 rounded-xl bg-white/10 border border-white/10 backdrop-blur-xs flex items-center justify-center shrink-0">
+                                                        <MapPin className="w-3.5 h-3.5 text-emerald-400" />
+                                                      </div>
+                                                      <div className="flex flex-col min-w-0">
+                                                        <span className="text-[8.5px] font-semibold text-slate-300/80 uppercase tracking-wider">
+                                                          VENUE
+                                                        </span>
+                                                        <span className="text-[12px] font-bold text-white tracking-tight leading-tight truncate" title={tournament.club}>
+                                                          {tournament.club}
+                                                        </span>
+                                                      </div>
+                                                    </div>
+
+                                                    {/* 2. Entry Fee */}
+                                                    <div className="flex items-center gap-2 min-w-0">
+                                                      <div className="w-8 h-8 rounded-xl bg-white/10 border border-white/10 backdrop-blur-xs flex items-center justify-center shrink-0">
+                                                        <Banknote className="w-3.5 h-3.5 text-emerald-400" />
+                                                      </div>
+                                                      <div className="flex flex-col min-w-0">
+                                                        <span className="text-[8.5px] font-semibold text-slate-300/80 uppercase tracking-wider">
+                                                          ENTRY FEE
+                                                        </span>
+                                                        <span className="text-[12px] font-bold text-white tracking-tight leading-tight truncate">
+                                                          {tournament.fee || formatCompactFee(tournament.feeAmount, tournament.currency || "NGN")}
+                                                        </span>
+                                                      </div>
+                                                    </div>
+
+                                                    {/* 3. HCP Limit */}
+                                                    <div className="flex items-center gap-1.5 min-w-0">
+                                                      <div className="w-7 h-7 rounded-lg bg-white/10 border border-white/10 backdrop-blur-xs flex items-center justify-center shrink-0">
+                                                        <Award className="w-3.5 h-3.5 text-emerald-400" />
+                                                      </div>
+                                                      <div className="flex flex-col min-w-0 flex-1">
+                                                        <span className="text-[8.5px] font-semibold text-slate-300/80 uppercase tracking-wider leading-none mb-1">
+                                                          HCP LIMIT
+                                                        </span>
+                                                        <span className="text-[11px] font-bold text-white tracking-tight leading-tight flex items-baseline gap-1 whitespace-nowrap truncate" title={`${hcpInfo.value} ${hcpInfo.unit}`}>
+                                                          <span className="shrink-0">{hcpInfo.value}</span>
+                                                          <span className="text-[9px] font-medium text-slate-300 tracking-normal whitespace-nowrap shrink-0">{hcpInfo.unit}</span>
+                                                        </span>
+                                                      </div>
+                                                    </div>
+
+                                                    {/* 4. Date */}
+                                                    <div className="flex items-center gap-1.5 min-w-0">
+                                                      <div className="w-7 h-7 rounded-lg bg-white/10 border border-white/10 backdrop-blur-xs flex items-center justify-center shrink-0">
+                                                        <Calendar className="w-3.5 h-3.5 text-emerald-400" />
+                                                      </div>
+                                                      <div className="flex flex-col min-w-0 flex-1">
+                                                        <span className="text-[8.5px] font-semibold text-slate-300/80 uppercase tracking-wider leading-none mb-1">
+                                                          DATE
+                                                        </span>
+                                                        <span
+                                                          className="text-[10.5px] font-bold text-white tracking-tight leading-tight whitespace-nowrap truncate"
+                                                          title={tournament.dateFull || tournament.date || "Open"}
+                                                        >
+                                                          {formatFeaturedDateWithSuffix(tournament.date || tournament.dateFull)}
+                                                        </span>
+                                                      </div>
+                                                    </div>
+                                                  </div>
+
+                                                  {/* Flexible Spacer */}
+                                                  <div className="flex-1 min-h-1.5" />
+
+                                                  {/* Bottom Action Buttons (Register 70%, Details 30%) */}
+                                                  <div className="flex items-center gap-2">
+                                                    <button
+                                                      type="button"
+                                                      onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        const container = e.currentTarget.closest('[data-hero-carousel]') as HTMLElement | null;
+                                                        if (container?.dataset.moved === "true") {
+                                                          container.dataset.moved = "false";
+                                                          return;
+                                                        }
+                                                        showToast(`Opening registration for ${tournament.name}`, "success", "REGISTRATION");
+                                                        setTimeout(() => switchScreen("register"), 600);
+                                                      }}
+                                                      className="flex-[7] h-[38px] rounded-xl bg-[#009A60] hover:bg-[#008753] active:scale-[0.98] text-white font-semibold text-[12.5px] flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer capitalize"
+                                                    >
+                                                      <span>{tournament.status === "Live" ? "View Live Scores" : "Register Now"}</span>
+                                                      <ChevronRight className="w-4 h-4" />
+                                                    </button>
+
+                                                    <button
+                                                      type="button"
+                                                      onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        const container = e.currentTarget.closest('[data-hero-carousel]') as HTMLElement | null;
+                                                        if (container?.dataset.moved === "true") {
+                                                          container.dataset.moved = "false";
+                                                          return;
+                                                        }
+                                                        openTournamentDetails(tournament);
+                                                      }}
+                                                      className="flex-[3] h-[38px] rounded-xl bg-white hover:bg-slate-100 active:scale-[0.98] text-[#0F172A] font-semibold text-[12px] flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer border border-slate-200 capitalize"
+                                                      title="Tournament Details"
+                                                    >
+                                                      <Info className="w-3.5 h-3.5 text-[#009A60]" />
+                                                      <span>Details</span>
+                                                    </button>
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            );
+                                          })}
                                         </div>
                                       </div>
 
-                                      {/* Bottom Content: Series + Title + Telemetry + CTA Button */}
-                                      <div className="relative z-10 mt-auto pt-6 text-white">
-                                        <span className="text-[12px] font-bold tracking-[0.15em] text-white/90 uppercase block mb-1 drop-shadow-sm">
-                                          {featuredTournament.divisions || "GRAND FINAL SERIES"}
-                                        </span>
-
-                                        <h3 className="text-[26px] sm:text-[30px] font-bold text-white leading-[1.15] tracking-tight drop-shadow-md mb-4 line-clamp-2">
-                                          {featuredTournament.name}
-                                        </h3>
-
-                                        {/* Telemetry Stats Row */}
-                                        <div className="flex items-center gap-5 sm:gap-6 mb-5">
-                                          <div>
-                                            <span className="text-[10px] font-bold tracking-wider text-white/70 uppercase block">PLAYERS</span>
-                                            <span className="text-[17px] font-bold text-white mt-0.5 block leading-none">
-                                              {featuredTournament.fieldCount}/{featuredTournament.maxPlayers || 120}
-                                            </span>
-                                          </div>
-                                          <div className="w-px h-8 bg-white/25 self-center" />
-                                          <div>
-                                            <span className="text-[10px] font-bold tracking-wider text-white/70 uppercase block">HANDICAP</span>
-                                            <span className="text-[17px] font-bold text-white mt-0.5 block leading-none truncate max-w-[110px]" title={featuredTournament.hcpLimit || "No Limit"}>
-                                              {featuredTournament.hcpLimit || "No Limit"}
-                                            </span>
-                                          </div>
-                                          <div className="w-px h-8 bg-white/25 self-center" />
-                                          <div>
-                                            <span className="text-[10px] font-bold tracking-wider text-white/70 uppercase block">PRIZE POOL</span>
-                                            <span className="text-[17px] font-bold text-white mt-0.5 block leading-none">
-                                              {featuredTournament.rawPurse && featuredTournament.rawPurse > 0
-                                                ? `₦${Number(featuredTournament.rawPurse).toLocaleString("en-US")}`
-                                                : (featuredTournament.purse && featuredTournament.purse !== "—" ? featuredTournament.purse : "₦2,500,000")}
-                                            </span>
-                                          </div>
+                                      {/* Pagination Dots (When multiple featured tournaments are present) */}
+                                      {featuredTournaments.length > 1 && (
+                                        <div className="flex items-center justify-center gap-1.5 mt-3 select-none">
+                                          {featuredTournaments.map((_, idx) => (
+                                            <button
+                                              key={idx}
+                                              type="button"
+                                              onClick={() => {
+                                                if (tournamentsHeroCarouselRef.current) {
+                                                  const cards = tournamentsHeroCarouselRef.current.querySelectorAll<HTMLElement>('[data-hero-card]');
+                                                  if (cards[idx]) {
+                                                    cards[idx].scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+                                                  }
+                                                }
+                                                setActiveHeroTournamentIndex(idx);
+                                              }}
+                                              className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
+                                                activeHeroTournamentIndex === idx
+                                                  ? "w-6 bg-[#009A60]"
+                                                  : "w-1.5 bg-slate-300 hover:bg-slate-400"
+                                              }`}
+                                              aria-label={`Go to featured tournament ${idx + 1}`}
+                                            />
+                                          ))}
                                         </div>
-
-                                        {/* Full-width CTA Button */}
-                                        <button
-                                          type="button"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            openTournamentDetails(featuredTournament);
-                                          }}
-                                          className="w-full py-4 rounded-[20px] bg-[#009A60] hover:bg-[#008251] active:scale-[0.98] text-white font-bold text-[15px] capitalize tracking-wide flex items-center justify-center gap-2 shadow-[0_8px_20px_rgba(0,154,96,0.35)] transition-all cursor-pointer"
-                                        >
-                                          <span>{featuredTournament.status === "Live" ? "View Live Scores" : "Register Now"}</span>
-                                          <ArrowRight className="w-4 h-4 ml-1" />
-                                        </button>
-                                      </div>
+                                      )}
                                     </div>
                                   )}
 
@@ -8450,7 +8777,7 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
 
                                   {/* 4. Tournament Entries Cards */}
                                   {nextEvents.length === 0 ? (
-                                    <div className="mx-4 my-6 bg-white rounded-[22px] p-6 text-center border border-slate-200/80 shadow-2xs">
+                                    <div className="py-10 px-4 text-center">
                                       <div className="w-12 h-12 rounded-2xl bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center text-[#009A60] mx-auto mb-3 shadow-2xs">
                                         <Search className="w-5 h-5" />
                                       </div>
@@ -8474,13 +8801,16 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                                     </div>
                                   ) : (
                                     <div className="space-y-3.5 px-4">
-                                      {nextEvents.map((tournament) => (
+                                      {nextEvents.slice(0, tournamentsDisplayLimit).map((tournament, tIdx) => (
                                         <div
                                           key={tournament.id}
-                                          onClick={() => openTournamentDetails(tournament)}
-                                          className="bg-white rounded-[26px] p-4 shadow-[0_4px_20px_rgba(0,0,0,0.04)] border border-slate-100/90 relative overflow-hidden transition-all hover:shadow-[0_6px_24px_rgba(0,0,0,0.07)] cursor-pointer group"
+                                          className="w-full bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-3.5 relative overflow-hidden transition-all hover:border-slate-300"
                                         >
-                                          {(() => {
+                                          {/* Subtle topographic fairway elevation contours unique to each tournament card */}
+                                          {renderTournamentCardWatermark(tournament.id, tIdx)}
+
+                                          <div className="relative z-10">
+                                            {(() => {
                                             const clubLogoUrl =
                                               tournament.clubLogo ||
                                               (tournament.club?.toLowerCase().includes("oakwood") ? "/images/brand/oakwood-logo.svg" : null) ||
@@ -8513,9 +8843,19 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
 
                                                 {/* Right: Info Column */}
                                                 <div className="flex-1 min-w-0">
-                                                  {/* Tournament Title */}
-                                                  <h4 className="text-[15.5px] font-bold text-[#0F172A] tracking-tight leading-snug truncate group-hover:text-[#009A60] transition-colors mb-1">
-                                                    {formatTitleCase(tournament.name)}
+                                                  {/* Tournament Title: Sized to fit on a single line or balanced wrap without lone orphan words/numbers */}
+                                                  <h4
+                                                    className={`font-bold text-[#0F172A] tracking-tight leading-snug break-words [text-wrap:balance] mb-1 ${
+                                                      tournament.name.length > 36
+                                                        ? "text-[12px]"
+                                                        : tournament.name.length > 28
+                                                        ? "text-[12.5px]"
+                                                        : tournament.name.length > 20
+                                                        ? "text-[13.5px]"
+                                                        : "text-[14.5px]"
+                                                    }`}
+                                                  >
+                                                    {formatBalancedTitle(tournament.name)}
                                                   </h4>
 
                                                   {/* Location with Pin */}
@@ -8540,10 +8880,10 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                                           <div className="mt-3.5 pt-3 border-t border-slate-100 flex items-center justify-between">
                                             {/* Entry Fee */}
                                             <div className="shrink-0">
-                                              <span className="text-[11px] font-bold tracking-[0.14em] text-[#64748B] uppercase block leading-none mb-1.5 whitespace-nowrap">
+                                              <span className="text-[9.5px] font-bold tracking-[0.12em] text-[#64748B] uppercase block leading-none mb-1.5 whitespace-nowrap">
                                                 ENTRY FEE
                                               </span>
-                                              <span className="text-[15.5px] font-bold text-[#0F172A] tracking-tight block leading-none whitespace-nowrap">
+                                              <span className="text-[12.5px] font-bold text-[#0F172A] tracking-tight block leading-none whitespace-nowrap">
                                                 {formatCompactFee(tournament.feeAmount, tournament.currency || "NGN")}
                                               </span>
                                             </div>
@@ -8552,31 +8892,37 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
 
                                             {/* Handicap */}
                                             <div className="shrink-0">
-                                              <span className="text-[11px] font-bold tracking-[0.14em] text-[#64748B] uppercase block leading-none mb-1.5 whitespace-nowrap">
+                                              <span className="text-[9.5px] font-bold tracking-[0.12em] text-[#64748B] uppercase block leading-none mb-1.5 whitespace-nowrap">
                                                 HANDICAP
                                               </span>
-                                              <span
-                                                className="text-[14px] font-bold text-[#009A60] tracking-tight block leading-none truncate max-w-[105px] whitespace-nowrap"
-                                                title={tournament.hcpLimit || "No Limit"}
-                                              >
-                                                {tournament.hcpLimit || "No Limit"}
-                                              </span>
+                                              {(() => {
+                                                const hcpInfo = parseHandicapDisplay(tournament.hcpLimit);
+                                                return (
+                                                  <span
+                                                    className="text-[12.5px] font-bold text-[#009A60] tracking-tight block leading-none truncate max-w-[105px] whitespace-nowrap"
+                                                    title={`${hcpInfo.value} ${hcpInfo.unit}`}
+                                                  >
+                                                    <span>{hcpInfo.value}</span>
+                                                    <span className="text-[9.5px] font-semibold text-[#64748B] ml-1">{hcpInfo.unit}</span>
+                                                  </span>
+                                                );
+                                              })()}
                                             </div>
 
                                             <div className="w-px h-6.5 bg-slate-200/80 self-center shrink-0" />
 
                                             {/* Duration */}
                                             <div className="shrink-0">
-                                              <span className="text-[11px] font-bold tracking-[0.14em] text-[#64748B] uppercase block leading-none mb-1.5 whitespace-nowrap">
+                                              <span className="text-[9.5px] font-bold tracking-[0.12em] text-[#64748B] uppercase block leading-none mb-1.5 whitespace-nowrap">
                                                 DURATION
                                               </span>
-                                              <span className="text-[14.5px] font-bold text-[#0F172A] tracking-tight block leading-none whitespace-nowrap">
+                                              <span className="text-[12.5px] font-bold text-[#0F172A] tracking-tight block leading-none whitespace-nowrap">
                                                 {formatTournamentDuration(tournament)}
                                               </span>
                                             </div>
                                           </div>
 
-                                          {/* Tier 2: Dedicated Action Buttons Row (View Info + Register) */}
+                                          {/* Tier 2: Dedicated Action Buttons Row (Details + Register) */}
                                           <div className="mt-3 flex items-center gap-2">
                                             <button
                                               type="button"
@@ -8584,11 +8930,11 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                                                 e.stopPropagation();
                                                 openTournamentDetails(tournament);
                                               }}
-                                              className="flex-1 h-[38px] rounded-xl bg-slate-100 hover:bg-slate-200 active:scale-[0.98] text-slate-700 font-bold text-[12.5px] flex items-center justify-center gap-1.5 capitalize tracking-normal transition-all cursor-pointer"
-                                              title="View Tournament Information"
+                                              className="flex-1 h-[38px] rounded-xl bg-slate-100/90 hover:bg-slate-200/90 active:scale-[0.98] text-slate-800 font-bold text-[12.5px] border border-slate-300/90 hover:border-slate-400 flex items-center justify-center gap-1.5 capitalize tracking-normal transition-all cursor-pointer shadow-2xs"
+                                              title="Tournament Details"
                                             >
-                                              <Info className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                                              <span>View Info</span>
+                                              <Info className="w-3.5 h-3.5 text-slate-600 shrink-0" />
+                                              <span>Details</span>
                                             </button>
 
                                             {tournament.isOpen ? (
@@ -8615,7 +8961,20 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                                             )}
                                           </div>
                                         </div>
-                                      ))}
+                                      </div>
+                                    ))}
+
+                                      {/* Lazy Loading / Disclosure: Show More Button after every 5 tour displays */}
+                                      {nextEvents.length > tournamentsDisplayLimit && (
+                                        <button
+                                          type="button"
+                                          onClick={() => setTournamentsDisplayLimit((prev) => prev + 5)}
+                                          className="w-full py-3 rounded-2xl bg-white border border-slate-200/90 shadow-2xs text-[13px] font-bold text-[#009A60] hover:bg-[#EAF7EE] hover:border-[#C6F0DB] transition-all cursor-pointer active:scale-[0.98] flex items-center justify-center gap-2 mt-1"
+                                        >
+                                          <ChevronDown className="w-4 h-4 stroke-[2.5]" />
+                                          <span>Show More ({nextEvents.length - tournamentsDisplayLimit} remaining)</span>
+                                        </button>
+                                      )}
                                     </div>
                                   )}
                                 </>
@@ -9806,9 +10165,25 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                                       <span className="text-[10px] font-bold text-[#64748B] tracking-[0.12em] uppercase block mb-1">
                                         HCP LIMIT
                                       </span>
-                                      <span className="text-[22px] font-bold text-[#0B1B2B] block">
-                                        {activeTournament.hcpLimit || 24}
-                                      </span>
+                                      {(() => {
+                                        const hcpInfo = parseHandicapDisplay(activeTournament.hcpLimit);
+                                        return (
+                                          <div className="flex items-baseline justify-center gap-1 whitespace-nowrap overflow-hidden px-0.5">
+                                            <span
+                                              className={`font-bold text-[#0B1B2B] block leading-none shrink-0 ${
+                                                isNaN(Number(hcpInfo.value)) || hcpInfo.value.length > 3
+                                                  ? "text-[16px]"
+                                                  : "text-[20px]"
+                                              }`}
+                                            >
+                                              {hcpInfo.value}
+                                            </span>
+                                            <span className="text-[10px] font-semibold text-[#64748B] whitespace-nowrap shrink-0">
+                                              {hcpInfo.unit}
+                                            </span>
+                                          </div>
+                                        );
+                                      })()}
                                     </div>
                                   </div>
                                 </div>

@@ -168,3 +168,21 @@ Always ensure that every page has a distinct title shown in the browser tab.
     - **Leaderboard Screen (`leaderboard`)**: Scrollable body wraps course summary strip and standings table strictly at `px-4 pt-3`.
   - **Navigation Bars vs. Content Cards**: Top fixed navigation bars with a circular back button maintain `px-6` (24px) for optical back-button margin, while scrollable body card columns consistently use `px-4` (16px) for maximum content readability and uniform card geometry across all screens.
   - **Authentication & Credential Forms**: Full-width credential input fields (Login, Register Steps 1-4, Forgot Password, Reset Password, Verify OTP, Sync Contacts) use `px-6` (24px) flush with the 24px back button per the Form Screen Width Standardization rules.
+
+## Mobile Card Border Radius & Box Shadow Standardization Rules
+- **Universal Mobile Card Geometry**: All content cards, feed cards, search result cards, and interactive item containers across the mobile application (including Tournament cards, Add Friends player cards, Incoming/Outgoing request cards, Registered Competitor cards, and "Show More" disclosure buttons):
+  - **Border Radius**: Must strictly use `rounded-2xl` in Tailwind CSS (`16px` / `border-radius: 1rem` / `BorderRadius.circular(16)` in Flutter). Never use `rounded-[26px]`, `rounded-3xl`, or inconsistent radii for standard cards.
+  - **Elevation Box Shadow**: Must strictly use `shadow-2xs` in Tailwind CSS (`box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05)` / subtle 1-2px blur elevation in Flutter). Never use heavy floating shadows like `shadow-[0_4px_20px_rgba(0,0,0,0.04)]` or `shadow-md` on standard list cards.
+  - **Card Border**: Delicate slate border `border border-slate-200/90` with hover state `hover:border-slate-300` (or `border border-[#e1efe5]` for faint-green spec cards).
+  - **Card Padding**: Standardized `p-3.5` compact internal gutter.
+
+## Tournament Title Adaptive Fit & Orphan-Free Wrapping Rules
+- **Zero Ellipsis Truncation**: Tournament titles in discovery cards must NEVER use `truncate` or single-line ellipsis clipping (`'...'`).
+- **Shrink-to-Fit Adaptive Sizing Scale**:
+  - `length <= 20 chars`: `text-[14.5px] font-bold text-[#0F172A] tracking-tight leading-snug`
+  - `length 21–28 chars`: `text-[13.5px] font-bold text-[#0F172A] tracking-tight leading-snug`
+  - `length 29–36 chars`: `text-[12.5px] font-bold text-[#0F172A] tracking-tight leading-snug` (enables titles like "Openclub Golf Club 18 Tournament 2" to fit on a single horizontal line)
+  - `length > 36 chars`: `text-[12px] font-bold text-[#0F172A] tracking-tight leading-snug`
+- **Orphan Prevention (`\u00A0` Non-Breaking Space)**:
+  - When titles wrap onto two lines, single dangling numbers or words (e.g. a lone `2` or `2024`) must NEVER wrap alone.
+  - The space before the final word/number is bound with a non-breaking space (`\u00A0`), ensuring the preceding word moves to the second line alongside the number (e.g., "Tournament 2").
