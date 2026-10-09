@@ -183,6 +183,30 @@ Always ensure that every page has a distinct title shown in the browser tab.
   - `length 21–28 chars`: `text-[13.5px] font-bold text-[#0F172A] tracking-tight leading-snug`
   - `length 29–36 chars`: `text-[12.5px] font-bold text-[#0F172A] tracking-tight leading-snug` (enables titles like "Openclub Golf Club 18 Tournament 2" to fit on a single horizontal line)
   - `length > 36 chars`: `text-[12px] font-bold text-[#0F172A] tracking-tight leading-snug`
-- **Orphan Prevention (`\u00A0` Non-Breaking Space)**:
-  - When titles wrap onto two lines, single dangling numbers or words (e.g. a lone `2` or `2024`) must NEVER wrap alone.
-  - The space before the final word/number is bound with a non-breaking space (`\u00A0`), ensuring the preceding word moves to the second line alongside the number (e.g., "Tournament 2").
+- Orphan Prevention (\u00A0 Non-Breaking Space):
+  - When titles wrap onto two lines, single dangling numbers or words (e.g. a lone 2 or 2024) must NEVER wrap alone.
+  - The space before the final word/number is bound with a non-breaking space (\u00A0), ensuring the preceding word moves to the second line alongside the number (e.g., "Tournament 2").
+
+## Dynamic Domain & Origin Resolution Standard (No Hardcoded Domains)
+- **Zero Hardcoded Application Domains**: Never hardcode domains such as `https://openclub.app`, `openclubos.com`, `example.com`, or explicit URLs in frontend or mobile source code. The official production domain is subject to change or multi-environment routing (development, staging, preview deployments, native devices).
+- **Automated Dynamic Origin Detection**:
+  - In Web / Next.js: Always resolve the base URL dynamically using `typeof window !== "undefined" && window.location.origin ? window.location.origin : (process.env.NEXT_PUBLIC_APP_URL || "")`.
+  - In Flutter / Dart: Always resolve dynamic origin via `kIsWeb ? Uri.base.origin : (String.fromEnvironment('APP_URL', defaultValue: ApiClient.resolveBaseUrl().replaceAll('/api', '')))`.
+  - For shareable deep links, QR code payloads, and referral invites, always build URLs using this dynamic origin resolver (`${getAppOrigin()}/invite/...` or `${getAppOrigin()}/tournaments/...`).
+
+## Real Database Social Profiles & Zero Synthesized Placeholders
+- **No Synthesized Golfer Identifiers**: Never synthesize placeholder names like `Golfer <hex-hash>` (e.g. `Golfer 01a0c4`) or hardcode generic fallback club/handicap numbers when rendering accepted friends, friend requests, or tournament competitors.
+- **Authoritative Database Profile Hydration**:
+  - All accepted friends must be authoritatively stored with complete user profiles (`id`, `name`, `email`, `handicap`, `club`, `profilePhoto`) received from `GET /friends`.
+  - The rich user profiles must be cached in user-scoped local storage (`openclub_db_friends_records_<userId>`) and merged directly into active competitor states (`golfCompetitors`) so search queries, cards, friend lists, and modal action sheets immediately display authentic player names, authentic handicaps, and verified club affiliations.
+  - When accepting a friend request in the UI, the accepted sender's rich metadata must be immediately recorded into active friend records in real time.
+
+## Production QR Scanner Terminology (Zero "Test Scan" Phrasing)
+- **Zero Test/Demo Scan Wording**: Never use "test scan", "demo scan", or testing jargon in any user-facing mobile interfaces, modals, or camera viewfinders.
+- **Production-Grade Copy**: Always use clear, professional instructions:
+  - Header subtitle: "Point camera at golfer's QR code on course" or "Scan golfer's QR code on course".
+  - Frame badge: "Align golfer's QR code inside frame".
+
+## Universal Mobile Text Capitalization Standard
+- **Comprehensive Mobile Capitalization**: All text across the mobile application (in both the Web Admin Mobile Preview Simulator and the Flutter native app)—including action buttons, CTAs, headings, card titles, subtitles, category tabs, filter pills, and navigation links—must strictly apply `text-transform: capitalize;` / Title Case styling.
+- **Protected Elements**: Input fields (`<input>`, `<textarea>`), authentication forms, code blocks, monospaced text, and section eyebrow headers (`.uppercase`) must remain exempt from auto-capitalization to preserve exact credential inputs, emails, and design-standard eyebrow typography.

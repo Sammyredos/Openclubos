@@ -88,6 +88,7 @@ import {
   Trash2,
   Database,
   Crown,
+  MessageSquare,
 } from "lucide-react";
 import { formatNumber, formatTitleCase, subscribeAdminEvents, broadcastAdminEvent, getCurrencySymbol, formatTournamentFee, formatWithOrdinal, formatShortDate, formatDateRange } from "@/lib/utils";
 import { forfeitTournamentRound } from "@/lib/api/scores";
@@ -204,7 +205,7 @@ const ALL_COMPREHENSIVE_GOLF_CLUBS = [
   "Oakwood Country Club",
 ];
 
-type ScreenId = "landing" | "scoring" | "attestation" | "hub" | "leaderboard" | "login" | "verify" | "register" | "forgot-password" | "check-inbox" | "reset-password" | "player-scorecard" | "add-friends" | "sync-contacts" | "notifications" | "tournaments" | "tournament-filter" | "tournament-details";
+type ScreenId = "landing" | "scoring" | "attestation" | "hub" | "leaderboard" | "login" | "verify" | "register" | "forgot-password" | "check-inbox" | "reset-password" | "player-scorecard" | "add-friends" | "sync-contacts" | "notifications" | "tournaments" | "tournament-filter" | "tournament-details" | "my-friends";
 
 type DeviceModelId = "iphone-16-pro" | "galaxy-s24" | "pixel-9" | "iphone-notch" | "iphone-16-max" | "ipad-pro-11" | "ipad-mini" | "galaxy-tab-s9";
 type DeviceColorId = "natural-titanium" | "midnight" | "silver" | "desert-gold" | "emerald-pine";
@@ -429,6 +430,26 @@ function generateUniqueQrMatrix(payload: string, size: number = 25) {
  * Resolves a unique player invitation code based on the user's name and unique ID/email.
  * Guarantees every user has an authentic, distinct referral link instead of hardcoded 'alex-7782'.
  */
+/**
+ * Resolves the dynamic application origin without hardcoded domains.
+ */
+function getAppOrigin(): string {
+  if (typeof window !== "undefined" && window.location.origin) {
+    return window.location.origin;
+  }
+  return process.env.NEXT_PUBLIC_APP_URL || "";
+}
+
+/**
+ * Resolves the dynamic application hostname without hardcoded domains.
+ */
+function getAppHostname(): string {
+  if (typeof window !== "undefined" && window.location.hostname) {
+    return window.location.hostname;
+  }
+  return "openclub.com";
+}
+
 function getUserInviteCode(player?: AuthenticatedPlayer | null): string {
   if (!player) return "alex-7782";
   const namePart = player.name
@@ -969,64 +990,54 @@ export default function MobilePreviewPage() {
 
     switch (variant) {
       case 0:
-        // Variant 0: Fairway Contours & Top-Right Rings
+        // Variant 0: Sweeping Fairway Contours
         return (
           <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none" viewBox="0 0 380 180">
             <path d="M-20 70 Q 90 22, 180 56 T 315 30 T 405 60" stroke="#009A60" strokeWidth="1.2" fill="none" opacity="0.08" />
             <path d="M-10 95 Q 100 42, 210 78 T 345 50 T 415 82" stroke="#009A60" strokeWidth="1" fill="none" opacity="0.06" />
             <path d="M-15 35 Q 110 72, 235 28 T 385 46" stroke="#009A60" strokeWidth="0.8" strokeDasharray="3 3" fill="none" opacity="0.05" />
-            <circle cx="340" cy="48" r="36" stroke="#009A60" strokeWidth="0.9" strokeDasharray="2 3" opacity="0.07" />
-            <circle cx="340" cy="48" r="62" stroke="#009A60" strokeWidth="0.7" opacity="0.05" />
-            <circle cx="340" cy="48" r="90" stroke="#009A60" strokeWidth="0.5" opacity="0.03" />
+            <path d="M-5 130 Q 120 70, 240 115 T 410 75" stroke="#009A60" strokeWidth="0.9" fill="none" opacity="0.05" />
           </svg>
         );
       case 1:
-        // Variant 1: Rolling Greens & Center-Bottom Target Rings
+        // Variant 1: Rolling Greens & Gentle Slopes
         return (
           <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none" viewBox="0 0 380 180">
             <path d="M-10 40 Q 80 85, 190 45 T 310 75 T 400 35" stroke="#009A60" strokeWidth="1.2" fill="none" opacity="0.08" />
             <path d="M-20 65 Q 90 110, 215 68 T 330 98 T 410 58" stroke="#009A60" strokeWidth="1" fill="none" opacity="0.06" />
             <path d="M-15 115 Q 120 70, 250 120 T 395 80" stroke="#009A60" strokeWidth="0.8" strokeDasharray="3 3" fill="none" opacity="0.05" />
-            <circle cx="295" cy="125" r="32" stroke="#009A60" strokeWidth="0.9" strokeDasharray="2 3" opacity="0.07" />
-            <circle cx="295" cy="125" r="56" stroke="#009A60" strokeWidth="0.7" opacity="0.05" />
-            <circle cx="295" cy="125" r="82" stroke="#009A60" strokeWidth="0.5" opacity="0.03" />
+            <path d="M-5 145 Q 100 100, 230 148 T 405 110" stroke="#009A60" strokeWidth="0.9" fill="none" opacity="0.05" />
           </svg>
         );
       case 2:
-        // Variant 2: Diagonal Ridges & Dual Topographic Hubs
+        // Variant 2: Diagonal Ridges & Terraced Valleys
         return (
           <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none" viewBox="0 0 380 180">
             <path d="M-30 140 Q 110 110, 220 50 T 390 15" stroke="#009A60" strokeWidth="1.2" fill="none" opacity="0.08" />
             <path d="M-10 165 Q 130 135, 240 75 T 410 40" stroke="#009A60" strokeWidth="1" fill="none" opacity="0.06" />
             <path d="M-20 100 Q 100 80, 260 25 T 375 -5" stroke="#009A60" strokeWidth="0.8" strokeDasharray="3 3" fill="none" opacity="0.05" />
-            <circle cx="310" cy="30" r="28" stroke="#009A60" strokeWidth="0.9" strokeDasharray="2 3" opacity="0.07" />
-            <circle cx="310" cy="30" r="52" stroke="#009A60" strokeWidth="0.7" opacity="0.05" />
-            <circle cx="70" cy="135" r="24" stroke="#009A60" strokeWidth="0.8" strokeDasharray="2 3" opacity="0.05" />
+            <path d="M-15 70 Q 125 50, 275 10 T 385 -20" stroke="#009A60" strokeWidth="0.9" fill="none" opacity="0.05" />
           </svg>
         );
       case 3:
-        // Variant 3: Meandering Fairway Curves & Pinpoint Beacon
+        // Variant 3: Meandering Fairway S-Curves
         return (
           <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none" viewBox="0 0 380 180">
             <path d="M-15 25 C 75 70, 140 15, 240 80 S 340 30, 405 65" stroke="#009A60" strokeWidth="1.2" fill="none" opacity="0.08" />
             <path d="M-10 52 C 85 98, 155 42, 255 105 S 355 58, 415 92" stroke="#009A60" strokeWidth="1" fill="none" opacity="0.06" />
             <path d="M-25 90 C 70 135, 170 80, 280 140 S 370 95, 410 125" stroke="#009A60" strokeWidth="0.8" strokeDasharray="3 3" fill="none" opacity="0.05" />
-            <circle cx="200" cy="85" r="35" stroke="#009A60" strokeWidth="0.9" strokeDasharray="2 3" opacity="0.07" />
-            <circle cx="200" cy="85" r="62" stroke="#009A60" strokeWidth="0.7" opacity="0.05" />
-            <circle cx="200" cy="85" r="90" stroke="#009A60" strokeWidth="0.5" opacity="0.03" />
+            <path d="M-5 125 C 95 160, 195 105, 305 160 S 385 120, 415 145" stroke="#009A60" strokeWidth="0.9" fill="none" opacity="0.05" />
           </svg>
         );
       case 4:
       default:
-        // Variant 4: Coastal Links Horizon & Radial Crests
+        // Variant 4: Coastal Links Horizon & Crest Arcs
         return (
           <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none" viewBox="0 0 380 180">
             <path d="M-20 120 Q 130 20, 280 65 T 410 25" stroke="#009A60" strokeWidth="1.2" fill="none" opacity="0.08" />
             <path d="M-15 145 Q 140 45, 295 90 T 420 50" stroke="#009A60" strokeWidth="1" fill="none" opacity="0.06" />
             <path d="M-10 85 Q 115 -5, 250 40 T 395 5" stroke="#009A60" strokeWidth="0.8" strokeDasharray="3 3" fill="none" opacity="0.05" />
-            <circle cx="345" cy="70" r="32" stroke="#009A60" strokeWidth="0.9" strokeDasharray="2 3" opacity="0.07" />
-            <circle cx="345" cy="70" r="58" stroke="#009A60" strokeWidth="0.7" opacity="0.05" />
-            <circle cx="345" cy="70" r="85" stroke="#009A60" strokeWidth="0.5" opacity="0.03" />
+            <path d="M-5 60 Q 110 -25, 265 15 T 390 -10" stroke="#009A60" strokeWidth="0.9" fill="none" opacity="0.05" />
           </svg>
         );
     }
@@ -1046,7 +1057,7 @@ export default function MobilePreviewPage() {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const s = params.get("screen") as ScreenId | null;
-      if (s && ["landing", "scoring", "attestation", "hub", "leaderboard", "login", "verify", "register", "forgot-password", "check-inbox", "reset-password", "player-scorecard", "add-friends", "sync-contacts", "notifications", "tournaments", "tournament-filter", "tournament-details"].includes(s)) {
+      if (s && ["landing", "scoring", "attestation", "hub", "leaderboard", "login", "verify", "register", "forgot-password", "check-inbox", "reset-password", "player-scorecard", "add-friends", "sync-contacts", "notifications", "tournaments", "tournament-filter", "tournament-details", "my-friends"].includes(s)) {
         setActiveScreen(s);
       }
       const refCode = params.get("ref");
@@ -1288,7 +1299,23 @@ export default function MobilePreviewPage() {
   const [friendsDisplayLimit, setFriendsDisplayLimit] = useState(4);
   const [sentFriendRequests, setSentFriendRequests] = useState<string[]>([]);
   const [acceptedFriendIds, setAcceptedFriendIds] = useState<string[]>([]);
+  const [dbAcceptedFriends, setDbAcceptedFriends] = useState<any[]>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem("openclub_db_friends_records_cache");
+        return stored ? JSON.parse(stored) : [];
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  });
   const [incomingFriendRequests, setIncomingFriendRequests] = useState<any[]>([]);
+  const [myFriendsTab, setMyFriendsTab] = useState<"all" | "pending" | "requests">("all");
+  const [myFriendsSearchQuery, setMyFriendsSearchQuery] = useState("");
+  const [networkTab, setNetworkTab] = useState<"friends" | "club">("friends");
+  const [myFriendsDisplayLimit, setMyFriendsDisplayLimit] = useState(5);
+  const [networkSortMode, setNetworkSortMode] = useState<"default" | "hcp_asc" | "hcp_desc" | "name_asc">("default");
 
   // --- Searchable Golf Competitors Database (Loaded dynamically from database /api/members) ---
   const [golfCompetitors, setGolfCompetitors] = useState<{
@@ -1364,34 +1391,7 @@ export default function MobilePreviewPage() {
   const [mobileNotifications, setMobileNotifications] = useState<any[]>([]);
   const [notificationsMarkedRead, setNotificationsMarkedRead] = useState(false);
   const [showBookingsModal, setShowBookingsModal] = useState(false);
-  const [proBookings, setProBookings] = useState<any[]>([
-    {
-      id: "booking_pga_1",
-      proName: "Pro Michael Dan, PGA",
-      proRole: "Head Teaching Professional",
-      proClub: "Ikoyi Club 1938",
-      proAvatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
-      serviceName: "1-on-1 Full Swing & TrackMan Session",
-      date: "Sat, Oct 24th",
-      time: "10:00 AM - 11:00 AM",
-      location: "Golf Academy • Range Bay 4",
-      status: "CONFIRMED",
-      price: "₦35,000",
-    },
-    {
-      id: "booking_pga_2",
-      proName: "Pro Sarah Jenkins, LPGA",
-      proRole: "Short Game Specialist",
-      proClub: "Ikoyi Club 1938",
-      proAvatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80",
-      serviceName: "Short Game & Putting Masterclass",
-      date: "Wed, Nov 4th",
-      time: "02:30 PM - 03:30 PM",
-      location: "Championship Putting Green",
-      status: "UPCOMING",
-      price: "₦28,000",
-    },
-  ]);
+  const [proBookings, setProBookings] = useState<any[]>([]);
 
   // --- Real Organizer Tournaments State ---
   const [liveTournaments, setLiveTournaments] = useState<RealTournament[]>([]);
@@ -1536,6 +1536,8 @@ export default function MobilePreviewPage() {
     userId ? `openclub_sent_friend_requests_${userId}` : "openclub_sent_friend_requests_guest";
   const getAcceptedFriendsKey = (userId?: string | null) =>
     userId ? `openclub_accepted_friends_${userId}` : "openclub_accepted_friends_guest";
+  const getDbFriendsKey = (userId?: string | null) =>
+    userId ? `openclub_db_friends_records_${userId}` : "openclub_db_friends_records_guest";
   const getIncomingRequestsKey = (userId?: string | null) =>
     userId ? `openclub_incoming_friend_requests_${userId}` : "openclub_incoming_friend_requests_guest";
   const getUserNotificationsKey = (userId?: string | null) =>
@@ -1791,8 +1793,12 @@ export default function MobilePreviewPage() {
         const validBlocked = Array.isArray(parsedBlocked) ? parsedBlocked : [];
         const blockedLowerSet = new Set(validBlocked.map((b: string) => String(b).toLowerCase().trim()));
 
+        const parsedSentLowerSet = new Set((Array.isArray(parsedSent) ? parsedSent : []).map((s: string) => String(s).toLowerCase().trim()));
         const cleanedAccepted = Array.isArray(parsedAccepted)
-          ? parsedAccepted.filter((id: string) => !parsedSent.includes(id) && !blockedLowerSet.has(String(id).toLowerCase().trim()))
+          ? parsedAccepted.filter((id: string) => {
+              const idLower = String(id).toLowerCase().trim();
+              return !parsedSentLowerSet.has(idLower) && !blockedLowerSet.has(idLower);
+            })
           : [];
         if (Array.isArray(parsedAccepted) && cleanedAccepted.length !== parsedAccepted.length) {
           try {
@@ -1804,6 +1810,22 @@ export default function MobilePreviewPage() {
         setSentFriendRequests(Array.isArray(parsedSent) ? parsedSent.filter((id: string) => !blockedLowerSet.has(String(id).toLowerCase().trim())) : []);
         setAcceptedFriendIds(cleanedAccepted);
         setIncomingFriendRequests(deduplicatedIncoming);
+
+        // Hydrate rich database friends records
+        try {
+          const dbFriendsRaw = localStorage.getItem(getDbFriendsKey(authenticatedPlayer.id)) || localStorage.getItem("openclub_db_friends_records_cache");
+          if (dbFriendsRaw) {
+            const parsedDb = JSON.parse(dbFriendsRaw);
+            if (Array.isArray(parsedDb) && parsedDb.length > 0) {
+              const cleanedDb = parsedDb.filter((f: any) => {
+                const fIdLower = String(f.id || "").toLowerCase().trim();
+                const fNameLower = (f.name || "").toLowerCase().trim();
+                return !parsedSentLowerSet.has(fIdLower) && !parsedSentLowerSet.has(fNameLower) && !blockedLowerSet.has(fIdLower);
+              });
+              setDbAcceptedFriends(cleanedDb);
+            }
+          }
+        } catch {}
 
         // Strip FRIEND_REQUEST notifications from localStorage before hydrating state.
         // These must come exclusively from GET /friends/requests (DB sync), not from
@@ -2179,6 +2201,43 @@ export default function MobilePreviewPage() {
       return next;
     });
 
+    const acceptedFriendObj = {
+      id: senderId,
+      name: senderName,
+      email: req.senderEmail || req.email || "",
+      club: req.senderClub || req.club || "OpenClub Golfer",
+      handicap: req.senderHcp !== undefined && req.senderHcp !== null ? req.senderHcp : (req.hcp || "12"),
+      profilePhoto: req.senderAvatar || req.avatar || req.profilePhoto,
+    };
+    setDbAcceptedFriends((prev) => {
+      const filtered = prev.filter((f) => f.id !== senderId);
+      const next = [...filtered, acceptedFriendObj];
+      try {
+        localStorage.setItem(getDbFriendsKey(currentUserId), JSON.stringify(next));
+        localStorage.setItem("openclub_db_friends_records_cache", JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+    setGolfCompetitors((prev) => {
+      const idx = prev.findIndex((c) => c.id === senderId);
+      const item = {
+        id: senderId,
+        name: senderName,
+        email: req.senderEmail || req.email || "",
+        club: req.senderClub || req.club || "OpenClub Golfer",
+        hcp: String(req.senderHcp !== undefined && req.senderHcp !== null ? req.senderHcp : (req.hcp || "12")),
+        initial: getTwoInitials(senderName),
+        avatar: req.senderAvatar || req.avatar || req.profilePhoto,
+        profilePhoto: req.senderAvatar || req.avatar || req.profilePhoto,
+      };
+      if (idx >= 0) {
+        const next = [...prev];
+        next[idx] = { ...next[idx], ...item };
+        return next;
+      }
+      return [...prev, item];
+    });
+
     // 2. Add recipient to sender's accepted friends
     const senderAcceptedKey = getAcceptedFriendsKey(senderId);
     try {
@@ -2512,6 +2571,15 @@ export default function MobilePreviewPage() {
       return next;
     });
 
+    const acceptedKey = getAcceptedFriendsKey(currentUserId);
+    setAcceptedFriendIds((prev) => {
+      const next = prev.filter((id: string) => id !== targetId);
+      try {
+        localStorage.setItem(acceptedKey, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+
     // 1. Remove from recipient's incoming requests across potential keys
     try {
       const targetKeys = [
@@ -2693,6 +2761,17 @@ export default function MobilePreviewPage() {
       });
       try {
         localStorage.setItem(currentAcceptedKey, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+    setDbAcceptedFriends((prev) => {
+      const next = prev.filter((f) => {
+        const idLower = String(f.id).toLowerCase().trim();
+        const nameLower = (f.name || "").toLowerCase().trim();
+        return idLower !== targetIdLower && (!targetNameLower || nameLower !== targetNameLower);
+      });
+      try {
+        localStorage.setItem(getDbFriendsKey(currentUserId), JSON.stringify(next));
       } catch {}
       return next;
     });
@@ -2897,7 +2976,9 @@ export default function MobilePreviewPage() {
     }
 
     const sentKey = getSentRequestsKey(currentUserId);
+    const acceptedKey = getAcceptedFriendsKey(currentUserId);
 
+    // 1. Optimistically update sent requests
     setSentFriendRequests((prev) => {
       const next = prev.includes(targetUserId) ? prev : [...prev, targetUserId];
       try {
@@ -2905,6 +2986,53 @@ export default function MobilePreviewPage() {
       } catch {}
       return next;
     });
+
+    // 2. Strictly ensure targetUserId is NOT in accepted friends (request must be accepted by recipient first)
+    setAcceptedFriendIds((prev) => {
+      const next = prev.filter((id) => {
+        const idLower = String(id).toLowerCase().trim();
+        return idLower !== targetIdLower && idLower !== targetUserId.toLowerCase().trim() && (!targetPlayer?.name || idLower !== targetPlayer.name.toLowerCase().trim());
+      });
+      try {
+        localStorage.setItem(acceptedKey, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+
+    setDbAcceptedFriends((prev) => {
+      const next = prev.filter((f) => {
+        const fId = String(f.id).toLowerCase().trim();
+        const fName = (f.name || "").toLowerCase().trim();
+        return fId !== targetIdLower && (!targetPlayer?.name || fName !== targetPlayer.name.toLowerCase().trim());
+      });
+      try {
+        localStorage.setItem(getDbFriendsKey(currentUserId), JSON.stringify(next));
+        localStorage.setItem("openclub_db_friends_records_cache", JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+
+    // 3. Ensure target golfer details are immediately preserved in golfCompetitors so the card renders rich profile info
+    if (targetPlayer) {
+      setGolfCompetitors((prev) => {
+        if (prev.some((c) => c.id === targetUserId || (targetPlayer.name && c.name.toLowerCase() === targetPlayer.name.toLowerCase()))) {
+          return prev;
+        }
+        return [
+          ...prev,
+          {
+            id: targetUserId,
+            name: targetPlayer.name || "OpenClub Golfer",
+            email: targetPlayer.email || "",
+            club: targetPlayer.club || "OpenClub Golfer",
+            hcp: String(targetPlayer.hcp || targetPlayer.handicap || "12"),
+            initial: getTwoInitials(targetPlayer.name || "OpenClub Golfer"),
+            avatar: targetPlayer.avatar || targetPlayer.profilePhoto,
+            profilePhoto: targetPlayer.profilePhoto || targetPlayer.avatar,
+          },
+        ];
+      });
+    }
 
     try {
       const newIncomingItem = {
@@ -2962,7 +3090,7 @@ export default function MobilePreviewPage() {
 
       if (res && !res.ok) {
         const errData = await res.json().catch(() => null);
-        // Rollback optimistic sent request
+        // Rollback optimistic sent request state
         setSentFriendRequests((prev) => {
           const next = prev.filter((id) => id !== targetUserId);
           try {
@@ -2975,7 +3103,7 @@ export default function MobilePreviewPage() {
       }
     } catch {}
 
-    showToast(`Friend request sent to ${targetPlayer?.name || "golfer"}.`, "success", "REQUEST SENT");
+    showToast(`Friend request sent to ${targetPlayer?.name || "Golfer"}.`, "success", "REQUEST SENT");
   };
 
   // Compute unread count dynamically (strictly for general notifications, not friend requests)
@@ -3005,9 +3133,41 @@ export default function MobilePreviewPage() {
           const friends = await friendsRes.json().catch(() => null);
           if (isMounted && Array.isArray(friends)) {
             // Build the exact set the DB says are accepted friends
-            const serverIds = friends.map((f: any) => f.id).filter(Boolean);
-            const serverNames = friends.map((f: any) => f.name?.toLowerCase()).filter(Boolean);
-            const authoritative = Array.from(new Set([...serverIds, ...serverNames]));
+            // Authoritatively store rich database friend records with real names, handicaps, and clubs
+            setDbAcceptedFriends(friends);
+            try {
+              localStorage.setItem("openclub_db_friends_records_cache", JSON.stringify(friends));
+              localStorage.setItem(getDbFriendsKey(currentUserId), JSON.stringify(friends));
+            } catch {}
+
+            // Merge directly into golfCompetitors state so friend data is immediately available
+            setGolfCompetitors((prev) => {
+              const next = [...prev];
+              for (const f of friends) {
+                const fId = f.id;
+                const fName = f.name || [f.firstName, f.lastName].filter(Boolean).join(" ") || "Golfer";
+                const idx = next.findIndex((c) => c.id === fId || c.name.toLowerCase() === fName.toLowerCase());
+                const item = {
+                  id: fId,
+                  name: fName,
+                  email: f.email || "",
+                  club: f.club || "OpenClub Golfer",
+                  hcp: String(f.handicap !== undefined && f.handicap !== null ? f.handicap : "12"),
+                  initial: getTwoInitials(fName),
+                  avatar: f.profilePhoto,
+                  profilePhoto: f.profilePhoto,
+                };
+                if (idx >= 0) {
+                  next[idx] = { ...next[idx], ...item };
+                } else {
+                  next.push(item);
+                }
+              }
+              return next;
+            });
+
+            const serverIds = friends.map((f: any) => String(f.id)).filter(Boolean);
+            const authoritative = Array.from(new Set(serverIds));
             setAcceptedFriendIds(authoritative);
             try {
               localStorage.setItem(getAcceptedFriendsKey(currentUserId), JSON.stringify(authoritative));
@@ -3113,7 +3273,15 @@ export default function MobilePreviewPage() {
                 profilePhoto: photoUrl,
               };
             });
-            setGolfCompetitors(mapped);
+            setGolfCompetitors((prev) => {
+              const combined: typeof prev = [...mapped];
+              for (const p of prev) {
+                if (!combined.some((c) => c.id === p.id || c.name.toLowerCase() === p.name.toLowerCase())) {
+                  combined.push(p);
+                }
+              }
+              return combined;
+            });
             return;
           }
         }
@@ -4440,7 +4608,7 @@ export default function MobilePreviewPage() {
     const rawFirstName = dbUser?.firstName || regFirstName || "";
     const rawLastName = dbUser?.lastName || regLastName || "";
     const resolvedName = (dbUser?.name || `${rawFirstName} ${rawLastName}`.trim()) || "Tournament Player";
-    const resolvedEmail = dbUser?.email || regEmail.trim().toLowerCase() || "player@openclub.app";
+    const resolvedEmail = dbUser?.email || regEmail.trim().toLowerCase() || `player@${getAppHostname()}`;
     const resolvedClassification = dbUser?.classification || regClassification || "AMATEUR";
     const resolvedIsPro = Boolean(dbUser?.isPro || resolvedClassification === "PROFESSIONAL");
     const resolvedHandicap = dbUser?.handicap !== undefined && dbUser?.handicap !== null
@@ -4544,9 +4712,20 @@ export default function MobilePreviewPage() {
         setIsLoadingTournaments(true);
       }
       const backendBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
-      const res = await fetch(`${backendBase}/tournaments/public`, {
+      let res = await fetch(`${backendBase}/tournaments/public`, {
         cache: 'no-store',
       }).catch(() => null);
+
+      if (!res || !res.ok) {
+        res = await fetch('/api/tournaments/public', {
+          cache: 'no-store',
+        }).catch(() => null);
+      }
+      if (!res || !res.ok) {
+        res = await fetch('http://localhost:3001/api/tournaments/public', {
+          cache: 'no-store',
+        }).catch(() => null);
+      }
 
       if (res && res.ok) {
         const data = await res.json().catch(() => null);
@@ -4608,19 +4787,19 @@ export default function MobilePreviewPage() {
             showToast(`Synchronized ${mapped.length} tournaments from database.`, "success", "DATABASE SYNCED");
           }
         } else {
-          setLiveTournaments([]);
+          setLiveTournaments((prev) => (prev.length > 0 ? prev : []));
           if (isManualRefresh) {
             showToast("No active tournaments found in database.", "alert", "DATABASE EMPTY");
           }
         }
       } else {
-        setLiveTournaments([]);
+        setLiveTournaments((prev) => (prev.length > 0 ? prev : []));
         if (isManualRefresh) {
           showToast("Unable to reach tournament database.", "error", "DATABASE OFFLINE");
         }
       }
     } catch {
-      setLiveTournaments([]);
+      setLiveTournaments((prev) => (prev.length > 0 ? prev : []));
       if (isManualRefresh) {
         showToast("Database synchronization failed.", "error", "SYNC FAILED");
       }
@@ -5893,6 +6072,22 @@ class AddFriendsScreen extends StatelessWidget {
   }
 }`,
     },
+    "my-friends": {
+      path: "apps/mobile-app/lib/screens/my_friends_screen.dart",
+      summary:
+        "Dedicated golfer network screen displaying connected friends, pending sent requests, and incoming invitations with unified navigation header and segmented controls.",
+      snippet: `// Dart & Flutter: my_friends_screen.dart
+class MyFriendsScreen extends StatelessWidget {
+  const MyFriendsScreen({super.key});
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('My Friends')),
+      body: const Center(child: Text('Connected Golfers & Network')),
+    );
+  }
+}`,
+    },
     "sync-contacts": {
       path: "apps/mobile-app/lib/screens/sync_contacts_screen.dart",
       summary:
@@ -6170,12 +6365,18 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
             (phoneContentScrollRef as any).current = el;
           }
         }}
-        className={`flex-1 relative flex flex-col ${
+        className={`flex-1 relative flex flex-col antialiased [text-rendering:optimizeLegibility] ${
           targetScreen === "scoring" || targetScreen === "register" || targetScreen === "landing"
             ? "overflow-hidden"
             : "overflow-y-auto scrollbar-hide no-scrollbar"
         }`}
-        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+        style={{
+          scrollbarWidth: "none",
+          msOverflowStyle: "none",
+          WebkitFontSmoothing: "antialiased",
+          MozOsxFontSmoothing: "grayscale",
+          textRendering: "optimizeLegibility",
+        }}
       >
 
                   {/* 0. GET STARTED / LANDING ONBOARDING SCREEN (Pixel-Perfect Reference Match) */}
@@ -6832,6 +7033,18 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                         <div className="relative z-10 px-4 pt-3 pb-8 flex flex-col justify-between h-full w-full">
                           {/* Top Action Bar: 4 WHITE ICONS (Properly spaced at the top right corner) */}
                           <div className="flex items-center justify-end gap-3.5 shrink-0 pt-0.5">
+                            {/* Users (My Friends) - Opens New Screen */}
+                            <button
+                              type="button"
+                              onClick={() => switchScreen("my-friends")}
+                              className="w-8 h-8 rounded-full flex items-center justify-center text-white/95 hover:text-white hover:bg-white/20 transition-all cursor-pointer relative"
+                              title="My Friends"
+                              aria-label="My Friends"
+                            >
+                              <Users className="h-[20px] w-[20px] text-white stroke-[1.8]" />
+                              
+                            </button>
+
                             {/* User Plus (Add Friends) - Opens New Screen */}
                             <button
                               type="button"
@@ -7630,7 +7843,7 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                                       </div>
 
                                       {/* Title: Consistent 15px font sizing matching section typography */}
-                                      <h4 className="text-[15px] font-bold text-white tracking-tight leading-tight drop-shadow-sm max-w-[255px]">
+                                      <h4 className={`font-bold text-white tracking-tight leading-tight drop-shadow-sm ${isTablet ? "text-[17px] max-w-[360px]" : "text-[15px] max-w-[255px]"}`}>
                                         {tourn.titleLine2 ? (
                                           <>
                                             <span className="block truncate">{tourn.titleLine1}</span>
@@ -7652,7 +7865,7 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                                             return;
                                           }
                                           if (typeof navigator !== "undefined" && navigator.clipboard) {
-                                            navigator.clipboard.writeText(`https://openclub.app/tournaments/${tourn.id}`).catch(() => {});
+                                            navigator.clipboard.writeText(`${getAppOrigin()}/tournaments/${tourn.id}`).catch(() => {});
                                           }
                                           showToast(`${tourn.title} link copied to clipboard!`, "success", "SHARE TOURNAMENT");
                                         }}
@@ -7783,7 +7996,7 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                                         }
                                         openTournamentDetails(tourn);
                                       }}
-                                      className="flex-[3] h-[38px] rounded-xl bg-white hover:bg-slate-100 active:scale-[0.98] text-[#0F172A] font-semibold text-[12px] flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer border border-slate-200 capitalize"
+                                      className="flex-[3] h-[38px] rounded-xl bg-white hover:bg-slate-100 active:scale-[0.98] text-[#0F172A] font-semibold text-[12px] flex items-center justify-center gap-1.5 shadow-2xs transition-all cursor-pointer border border-slate-200/60 hover:border-slate-300 capitalize"
                                       title="Tournament Details"
                                     >
                                       <Info className="w-3.5 h-3.5 text-[#009A60]" />
@@ -8428,12 +8641,12 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                               const unfeaturedEvents = filteredTournaments.filter(
                                 (t) => !featuredIds.has(t.id)
                               );
-                              const nextEvents = unfeaturedEvents.length > 0 ? unfeaturedEvents : filteredTournaments;
+                              const nextEvents = (tournamentFilter === "All" && unfeaturedEvents.length > 0) ? unfeaturedEvents : filteredTournaments;
 
                               return (
                                 <>
-                                  {/* 2. Featured Events Horizontal Scrollable Hero Carousel */}
-                                  {!tournamentSearchQuery && (tournamentFilter === "All" || tournamentFilter === "Ongoing") && featuredTournaments.length > 0 && (
+                                  {/* 2. Featured Events Horizontal Scrollable Hero Carousel (Only on All tab) */}
+                                  {!tournamentSearchQuery && tournamentFilter === "All" && featuredTournaments.length > 0 && (
                                     <div className="mb-6">
                                       <div
                                         ref={tournamentsHeroCarouselRef}
@@ -8523,9 +8736,9 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                                                   <path d="M-10 120 Q 110 50, 230 100 T 380 62 T 440 105" stroke="#10B981" strokeWidth="1.1" fill="none" opacity="0.45" />
                                                   <path d="M-15 45 Q 120 95, 260 36 T 410 58" stroke="#10B981" strokeWidth="0.9" strokeDasharray="3 3" fill="none" opacity="0.4" />
                                                   {/* Concentric elevation rings around action zone */}
-                                                  <circle cx="330" cy="55" r="38" stroke="#10B981" strokeWidth="1" strokeDasharray="2 3" opacity="0.55" />
-                                                  <circle cx="330" cy="55" r="65" stroke="#10B981" strokeWidth="0.8" opacity="0.35" />
-                                                  <circle cx="330" cy="55" r="92" stroke="#10B981" strokeWidth="0.6" opacity="0.2" />
+                                                  <circle cx="330" cy="55" r="38" stroke="#10B981" strokeWidth="1" strokeDasharray="2 3" opacity="0.55" fill="none" />
+                                                  <circle cx="330" cy="55" r="65" stroke="#10B981" strokeWidth="0.8" opacity="0.35" fill="none" />
+                                                  <circle cx="330" cy="55" r="92" stroke="#10B981" strokeWidth="0.6" opacity="0.2" fill="none" />
                                                 </svg>
 
                                                 {/* Subtle photo texture from tournament banner */}
@@ -8549,8 +8762,16 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
 
                                                       {/* Title: Breaks gracefully without lone orphan numbers/words */}
                                                       <h4
-                                                        className={`font-bold text-white tracking-tight leading-snug drop-shadow-sm max-w-[240px] break-words [text-wrap:balance] ${
-                                                          tournament.name.length > 36
+                                                        className={`font-bold text-white tracking-tight leading-snug drop-shadow-sm ${
+                                                          isTablet ? "max-w-[340px]" : "max-w-[240px]"
+                                                        } break-words [text-wrap:balance] line-clamp-2 ${
+                                                          isTablet
+                                                            ? tournament.name.length > 36
+                                                              ? "text-[14px]"
+                                                              : tournament.name.length > 26
+                                                              ? "text-[15px]"
+                                                              : "text-[16px]"
+                                                            : tournament.name.length > 36
                                                             ? "text-[12.5px]"
                                                             : tournament.name.length > 26
                                                             ? "text-[13px]"
@@ -8573,7 +8794,7 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                                                             return;
                                                           }
                                                           if (typeof navigator !== "undefined" && navigator.clipboard) {
-                                                            navigator.clipboard.writeText(`https://openclub.app/tournaments/${tournament.id}`).catch(() => {});
+                                                            navigator.clipboard.writeText(`${getAppOrigin()}/tournaments/${tournament.id}`).catch(() => {});
                                                           }
                                                           showToast(`${tournament.name} link copied to clipboard!`, "success", "SHARE TOURNAMENT");
                                                         }}
@@ -8705,7 +8926,7 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                                                         }
                                                         openTournamentDetails(tournament);
                                                       }}
-                                                      className="flex-[3] h-[38px] rounded-xl bg-white hover:bg-slate-100 active:scale-[0.98] text-[#0F172A] font-semibold text-[12px] flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer border border-slate-200 capitalize"
+                                                      className="flex-[3] h-[38px] rounded-xl bg-white hover:bg-slate-100 active:scale-[0.98] text-[#0F172A] font-semibold text-[12px] flex items-center justify-center gap-1.5 shadow-2xs transition-all cursor-pointer border border-slate-200/60 hover:border-slate-300 capitalize"
                                                       title="Tournament Details"
                                                     >
                                                       <Info className="w-3.5 h-3.5 text-[#009A60]" />
@@ -8777,14 +8998,14 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
 
                                   {/* 4. Tournament Entries Cards */}
                                   {nextEvents.length === 0 ? (
-                                    <div className="py-10 px-4 text-center">
-                                      <div className="w-12 h-12 rounded-2xl bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center text-[#009A60] mx-auto mb-3 shadow-2xs">
-                                        <Search className="w-5 h-5" />
+                                    <div className="py-12 px-4 text-center">
+                                      <div className="w-[76px] h-[76px] rounded-[24px] bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center mx-auto mb-4 text-[#009A60] shadow-xs">
+                                        <Search className="w-8 h-8 text-[#009A60]" />
                                       </div>
-                                      <h4 className="text-[15px] font-bold text-[#0F172A] mb-1">
+                                      <h4 className="text-base font-bold text-[#0F172A] mb-1">
                                         No Tournaments Found
                                       </h4>
-                                      <p className="text-[12px] text-[#64748B] max-w-[260px] mx-auto mb-4 leading-relaxed">
+                                      <p className="text-xs text-[#64748B] max-w-[260px] mx-auto mb-4 leading-relaxed">
                                         No tournament events match your search term or active filter criteria.
                                       </p>
                                       <button
@@ -8845,8 +9066,16 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                                                 <div className="flex-1 min-w-0">
                                                   {/* Tournament Title: Sized to fit on a single line or balanced wrap without lone orphan words/numbers */}
                                                   <h4
-                                                    className={`font-bold text-[#0F172A] tracking-tight leading-snug break-words [text-wrap:balance] mb-1 ${
-                                                      tournament.name.length > 36
+                                                    className={`font-bold text-[#0F172A] tracking-tight leading-snug break-words [text-wrap:balance] line-clamp-2 max-w-full mb-1 ${
+                                                      isTablet
+                                                        ? tournament.name.length > 36
+                                                          ? "text-[14px]"
+                                                          : tournament.name.length > 28
+                                                          ? "text-[15.5px]"
+                                                          : tournament.name.length > 20
+                                                          ? "text-[16.5px]"
+                                                          : "text-[17.5px]"
+                                                        : tournament.name.length > 36
                                                         ? "text-[12px]"
                                                         : tournament.name.length > 28
                                                         ? "text-[12.5px]"
@@ -8922,7 +9151,7 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                                             </div>
                                           </div>
 
-                                          {/* Tier 2: Dedicated Action Buttons Row (Details + Register) */}
+                                          {/* Tier 2: Dedicated Action Buttons Row (Details + Register or Leaderboard) */}
                                           <div className="mt-3 flex items-center gap-2">
                                             <button
                                               type="button"
@@ -8930,35 +9159,65 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                                                 e.stopPropagation();
                                                 openTournamentDetails(tournament);
                                               }}
-                                              className="flex-1 h-[38px] rounded-xl bg-slate-100/90 hover:bg-slate-200/90 active:scale-[0.98] text-slate-800 font-bold text-[12.5px] border border-slate-300/90 hover:border-slate-400 flex items-center justify-center gap-1.5 capitalize tracking-normal transition-all cursor-pointer shadow-2xs"
+                                              className="flex-1 h-[38px] rounded-xl bg-white hover:bg-slate-50 active:scale-[0.98] text-slate-700 font-semibold text-[12.5px] border border-slate-200/60 hover:border-slate-300 flex items-center justify-center gap-1.5 capitalize tracking-normal transition-all cursor-pointer shadow-2xs"
                                               title="Tournament Details"
                                             >
-                                              <Info className="w-3.5 h-3.5 text-slate-600 shrink-0" />
+                                              <Info className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                                               <span>Details</span>
                                             </button>
 
-                                            {tournament.isOpen ? (
-                                              <button
-                                                type="button"
-                                                onClick={(e) => {
-                                                  e.stopPropagation();
-                                                  showToast(`Opening entry registration for ${tournament.name}...`, "success", "TOURNAMENT ENTRY");
-                                                  setTimeout(() => switchScreen("register"), 600);
-                                                }}
-                                                className="flex-[1.2] h-[38px] rounded-xl bg-[#009A60] hover:bg-[#008251] active:scale-[0.98] text-white font-bold text-[12.5px] flex items-center justify-center gap-1.5 capitalize shadow-xs transition-all cursor-pointer"
-                                                title="Register for Tournament"
-                                              >
-                                                <span>Register</span>
-                                                <ArrowRight className="w-3.5 h-3.5 text-white shrink-0" />
-                                              </button>
-                                            ) : (
-                                              <div
-                                                className="flex-[1.2] h-[38px] rounded-xl bg-slate-100/90 border border-slate-200/60 text-slate-400 font-semibold text-[12px] flex items-center justify-center gap-1 capitalize select-none cursor-not-allowed"
-                                                title="Registration Closed"
-                                              >
-                                                <span>Registration Closed</span>
-                                              </div>
-                                            )}
+                                            {(() => {
+                                              const isOngoing = tournamentFilter === "Ongoing" || tournament.status === "Live" || tournament.category === "Ongoing";
+
+                                              if (isOngoing) {
+                                                return (
+                                                  <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      const tIdx = liveTournaments.findIndex((t) => t.id === tournament.id);
+                                                      if (tIdx >= 0) {
+                                                        setSelectedTournamentIndex(tIdx);
+                                                      }
+                                                      showToast(`Viewing leaderboard for ${tournament.name}`, "success", "LEADERBOARD");
+                                                      switchScreen("leaderboard");
+                                                    }}
+                                                    className="flex-[1.2] h-[38px] rounded-xl bg-[#009A60] hover:bg-[#008251] active:scale-[0.98] text-white font-bold text-[12.5px] flex items-center justify-center gap-1.5 capitalize shadow-xs transition-all cursor-pointer"
+                                                    title="View Tournament Leaderboard"
+                                                  >
+                                                    <Trophy className="w-4 h-4 text-white shrink-0" />
+                                                    <span>Leaderboard</span>
+                                                  </button>
+                                                );
+                                              }
+
+                                              if (tournament.isOpen) {
+                                                return (
+                                                  <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      showToast(`Opening entry registration for ${tournament.name}...`, "success", "TOURNAMENT ENTRY");
+                                                      setTimeout(() => switchScreen("register"), 600);
+                                                    }}
+                                                    className="flex-[1.2] h-[38px] rounded-xl bg-[#009A60] hover:bg-[#008251] active:scale-[0.98] text-white font-bold text-[12.5px] flex items-center justify-center gap-1.5 capitalize shadow-xs transition-all cursor-pointer"
+                                                    title="Register for Tournament"
+                                                  >
+                                                    <span>Register</span>
+                                                    <ChevronRight className="w-4 h-4 text-white shrink-0" />
+                                                  </button>
+                                                );
+                                              }
+
+                                              return (
+                                                <div
+                                                  className="flex-[1.2] h-[38px] rounded-xl bg-slate-100/90 border border-slate-200/60 text-slate-400 font-semibold text-[12px] flex items-center justify-center gap-1 capitalize select-none cursor-not-allowed"
+                                                  title="Registration Closed"
+                                                >
+                                                  <span>Registration Closed</span>
+                                                </div>
+                                              );
+                                            })()}
                                           </div>
                                         </div>
                                       </div>
@@ -9909,7 +10168,7 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                                       const tournId = (activeTournament as any)?.id || "ikoyi-open-2024";
                                       const shareUrl = typeof window !== "undefined"
                                         ? `${window.location.origin}/tournaments/${tournId}`
-                                        : `https://openclub.app/tournaments/${tournId}`;
+                                        : `${getAppOrigin()}/tournaments/${tournId}`;
                                       const shareTitle = activeTournament.name || "Tournament";
                                       const shareText = `Join ${shareTitle} at ${activeTournament.club || "OpenClub"}! Register now on OpenClub OS.`;
 
@@ -10171,9 +10430,13 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                                           <div className="flex items-baseline justify-center gap-1 whitespace-nowrap overflow-hidden px-0.5">
                                             <span
                                               className={`font-bold text-[#0B1B2B] block leading-none shrink-0 ${
-                                                isNaN(Number(hcpInfo.value)) || hcpInfo.value.length > 3
-                                                  ? "text-[16px]"
-                                                  : "text-[20px]"
+                                                hcpInfo.value.length <= 3
+                                                  ? "text-[22px]"
+                                                  : hcpInfo.value.length <= 6
+                                                  ? "text-[20px]"
+                                                  : hcpInfo.value.length <= 8
+                                                  ? "text-[18px]"
+                                                  : "text-[14px]"
                                               }`}
                                             >
                                               {hcpInfo.value}
@@ -10334,108 +10597,68 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                               <div>
                                 <div className="mb-3.5">
                                   <h3 className="text-[11px] font-bold tracking-[0.14em] text-[#64748B] uppercase">
-                                    REGISTERED PLAYERS ({registeredPlayers && registeredPlayers.length > 0 ? registeredPlayers.length : 120})
+                                    REGISTERED PLAYERS ({registeredPlayers ? registeredPlayers.length : 0})
                                   </h3>
                                 </div>
                                 <div className="space-y-3">
-                                  {[
-                                    {
-                                      name: "Tunde Adekunle",
-                                      hcp: "4.2",
-                                      club: "Ikoyi Club 1938",
-                                      avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&h=120&q=80",
-                                    },
-                                    {
-                                      name: "Chioma Okoro",
-                                      hcp: "8.5",
-                                      club: "IBB Golf Club",
-                                      avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=120&h=120&q=80",
-                                    },
-                                    {
-                                      name: "Adediran Favour",
-                                      hcp: "28.0",
-                                      club: "OpenClub Golfer",
-                                      avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&h=120&q=80",
-                                    },
-                                    {
-                                      name: "Femi Adebayo",
-                                      hcp: "4.1",
-                                      club: "Lakowe Lakes",
-                                      avatar: "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=120&h=120&q=80",
-                                    },
-                                    {
-                                      name: "Ngozi Okonjo",
-                                      hcp: "7.8",
-                                      club: "Lakowe Lakes",
-                                      avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=120&h=120&q=80",
-                                    },
-                                    {
-                                      name: "Emeka Nwosu",
-                                      hcp: "11.2",
-                                      club: "Port Harcourt Club",
-                                      avatar: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=120&h=120&q=80",
-                                    },
-                                    {
-                                      name: "Dayo Adeleke",
-                                      hcp: "14.0",
-                                      club: "Ikeja Golf Club",
-                                      avatar: "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&w=120&h=120&q=80",
-                                    },
-                                  ].map((player, idx) => (
-                                    <div
-                                      key={idx}
-                                      className="w-full bg-[#f5faf6] rounded-2xl border border-[#e1efe5] shadow-2xs p-3.5 flex items-center justify-between gap-3 transition-all hover:border-[#c6f0db]"
-                                    >
-                                      <div className="flex items-center gap-3 min-w-0 flex-1">
-                                        <div className="relative shrink-0">
-                                          {player.avatar ? (
-                                            <img
-                                              src={player.avatar}
-                                              alt={player.name}
-                                              className="w-11 h-11 rounded-full object-cover border border-slate-200"
-                                              onError={(e) => {
-                                                (e.currentTarget as HTMLElement).style.display = "none";
-                                                const fb = e.currentTarget.parentElement?.querySelector(".avatar-initials-fallback") as HTMLElement;
-                                                if (fb) fb.style.display = "flex";
-                                              }}
-                                            />
-                                          ) : null}
-                                          <div
-                                            className={`w-11 h-11 rounded-full bg-[#EAF7EE] text-[#009A60] font-bold text-sm items-center justify-center border border-[#C6F0DB] avatar-initials-fallback ${player.avatar ? "hidden" : "flex"}`}
-                                          >
-                                            {player.name
-                                              .split(" ")
-                                              .map((n) => n[0])
-                                              .slice(0, 2)
-                                              .join("")}
+                                  {registeredPlayers && registeredPlayers.length > 0 ? (
+                                    registeredPlayers.map((player, idx) => (
+                                      <div
+                                        key={player.id || idx}
+                                        className="w-full bg-[#f5faf6] rounded-2xl border border-[#e1efe5] shadow-2xs p-3.5 flex items-center justify-between gap-3 transition-all hover:border-[#c6f0db]"
+                                      >
+                                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                                          <div className="relative shrink-0">
+                                            {player.avatar || player.profilePhoto ? (
+                                              <img
+                                                src={player.avatar || player.profilePhoto}
+                                                alt={player.name}
+                                                className="w-11 h-11 rounded-full object-cover border border-slate-200"
+                                                onError={(e) => {
+                                                  (e.currentTarget as HTMLElement).style.display = "none";
+                                                  const fb = e.currentTarget.parentElement?.querySelector(".avatar-initials-fallback") as HTMLElement;
+                                                  if (fb) fb.style.display = "flex";
+                                                }}
+                                              />
+                                            ) : null}
+                                            <div
+                                              className={`w-11 h-11 rounded-full bg-[#EAF7EE] text-[#009A60] font-bold text-sm items-center justify-center border border-[#C6F0DB] avatar-initials-fallback ${player.avatar || player.profilePhoto ? "hidden" : "flex"}`}
+                                            >
+                                              {player.initials || getTwoInitials(player.name)}
+                                            </div>
+                                            {/* Status check badge from friend request screen */}
+                                            <div className="w-4 h-4 rounded-full bg-[#009A60] border-2 border-white flex items-center justify-center text-white absolute -bottom-0.5 -right-0.5 shadow-xs">
+                                              <Check className="w-2.5 h-2.5 stroke-[3]" />
+                                            </div>
                                           </div>
-                                          {/* Status check badge from friend request screen */}
-                                          <div className="w-4 h-4 rounded-full bg-[#009A60] border-2 border-white flex items-center justify-center text-white absolute -bottom-0.5 -right-0.5 shadow-xs">
-                                            <Check className="w-2.5 h-2.5 stroke-[3]" />
+                                          <div className="min-w-0 flex-1">
+                                            <h4 className="text-[14.5px] font-bold text-[#0F172A] leading-tight">
+                                              {player.name}
+                                            </h4>
+                                            <p className="text-[12px] font-medium text-[#64748B] truncate leading-tight mt-0.5 flex items-center">
+                                              {player.club && (
+                                                <>
+                                                  <span className="truncate">{player.club}</span>
+                                                  <span className="mx-1.5 text-slate-300 font-normal shrink-0">|</span>
+                                                </>
+                                              )}
+                                              <span className="shrink-0">{String(player.handicap || (player as any).hcp || "0").replace(/HCP/i, "").trim()} HCP</span>
+                                            </p>
                                           </div>
                                         </div>
-                                        <div className="min-w-0 flex-1">
-                                          <h4 className="text-[14.5px] font-bold text-[#0F172A] leading-tight">
-                                            {player.name}
-                                          </h4>
-                                          <p className="text-[12px] font-medium text-[#64748B] truncate leading-tight mt-0.5 flex items-center">
-                                            {player.club && (
-                                              <>
-                                                <span className="truncate">{player.club}</span>
-                                                <span className="mx-1.5 text-slate-300 font-normal shrink-0">|</span>
-                                              </>
-                                            )}
-                                            <span className="shrink-0">{String(player.hcp).replace(/HCP/i, "").trim()} HCP</span>
-                                          </p>
+                                        <div className="shrink-0 flex items-center pl-2">
+                                          <span className="px-2.5 py-0.5 rounded-full bg-[#EAF7EE] border border-[#C6F0DB]/80 text-[10.5px] font-bold text-[#009A60] capitalize">
+                                            Verified
+                                          </span>
                                         </div>
                                       </div>
-                                      <div className="shrink-0 flex items-center pl-2">
-                                        <span className="px-2.5 py-0.5 rounded-full bg-[#EAF7EE] border border-[#C6F0DB]/80 text-[10.5px] font-bold text-[#009A60] capitalize">
-                                          Verified
-                                        </span>
-                                      </div>
+                                    ))
+                                  ) : (
+                                    <div className="py-8 px-4 text-center">
+                                      <p className="text-xs font-semibold text-slate-600">No registered players yet for this tournament.</p>
+                                      <p className="text-[11px] text-slate-400 mt-1">Players will appear here once registered in the database.</p>
                                     </div>
-                                  ))}
+                                  )}
                                 </div>
                               </div>
                             )}
@@ -10449,81 +10672,8 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                                   </h3>
                                 </div>
                                 <div className="space-y-3.5">
-                                  {/* Title Sponsor Card */}
-                                  <div className="bg-[#f5faf6] border border-[#e1efe5] rounded-2xl p-4 shadow-2xs hover:border-[#c6f0db] transition-all">
-                                    <div className="flex items-center justify-between mb-3">
-                                      <span className="px-2.5 py-0.5 rounded-full bg-[#EAF7EE] border border-[#C6F0DB]/80 text-[10.5px] font-bold text-[#009A60] uppercase tracking-wide">
-                                        Title Sponsor
-                                      </span>
-                                      <span className="text-[11px] font-semibold text-slate-400">Headline Partner</span>
-                                    </div>
-                                    <div className="flex items-center gap-3.5">
-                                      <div className="w-12 h-12 rounded-2xl bg-white border border-[#e1efe5] flex items-center justify-center text-[#009A60] shadow-xs shrink-0 font-bold text-lg">
-                                        FB
-                                      </div>
-                                      <div className="min-w-0 flex-1">
-                                        <h4 className="text-[15px] font-bold text-[#0F172A] leading-tight">FirstBank Premier Banking</h4>
-                                        <p className="text-[12px] font-medium text-[#64748B] mt-0.5 leading-snug">
-                                          Official presenting corporate sponsor and championship trophy benefactor.
-                                        </p>
-                                      </div>
-                                    </div>
-                                  </div>
-
-                                  {/* Official Partners Display (Clean Active-Friend Style, No Enclosing Box Cards, 3 on Bigger Screen) */}
-                                  <div className={`grid gap-5 sm:gap-6 py-2 ${isTablet ? "grid-cols-3" : "grid-cols-2"}`}>
-                                    {[
-                                      {
-                                        name: "Rolex",
-                                        initials: "RX",
-                                      },
-                                      {
-                                        name: "Titleist",
-                                        initials: "TL",
-                                      },
-                                      {
-                                        name: "Heineken 0.0",
-                                        initials: "HK",
-                                      },
-                                      {
-                                        name: "PwC Nigeria",
-                                        initials: "PW",
-                                      },
-                                      {
-                                        name: "Emirates",
-                                        initials: "EK",
-                                      },
-                                      {
-                                        name: "TaylorMade",
-                                        initials: "TM",
-                                      },
-                                    ].map((sponsor, idx) => (
-                                      <div
-                                        key={idx}
-                                        className="flex flex-col items-center text-center group py-1.5 transition-all cursor-pointer"
-                                      >
-                                        {/* Active-Friend-Style Centered Logo Avatar with Emerald Status Badge */}
-                                        <div className="relative mb-2 shrink-0">
-                                          <div className="w-13 h-13 sm:w-14 sm:h-14 rounded-full bg-[#f5faf6] border-2 border-[#e1efe5] flex items-center justify-center text-[#009A60] font-bold text-sm sm:text-base shadow-2xs group-hover:scale-105 group-hover:border-[#009A60]/40 transition-all">
-                                            {sponsor.initials}
-                                          </div>
-                                          {/* Emerald Status / Verified Partner Check Badge */}
-                                          <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-[#009A60] border-2 border-white flex items-center justify-center shadow-2xs">
-                                            <Check className="w-2.5 h-2.5 text-white stroke-[3]" />
-                                          </div>
-                                        </div>
-
-                                        {/* Sponsor Name */}
-                                        <h5 className="text-[13.5px] font-bold text-[#0F172A] leading-tight truncate w-full">
-                                          {sponsor.name}
-                                        </h5>
-
-                                        {/* Partner Pill Badge */}
-                                        <span className="text-[10px] font-bold text-[#009A60] bg-[#EAF7EE] px-2.5 py-0.5 rounded-full border border-[#C6F0DB]/70 mt-1.5 leading-none">
-                                          Partner
-                                        </span>
-                                      </div>
-                                    ))}
+                                  <div className="py-8 px-4 text-center">
+                                    <p className="text-xs font-semibold text-slate-600">No official sponsors registered in the database for this event.</p>
                                   </div>
 
                                   {/* Corporate Sponsorship Inquiries Footer Banner */}
@@ -10983,7 +11133,7 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                       <div
                         ref={regScrollRef}
                         className="flex-1 overflow-y-auto p-6 pt-3 space-y-3.5 scrollbar-hide no-scrollbar"
-                        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+                        style={{ scrollbarWidth: "none", msOverflowStyle: "none", paddingBottom: virtualKeyboard?.isOpen ? "320px" : "24px" }}
                       >
                         <div className="w-full max-w-sm mx-auto space-y-3.5">
                         {/* --- STEP 1: CREATE PLAYER ACCOUNT --- */}
@@ -11155,6 +11305,11 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                                       onInput: (char) => setRegPassword((prev) => prev + char),
                                       onBackspace: () => setRegPassword((prev) => prev.slice(0, -1)),
                                     });
+                                    setTimeout(() => {
+                                      if (regScrollRef.current) {
+                                        regScrollRef.current.scrollTo({ top: 380, behavior: "smooth" });
+                                      }
+                                    }, 100);
                                   }}
                                   onChange={(e) => setRegPassword(e.target.value)}
                                   placeholder="••••••••••••"
@@ -11218,6 +11373,11 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                                       onInput: (char) => setRegConfirmPassword((prev) => prev + char),
                                       onBackspace: () => setRegConfirmPassword((prev) => prev.slice(0, -1)),
                                     });
+                                    setTimeout(() => {
+                                      if (regScrollRef.current) {
+                                        regScrollRef.current.scrollTo({ top: regScrollRef.current.scrollHeight, behavior: "smooth" });
+                                      }
+                                    }, 100);
                                   }}
                                   onChange={(e) => setRegConfirmPassword(e.target.value)}
                                   placeholder="••••••••••••"
@@ -13965,7 +14125,105 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
 
                   {/* 13. ADD GOLF FRIENDS FULL SCREEN */}
                   {targetScreen === "add-friends" && (() => {
-                    // 1. Build real golfers pool dynamically from real database members and tournament players
+                    const phoneAddressBookContacts: Array<{
+                      id: string;
+                      name: string;
+                      phone: string;
+                      isOnOpenclub: boolean;
+                      club?: string;
+                      hcp?: string;
+                      email?: string;
+                      source?: string;
+                      avatar?: string;
+                    }> = [
+                      {
+                        id: "cont_sarah_01",
+                        name: "Sarah Jenkins",
+                        phone: "+234 802 314 8821",
+                        isOnOpenclub: true,
+                        club: "Ikoyi Club 1938",
+                        hcp: "8.4",
+                        email: "sarah.jenkins@openclubos.com",
+                        avatar: "/images/competitor/sarah_jenkins.jpg",
+                      },
+                      {
+                        id: "cont_tunde_02",
+                        name: "Tunde Adekunle",
+                        phone: "+234 803 551 9012",
+                        isOnOpenclub: true,
+                        club: "Lagos Amateur Golf",
+                        hcp: "12.2",
+                        email: "tunde.adekunle@openclubos.com",
+                        avatar: "/images/competitor/tunde_adekunle.jpg",
+                      },
+                      {
+                        id: "cont_emmanuel_03",
+                        name: "Emmanuel Eze",
+                        phone: "+234 805 112 4433",
+                        isOnOpenclub: true,
+                        club: "Lakowe Lakes",
+                        hcp: "10.5",
+                        email: "emmanuel.eze@openclubos.com",
+                        avatar: "/images/competitor/emmanuel_eze.jpg",
+                      },
+                      {
+                        id: "cont_femi_04",
+                        name: "Femi Adebayo",
+                        phone: "+234 807 998 2211",
+                        isOnOpenclub: true,
+                        club: "Ikoyi Club 1938",
+                        hcp: "14.0",
+                        email: "femi.adebayo@openclubos.com",
+                      },
+                      {
+                        id: "cont_chioma_05",
+                        name: "Chioma Nwachukwu",
+                        phone: "+234 809 771 0022",
+                        isOnOpenclub: true,
+                        club: "IBB International",
+                        hcp: "18.0",
+                        email: "chioma.n@openclubos.com",
+                      },
+                      {
+                        id: "cont_babatunde_06",
+                        name: "Babatunde Lawal",
+                        phone: "+234 810 445 6677",
+                        isOnOpenclub: true,
+                        club: "Ikeja Golf Club",
+                        hcp: "16.8",
+                        email: "babatunde.l@openclubos.com",
+                      },
+                      {
+                        id: "cont_david_07",
+                        name: "David Adeleke",
+                        phone: "+234 812 334 5566",
+                        isOnOpenclub: false,
+                        source: "Phone Contacts",
+                      },
+                      {
+                        id: "cont_amina_08",
+                        name: "Amina Yusuf",
+                        phone: "+234 803 912 3456",
+                        isOnOpenclub: false,
+                        source: "SIM Contacts",
+                      },
+                      {
+                        id: "cont_emeka_09",
+                        name: "Emeka Okonkwo",
+                        phone: "+234 806 223 9988",
+                        isOnOpenclub: false,
+                        source: "Google Contacts",
+                      },
+                      {
+                        id: "cont_kola_10",
+                        name: "Kolawole Sanusi",
+                        phone: "+234 808 441 5566",
+                        isOnOpenclub: false,
+                        source: "Phone Contacts",
+                      },
+                    ];
+
+                    // 1. Build real golfers pool dynamically from real database members, tournament players, contacts, and friend relationships
                     const realGolfersPool: Array<{
                       id: string;
                       name: string;
@@ -13988,46 +14246,92 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                         profilePhoto?: string;
                       }> = [];
 
+                      const seenIds = new Set<string>();
+                      const seenNames = new Set<string>();
+                      const seenEmails = new Set<string>();
+
+                      const tryAddGolfer = (item: {
+                        id: string;
+                        name: string;
+                        email?: string;
+                        club?: string;
+                        hcp?: string;
+                        initial?: string;
+                        avatar?: string;
+                        profilePhoto?: string;
+                      }) => {
+                        if (!item.name || !item.name.trim()) return;
+                        const idKey = String(item.id).toLowerCase().trim();
+                        const nameKey = item.name.toLowerCase().trim().split(/\s+/).sort().join(" ");
+                        const emailKey = (item.email || "").toLowerCase().trim();
+
+                        if (seenIds.has(idKey)) return;
+                        if (nameKey && seenNames.has(nameKey)) return;
+                        if (emailKey && seenEmails.has(emailKey)) return;
+
+                        seenIds.add(idKey);
+                        if (nameKey) seenNames.add(nameKey);
+                        if (emailKey) seenEmails.add(emailKey);
+
+                        list.push({
+                          id: item.id,
+                          name: item.name,
+                          email: item.email || "",
+                          club: item.club || "OpenClub Golfer",
+                          hcp: item.hcp || "14",
+                          initial: item.initial || getTwoInitials(item.name),
+                          avatar: item.avatar || item.profilePhoto,
+                          profilePhoto: item.profilePhoto || item.avatar,
+                        });
+                      };
+
                       // Add real database members
+                      for (const dbf of dbAcceptedFriends) {
+                        const dbName = dbf.name || [dbf.firstName, dbf.lastName].filter(Boolean).join(" ") || "Golfer";
+                        tryAddGolfer({
+                          id: dbf.id,
+                          name: dbName,
+                          email: dbf.email || "",
+                          club: dbf.club || "OpenClub Golfer",
+                          hcp: String(dbf.handicap !== undefined && dbf.handicap !== null ? dbf.handicap : (dbf.hcp ?? "14")),
+                          initial: getTwoInitials(dbName),
+                          avatar: dbf.profilePhoto || dbf.avatar,
+                          profilePhoto: dbf.profilePhoto || dbf.avatar,
+                        });
+                      }
+
                       for (const m of golfCompetitors) {
-                        if (!seen.has(m.id)) {
-                          seen.add(m.id);
-                          list.push({
-                            id: m.id,
-                            name: m.name,
-                            email: m.email || "",
-                            club: m.club || "OpenClub Golfer",
-                            hcp: String(m.hcp ?? "14"),
-                            initial: getTwoInitials(m.name),
-                            avatar: m.avatar || m.profilePhoto,
-                            profilePhoto: m.profilePhoto || m.avatar,
-                          });
-                        }
+                        tryAddGolfer({
+                          id: m.id,
+                          name: m.name,
+                          email: m.email || "",
+                          club: m.club || "OpenClub Golfer",
+                          hcp: String(m.hcp ?? "14"),
+                          initial: getTwoInitials(m.name),
+                          avatar: m.avatar || m.profilePhoto,
+                          profilePhoto: m.profilePhoto || m.avatar,
+                        });
                       }
 
                       // Add real registered tournament competitors from DB
                       for (const rp of registeredPlayers) {
-                        if (!seen.has(rp.id)) {
-                          seen.add(rp.id);
-                          list.push({
-                            id: rp.id,
-                            name: rp.name,
-                            email: rp.email || "",
-                            club: (rp as any).club || activeTournament?.organizerClub || "Ikoyi Club 1938",
-                            hcp: String(rp.handicap ?? "12"),
-                            initial: getTwoInitials(rp.name),
-                            avatar: rp.avatar || rp.profilePhoto,
-                            profilePhoto: rp.profilePhoto || rp.avatar,
-                          });
-                        }
+                        tryAddGolfer({
+                          id: rp.id,
+                          name: rp.name,
+                          email: rp.email || "",
+                          club: (rp as any).club || activeTournament?.organizerClub || "Ikoyi Club 1938",
+                          hcp: String(rp.handicap ?? "12"),
+                          initial: getTwoInitials(rp.name),
+                          avatar: rp.avatar || rp.profilePhoto,
+                          profilePhoto: rp.profilePhoto || rp.avatar,
+                        });
                       }
 
                       // Add incoming friend request senders so they can be searched
                       for (const req of incomingFriendRequests) {
                         const sId = req.senderId || req.id;
-                        if (sId && !seen.has(sId)) {
-                          seen.add(sId);
-                          list.push({
+                        if (sId) {
+                          tryAddGolfer({
                             id: sId,
                             name: req.senderName || req.name || "Golfer",
                             email: req.senderEmail || req.email || "",
@@ -14044,10 +14348,9 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                       for (const n of mobileNotifications) {
                         if (n.data?.type === "FRIEND_REQUEST" || n.type === "FRIEND_REQUEST") {
                           const sId = n.data?.senderId || n.senderId || n.id;
-                          if (sId && !seen.has(sId)) {
-                            seen.add(sId);
+                          if (sId) {
                             const sName = n.data?.senderName || n.senderName || n.title || "Golfer";
-                            list.push({
+                            tryAddGolfer({
                               id: sId,
                               name: sName,
                               email: n.data?.senderEmail || n.senderEmail || n.email || "",
@@ -14063,9 +14366,8 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
 
                       // Add friends on course
                       for (const f of friendsOnCourse) {
-                        if (f.id && !seen.has(f.id)) {
-                          seen.add(f.id);
-                          list.push({
+                        if (f.id) {
+                          tryAddGolfer({
                             id: f.id,
                             name: f.name || "Golfer",
                             email: (f as any).email || "",
@@ -14077,6 +14379,8 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                           });
                         }
                       }
+
+                      // Pool strictly sourced from database members, tournament competitors, and incoming requests
 
                       const currentId = authenticatedPlayer?.id;
                       const currentName = authenticatedPlayer?.name?.toLowerCase().trim();
@@ -14100,9 +14404,6 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                         if (isBlocked) return false;
 
                         // Check if golfer has sent an incoming friend request waiting for acceptance.
-                        // Only incomingFriendRequests is the source of truth — mobileNotifications
-                        // is NOT used here to avoid cross-user stale data in the simulator causing
-                        // incorrect Accept/Decline buttons to appear after a decline/cancel.
                         const isIncomingRequest = incomingFriendRequests.some((req: any) => {
                           const rId = req.senderId || req.id || req.userId;
                           const rName = req.senderName || req.name;
@@ -14130,78 +14431,12 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                             p.name.toLowerCase().includes(q) ||
                             (p.email && p.email.toLowerCase().includes(q))
                         )
-                      : realGolfersPool
-                          .filter((p) => !(p as any)._isIncoming && !(p as any)._isConnected && !sentFriendRequests.includes(p.id))
-                          .slice(0, 2);
+                      : realGolfersPool;
                     const displayedGolfers = q ? allMatchedGolfers.slice(0, friendsDisplayLimit) : allMatchedGolfers;
                     const hasMoreResults = q && allMatchedGolfers.length > friendsDisplayLimit;
 
-                    const phoneAddressBookContacts = [
-                      {
-                        id: "cont_femi_01",
-                        name: "Femi Adebayo",
-                        phone: "+234 802 314 8821",
-                        isOnOpenclub: true,
-                        club: "Ikoyi Club 1938",
-                        hcp: "12.4",
-                        email: "femi.adebayo@openclubos.com",
-                      },
-                      {
-                        id: "cont_chioma_02",
-                        name: "Chioma Nwachukwu",
-                        phone: "+234 805 112 4433",
-                        isOnOpenclub: true,
-                        club: "IBB International",
-                        hcp: "18.0",
-                        email: "chioma.n@openclubos.com",
-                      },
-                      {
-                        id: "cont_babatunde_03",
-                        name: "Babatunde Lawal",
-                        phone: "+234 803 551 9012",
-                        isOnOpenclub: true,
-                        club: "Ikeja Golf Club",
-                        hcp: "16.8",
-                        email: "babatunde.lawal@openclubos.com",
-                      },
-                      {
-                        id: "cont_tunde_04",
-                        name: "Tunde Bakare",
-                        phone: "+234 807 998 2211",
-                        isOnOpenclub: true,
-                        club: "Lakowe Lakes Golf",
-                        hcp: "9.2",
-                        email: "tunde.bakare@openclubos.com",
-                      },
-                      {
-                        id: "cont_david_05",
-                        name: "David Adeleke",
-                        phone: "+234 809 771 0022",
-                        isOnOpenclub: false,
-                        source: "Phone Contacts",
-                      },
-                      {
-                        id: "cont_amina_06",
-                        name: "Amina Yusuf",
-                        phone: "+234 810 445 6677",
-                        isOnOpenclub: false,
-                        source: "SIM Contacts",
-                      },
-                      {
-                        id: "cont_emeka_07",
-                        name: "Emeka Okonkwo",
-                        phone: "+234 812 334 5566",
-                        isOnOpenclub: false,
-                        source: "Google Contacts",
-                      },
-                      {
-                        id: "cont_kola_08",
-                        name: "Kolawole Sanusi",
-                        phone: "+234 803 912 3456",
-                        isOnOpenclub: false,
-                        source: "Phone Contacts",
-                      },
-                    ];
+                    const connectedGolfers = realGolfersPool.filter((p) => (p as any)._isConnected);
+                    const suggestedGolfers = realGolfersPool.filter((p) => !(p as any)._isIncoming && !(p as any)._isConnected && !sentFriendRequests.includes(p.id)).slice(0, 2);
 
                     const cq = contactsSearchQuery.trim().toLowerCase();
                     const displayedContacts = phoneAddressBookContacts.filter((c) => {
@@ -14232,19 +14467,31 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                                 <ChevronLeft className="h-[18px] w-[18px] text-[#0F172A]" />
                               </button>
                               <h2 className="text-base font-bold text-[#0F172A]">Add Friends</h2>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setQrModalTab("display");
-                                  setScannedFriendResult(null);
-                                  setShowQrCodeModal(true);
-                                }}
-                                className="h-8 w-8 rounded-full bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center text-[#009A60] hover:bg-[#d8f3e3] shadow-2xs transition-all cursor-pointer"
-                                title="QR Code & Scanner"
-                                aria-label="QR Code"
-                              >
-                                <QrCode className="h-4 w-4 text-[#009A60]" />
-                              </button>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => switchScreen("my-friends")}
+                                  className="h-8 w-8 rounded-full bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center text-[#009A60] hover:bg-[#d8f3e3] shadow-2xs transition-all cursor-pointer relative"
+                                  title="My Friends"
+                                  aria-label="My Friends"
+                                >
+                                  <Users className="h-4 w-4 text-[#009A60]" />
+                                  
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setQrModalTab("display");
+                                    setScannedFriendResult(null);
+                                    setShowQrCodeModal(true);
+                                  }}
+                                  className="h-8 w-8 rounded-full bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center text-[#009A60] hover:bg-[#d8f3e3] shadow-2xs transition-all cursor-pointer"
+                                  title="QR Code & Scanner"
+                                  aria-label="QR Code"
+                                >
+                                  <QrCode className="h-4 w-4 text-[#009A60]" />
+                                </button>
+                              </div>
                             </div>
 
                             {/* Search Input Bar (Fixed at top with header) */}
@@ -14358,263 +14605,304 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                               </button>
                             </div>
 
-                            {/* Section Header: PLAYERS YOU MAY KNOW */}
-                            <div className="flex items-center justify-between pt-1">
-                              <span className="text-[11px] font-bold uppercase tracking-wider text-[#64748B]">
-                                {q ? `SEARCH RESULTS (${allMatchedGolfers.length})` : "PLAYERS YOU MAY KNOW"}
-                              </span>
-                              {q && allMatchedGolfers.length > 0 && (
-                                <span className="text-[10px] font-bold text-[#94A3B8] tracking-wide">
-                                  {displayedGolfers.length < allMatchedGolfers.length
-                                    ? `Showing ${displayedGolfers.length} of ${allMatchedGolfers.length}`
-                                    : `All ${allMatchedGolfers.length}`}
-                                </span>
-                              )}
-                            </div>
 
-                            {/* Recommended Real Golfers List - Demarcation line '|' used instead of dot '•' */}
-                            <div className="space-y-2.5">
-                              {displayedGolfers.length > 0 ? (
-                                displayedGolfers.map((player) => {
-                                  const pId = String(player.id).toLowerCase().trim();
-                                  const pName = player.name.toLowerCase().trim();
-                                  const pEmail = (player.email || "").toLowerCase().trim();
-                                  const isSent = sentFriendRequests.includes(player.id);
-                                  const isConnected =
-                                    acceptedFriendIds.some((id: string) => String(id).toLowerCase().trim() === pId) ||
-                                    acceptedFriendIds.some((id: string) => String(id).toLowerCase().trim() === pName);
-                                  const isBlocked = blockedUserIds.some((bId) => {
-                                    const bLower = String(bId).toLowerCase().trim();
-                                    return bLower === pId || bLower === pName || (pEmail && bLower === pEmail);
+                            {(() => {
+                              const renderGolferCard = (player: any) => {
+                                const pId = String(player.id).toLowerCase().trim();
+                                const pName = player.name.toLowerCase().trim();
+                                const pEmail = (player.email || "").toLowerCase().trim();
+                                const isSent =
+                                  sentFriendRequests.includes(player.id) ||
+                                  sentFriendRequests.some((id: string) => {
+                                    const sLower = String(id).toLowerCase().trim();
+                                    return sLower === pId || (pName && sLower === pName) || (pEmail && sLower === pEmail);
                                   });
-                                  const matchingIncomingReq = incomingFriendRequests.find((req: any) => {
-                                    const rId = (req.senderId || req.id || req.userId || "").toString().toLowerCase().trim();
-                                    const rName = (req.senderName || req.name || "").toString().toLowerCase().trim();
-                                    const rEmail = (req.senderEmail || req.email || "").toString().toLowerCase().trim();
-                                    if (rId && rId === pId) return true;
-                                    if (rName && rName === pName) return true;
-                                    if (rEmail && pEmail && rEmail === pEmail) return true;
-                                    return false;
-                                  }) || ((player as any)._isIncoming ? {
-                                    id: `req_${player.id}`,
-                                    senderId: player.id,
-                                    senderName: player.name,
-                                    senderClub: player.club,
-                                    senderHcp: player.hcp,
-                                  } : null);
-                                  const isIncoming = !!matchingIncomingReq;
-
-                                  return (
-                                    <div
-                                      key={player.id}
-                                      className="w-full bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-3.5 flex items-center justify-between gap-3 transition-all hover:border-slate-300"
-                                    >
-                                      {/* Left: Avatar with Green Check Badge */}
-                                      <div className="flex items-center gap-3 min-w-0 flex-1">
-                                        <div className="relative shrink-0">
-                                          {player.avatar || player.profilePhoto ? (
-                                            <img
-                                              src={player.avatar || player.profilePhoto}
-                                              alt={player.name}
-                                              className="w-11 h-11 rounded-full object-cover border border-slate-200"
-                                              onError={(e) => {
-                                                (e.currentTarget as HTMLElement).style.display = "none";
-                                                const fallback = (e.currentTarget.parentElement?.querySelector(".avatar-initials-fallback") as HTMLElement);
-                                                if (fallback) fallback.style.display = "flex";
-                                              }}
-                                            />
-                                          ) : null}
-                                          <div
-                                            className={`w-11 h-11 rounded-full bg-[#EAF7EE] text-[#009A60] font-bold text-sm items-center justify-center border border-[#C6F0DB] avatar-initials-fallback ${player.avatar || player.profilePhoto ? "hidden" : "flex"}`}
-                                          >
-                                            {getTwoInitials(player.name)}
-                                          </div>
-                                          {/* Status check badge */}
-                                          <div className="w-4 h-4 rounded-full bg-[#009A60] border-2 border-white flex items-center justify-center text-white absolute -bottom-0.5 -right-0.5 shadow-xs">
-                                            <Check className="w-2.5 h-2.5 stroke-[3]" />
-                                          </div>
-                                        </div>
-
-                                        <div className="min-w-0 flex-1">
-                                          <div className="flex items-center gap-1.5 flex-wrap min-w-0">
-                                            <h4 className="text-[14px] font-bold text-[#0F172A] leading-tight">
-                                              {player.name}
-                                            </h4>
-                                            {isConnected && (
-                                              <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-[#EAF7EE] text-[#009A60] text-[9px] font-bold border border-[#C6F0DB] shrink-0 select-none">Friend</span>
-                                            )}
-                                          </div>
-                                          {/* Demarcation line '|' instead of dot '•' */}
-                                          <p className="text-[12px] font-medium text-[#64748B] truncate leading-tight mt-0.5 flex items-center">
-                                            <span className="truncate">{player.club || "Ikoyi Golf Club"}</span>
-                                            <span className="mx-1.5 text-slate-300 font-normal shrink-0">|</span>
-                                            <span className="shrink-0">{player.hcp || "12"} HCP</span>
-                                          </p>
-                                        </div>
-                                      </div>
-
-                                      {/* Right Action Button: Authenticated Interactive States */}
-                                      <div className="shrink-0">
-                                        {isConnected ? (
-                                          /* Accepted Friend State: Single horizontal 3-dots action button */
-                                          <button
-                                            type="button"
-                                            onClick={() => setFriendActionUser({
-                                              id: player.id,
-                                              name: player.name,
-                                              club: player.club,
-                                              hcp: player.hcp,
-                                              avatar: player.avatar,
-                                              profilePhoto: player.profilePhoto,
-                                            })}
-                                            className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 border border-slate-200/80 flex items-center justify-center transition-all cursor-pointer active:scale-95 shadow-2xs shrink-0"
-                                            title={`Manage connection with ${player.name}`}
-                                            aria-label="Golfer Options"
-                                          >
-                                            <MoreHorizontal className="w-4 h-4 stroke-[2.2]" />
-                                          </button>
-                                        ) : isBlocked ? (
-                                          /* Blocked State: Displays Unblock pill button */
-                                          <button
-                                            type="button"
-                                            onClick={() => handleUnblockUser(player.id, player.name)}
-                                            className="px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 text-xs font-semibold border border-slate-300 transition-all cursor-pointer shrink-0 shadow-2xs"
-                                            title={`Unblock ${player.name}`}
-                                            aria-label="Unblock Golfer"
-                                          >
-                                            Unblock
-                                          </button>
-                                        ) : isIncoming ? (
-                                          /* Incoming Friend Request State: Displays mark icon button (accept) + cancel icon button (decline) */
-                                          <div className="flex items-center gap-1.5 shrink-0">
-                                            <button
-                                              type="button"
-                                              onClick={() => handleAcceptFriendRequest(matchingIncomingReq)}
-                                              className="w-8 h-8 rounded-full bg-[#009A60] hover:bg-[#008251] text-white flex items-center justify-center shadow-2xs transition-all cursor-pointer active:scale-95"
-                                              title={`Accept friend request from ${player.name}`}
-                                              aria-label="Accept Request"
-                                            >
-                                              <Check className="w-4 h-4 stroke-[2.8]" />
-                                            </button>
-                                            <button
-                                              type="button"
-                                              onClick={() => handleDeclineFriendRequest(matchingIncomingReq)}
-                                              className="w-8 h-8 rounded-full bg-rose-50 hover:bg-rose-100 border border-rose-200/80 flex items-center justify-center text-rose-500 hover:text-rose-600 transition-colors cursor-pointer active:scale-95 shadow-2xs"
-                                              title={`Decline friend request from ${player.name}`}
-                                              aria-label="Decline Request"
-                                            >
-                                              <X className="w-3.5 h-3.5 stroke-[2.5]" />
-                                            </button>
-                                          </div>
-                                        ) : isSent ? (
-                                          /* Sent Friend Request State: Displays SENT text + subtle red circular X cancel button */
-                                          <div className="flex items-center gap-1.5 shrink-0">
-                                            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                                              SENT
-                                            </span>
-                                            <button
-                                              type="button"
-                                              onClick={() => handleCancelSentFriendRequest(player.id)}
-                                              className="w-8 h-8 rounded-full bg-rose-50 hover:bg-rose-100 border border-rose-200/80 flex items-center justify-center text-rose-500 hover:text-rose-600 transition-colors cursor-pointer active:scale-95 shadow-2xs"
-                                              title="Cancel Request"
-                                              aria-label="Cancel Request"
-                                            >
-                                              <X className="w-3.5 h-3.5 stroke-[2.5]" />
-                                            </button>
-                                          </div>
-                                        ) : (
-                                          /* Unsent State: Displays circular emerald add friend button */
-                                          <button
-                                            type="button"
-                                            onClick={() => handleSendFriendRequest(player.id, player)}
-                                            className="w-9 h-9 rounded-full bg-[#009A60] hover:bg-[#008251] active:scale-95 text-white flex items-center justify-center shadow-2xs transition-all cursor-pointer shrink-0"
-                                            title={`Add ${player.name}`}
-                                            aria-label="Add Friend"
-                                          >
-                                            <UserPlus className="w-4 h-4 text-white" />
-                                          </button>
-                                        )}
-                                      </div>
-                                    </div>
-                                  );
-                                })
-                              ) : (
-                                <div className="py-10 text-center">
-                                  <div className="w-12 h-12 rounded-full bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center mx-auto mb-3 text-[#009A60]">
-                                    <UserPlus className="w-6 h-6" />
-                                  </div>
-                                  <p className="text-sm font-bold text-slate-800">No Golfers Found</p>
-                                  <p className="text-xs text-slate-500 mt-1 max-w-[240px] mx-auto">
-                                    Try searching by a different name or email.
-                                  </p>
-                                </div>
-                              )}
-
-                              {/* Lazy Loading: Show More Button */}
-                              {hasMoreResults && (
-                                <button
-                                  type="button"
-                                  onClick={() => setFriendsDisplayLimit((prev) => prev + 4)}
-                                  className="w-full py-3 rounded-2xl bg-white border border-slate-200/90 shadow-2xs text-[13px] font-bold text-[#009A60] hover:bg-[#EAF7EE] hover:border-[#C6F0DB] transition-all cursor-pointer active:scale-[0.98] flex items-center justify-center gap-2"
-                                >
-                                  <ChevronDown className="w-4 h-4 stroke-[2.5]" />
-                                  Show More ({allMatchedGolfers.length - displayedGolfers.length} remaining)
-                                </button>
-                              )}
-                            </div>
-
-                            {/* Demarcation Divider */}
-                            <div className="relative py-1">
-                              <div className="border-t border-slate-200/80" />
-                            </div>
-
-                            {/* Share Invitation Link Card (Demarcation Dashed Border Container) */}
-                            <div className="w-full rounded-[24px] border-2 border-dashed border-slate-300 bg-white/80 p-5 flex flex-col items-center text-center space-y-3 shadow-2xs">
-                              <div className="w-12 h-12 rounded-2xl bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center text-[#009A60] shadow-xs">
-                                <Link2 className="w-5 h-5 -rotate-45 stroke-[2.2]" />
-                              </div>
-                              <div className="space-y-1">
-                                <h3 className="text-[15px] font-bold text-[#0F172A] leading-tight">
-                                  Share Invitation Link
-                                </h3>
-                                <p className="text-[12px] font-normal text-[#64748B] leading-snug max-w-[260px] mx-auto">
-                                  Invite friends who aren&apos;t on the platform yet
-                                </p>
-                              </div>
-                              {(() => {
-                                const currentInviteCode = getUserInviteCode(authenticatedPlayer);
-                                const currentOrigin = typeof window !== "undefined" && window.location.origin
-                                  ? window.location.origin
-                                  : (process.env.NEXT_PUBLIC_APP_URL || "https://openclub.app");
-                                const currentHost = typeof window !== "undefined" && window.location.host
-                                  ? window.location.host
-                                  : "openclub.app";
-                                const currentInviteLink = `${currentHost}/invite/${currentInviteCode}`;
-                                const currentInviteUrl = `${currentOrigin}/invite/${currentInviteCode}`;
+                                const isConnected =
+                                  !isSent &&
+                                  (acceptedFriendIds.some((id: string) => {
+                                    const aLower = String(id).toLowerCase().trim();
+                                    return aLower === pId || (pName && aLower === pName) || (pEmail && aLower === pEmail);
+                                  }));
+                                const isBlocked = blockedUserIds.some((bId) => {
+                                  const bLower = String(bId).toLowerCase().trim();
+                                  return bLower === pId || bLower === pName || (pEmail && bLower === pEmail);
+                                });
+                                const matchingIncomingReq = incomingFriendRequests.find((req: any) => {
+                                  const rId = (req.senderId || req.id || req.userId || "").toString().toLowerCase().trim();
+                                  const rName = (req.senderName || req.name || "").toString().toLowerCase().trim();
+                                  const rEmail = (req.senderEmail || req.email || "").toString().toLowerCase().trim();
+                                  if (rId && rId === pId) return true;
+                                  if (rName && rName === pName) return true;
+                                  if (rEmail && pEmail && rEmail === pEmail) return true;
+                                  return false;
+                                }) || ((player as any)._isIncoming ? {
+                                  id: `req_${player.id}`,
+                                  senderId: player.id,
+                                  senderName: player.name,
+                                  senderClub: player.club,
+                                  senderHcp: player.hcp,
+                                } : null);
+                                const isIncoming = !!matchingIncomingReq;
 
                                 return (
-                                  <div className="w-full bg-[#f5faf6] border border-[#e1efe5] rounded-2xl px-3.5 py-2 flex items-center justify-between gap-2 shadow-2xs">
-                                    <span className="text-xs text-slate-600 font-medium truncate flex-1 text-left select-all">
-                                      {currentInviteLink}
-                                    </span>
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        if (typeof navigator !== "undefined" && navigator.clipboard) {
-                                          navigator.clipboard.writeText(currentInviteUrl).catch(() => {});
-                                        }
-                                        setCopiedInviteLink(true);
-                                        setTimeout(() => setCopiedInviteLink(false), 2200);
-                                        showToast("Invitation link copied to clipboard!", "success", "LINK COPIED");
-                                      }}
-                                      className="px-3.5 py-1.5 rounded-full bg-[#009A60] hover:bg-[#008251] border border-[#009A60] text-white text-xs font-bold shadow-2xs active:scale-95 transition-all cursor-pointer shrink-0"
-                                    >
-                                      {copiedInviteLink ? "Copied!" : "Copy"}
-                                    </button>
+                                  <div
+                                    key={player.id}
+                                    className="w-full bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-3.5 flex items-center justify-between gap-3 transition-all hover:border-slate-300"
+                                  >
+                                    {/* Left: Avatar with Green Check Badge */}
+                                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                                      <div className="relative shrink-0">
+                                        {player.avatar || player.profilePhoto ? (
+                                          <img
+                                            src={player.avatar || player.profilePhoto}
+                                            alt={player.name}
+                                            className="w-11 h-11 rounded-full object-cover border border-slate-200"
+                                            onError={(e) => {
+                                              (e.currentTarget as HTMLElement).style.display = "none";
+                                              const fallback = (e.currentTarget.parentElement?.querySelector(".avatar-initials-fallback") as HTMLElement);
+                                              if (fallback) fallback.style.display = "flex";
+                                            }}
+                                          />
+                                        ) : null}
+                                        <div
+                                          className={`w-11 h-11 rounded-full bg-[#EAF7EE] text-[#009A60] font-bold text-sm items-center justify-center border border-[#C6F0DB] avatar-initials-fallback ${player.avatar || player.profilePhoto ? "hidden" : "flex"}`}
+                                        >
+                                          {getTwoInitials(player.name)}
+                                        </div>
+                                        {/* Status check badge */}
+                                        <div className="w-4 h-4 rounded-full bg-[#009A60] border-2 border-white flex items-center justify-center text-white absolute -bottom-0.5 -right-0.5 shadow-xs">
+                                          <Check className="w-2.5 h-2.5 stroke-[3]" />
+                                        </div>
+                                      </div>
+
+                                      <div className="min-w-0 flex-1">
+                                        <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                                          <h4 className="text-[14px] font-bold text-[#0F172A] leading-tight">
+                                            {player.name}
+                                          </h4>
+                                          {isConnected && (
+                                            <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-[#EAF7EE] text-[#009A60] text-[9px] font-bold border border-[#C6F0DB] shrink-0 select-none">Friend</span>
+                                          )}
+                                        </div>
+                                        {/* Demarcation line '|' instead of dot '•' */}
+                                        <p className="text-[12px] font-medium text-[#64748B] truncate leading-tight mt-0.5 flex items-center">
+                                          <span className="truncate">{player.club || "Ikoyi Golf Club"}</span>
+                                          <span className="mx-1.5 text-slate-300 font-normal shrink-0">|</span>
+                                          <span className="shrink-0">{player.hcp || "12"} HCP</span>
+                                        </p>
+                                      </div>
+                                    </div>
+
+                                    {/* Right Action Button: Authenticated Interactive States */}
+                                    <div className="shrink-0">
+                                      {isConnected ? (
+                                        /* Accepted Friend State: Single horizontal 3-dots action button */
+                                        <button
+                                          type="button"
+                                          onClick={() => setFriendActionUser({
+                                            id: player.id,
+                                            name: player.name,
+                                            club: player.club,
+                                            hcp: player.hcp,
+                                            avatar: player.avatar,
+                                            profilePhoto: player.profilePhoto,
+                                          })}
+                                          className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 border border-slate-200/80 flex items-center justify-center transition-all cursor-pointer active:scale-95 shadow-2xs shrink-0"
+                                          title={`Manage connection with ${player.name}`}
+                                          aria-label="Golfer Options"
+                                        >
+                                          <MoreHorizontal className="w-4 h-4 stroke-[2.2]" />
+                                        </button>
+                                      ) : isBlocked ? (
+                                        /* Blocked State: Displays Unblock pill button */
+                                        <button
+                                          type="button"
+                                          onClick={() => handleUnblockUser(player.id, player.name)}
+                                          className="px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 text-xs font-semibold border border-slate-300 transition-all cursor-pointer shrink-0 shadow-2xs"
+                                          title={`Unblock ${player.name}`}
+                                          aria-label="Unblock Golfer"
+                                        >
+                                          Unblock
+                                        </button>
+                                      ) : isIncoming ? (
+                                        /* Incoming Friend Request State: Displays mark icon button (accept) + cancel icon button (decline) */
+                                        <div className="flex items-center gap-1.5 shrink-0">
+                                          <button
+                                            type="button"
+                                            onClick={() => handleAcceptFriendRequest(matchingIncomingReq)}
+                                            className="w-8 h-8 rounded-full bg-[#009A60] hover:bg-[#008251] text-white flex items-center justify-center shadow-2xs transition-all cursor-pointer active:scale-95"
+                                            title={`Accept friend request from ${player.name}`}
+                                            aria-label="Accept Request"
+                                          >
+                                            <Check className="w-4 h-4 stroke-[2.8]" />
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={() => handleDeclineFriendRequest(matchingIncomingReq)}
+                                            className="w-8 h-8 rounded-full bg-rose-50 hover:bg-rose-100 border border-rose-200/80 flex items-center justify-center text-rose-500 hover:text-rose-600 transition-colors cursor-pointer active:scale-95 shadow-2xs"
+                                            title={`Decline friend request from ${player.name}`}
+                                            aria-label="Decline Request"
+                                          >
+                                            <X className="w-3.5 h-3.5 stroke-[2.5]" />
+                                          </button>
+                                        </div>
+                                      ) : isSent ? (
+                                        /* Sent Friend Request State: Displays SENT text + subtle red circular X cancel button */
+                                        <div className="flex items-center gap-1.5 shrink-0">
+                                          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                                            SENT
+                                          </span>
+                                          <button
+                                            type="button"
+                                            onClick={() => handleCancelSentFriendRequest(player.id)}
+                                            className="w-8 h-8 rounded-full bg-rose-50 hover:bg-rose-100 border border-rose-200/80 flex items-center justify-center text-rose-500 hover:text-rose-600 transition-colors cursor-pointer active:scale-95 shadow-2xs"
+                                            title="Cancel Request"
+                                            aria-label="Cancel Request"
+                                          >
+                                            <X className="w-3.5 h-3.5 stroke-[2.5]" />
+                                          </button>
+                                        </div>
+                                      ) : (
+                                        /* Unsent State: Displays circular emerald add friend button */
+                                        <button
+                                          type="button"
+                                          onClick={() => handleSendFriendRequest(player.id, player)}
+                                          className="w-9 h-9 rounded-full bg-[#009A60] hover:bg-[#008251] active:scale-95 text-white flex items-center justify-center shadow-2xs transition-all cursor-pointer shrink-0"
+                                          title={`Add ${player.name}`}
+                                          aria-label="Add Friend"
+                                        >
+                                          <UserPlus className="w-4 h-4 text-white" />
+                                        </button>
+                                      )}
+                                    </div>
                                   </div>
                                 );
-                              })()}
-                            </div>
+                              };
+
+                              if (q) {
+                                return (
+                                  <div className="space-y-3">
+                                    <div className="flex items-center justify-between pt-1">
+                                      <span className="text-[11px] font-bold uppercase tracking-wider text-[#64748B]">
+                                        SEARCH RESULTS ({allMatchedGolfers.length})
+                                      </span>
+                                      {allMatchedGolfers.length > 0 && (
+                                        <span className="text-[10px] font-bold text-[#94A3B8] tracking-wide">
+                                          {displayedGolfers.length < allMatchedGolfers.length
+                                            ? `Showing ${displayedGolfers.length} of ${allMatchedGolfers.length}`
+                                            : `All ${allMatchedGolfers.length}`}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="space-y-2.5">
+                                      {displayedGolfers.length > 0 ? (
+                                        displayedGolfers.map(renderGolferCard)
+                                      ) : (
+                                        <div className="py-12 text-center">
+                                          <div className="w-[76px] h-[76px] rounded-[24px] bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center mx-auto mb-4 text-[#009A60] shadow-xs">
+                                            <UserPlus className="w-8 h-8 text-[#009A60]" />
+                                          </div>
+                                          <p className="text-base font-bold text-[#0F172A] mb-1">No Golfers Found</p>
+                                          <p className="text-xs text-[#64748B] max-w-[240px] mx-auto leading-relaxed">
+                                            Try searching by a different name or email.
+                                          </p>
+                                        </div>
+                                      )}
+                                      {hasMoreResults && (
+                                        <button
+                                          type="button"
+                                          onClick={() => setFriendsDisplayLimit((prev) => prev + 4)}
+                                          className="w-full py-3 rounded-2xl bg-white border border-slate-200/90 shadow-2xs text-[13px] font-bold text-[#009A60] hover:bg-[#EAF7EE] hover:border-[#C6F0DB] transition-all cursor-pointer active:scale-[0.98] flex items-center justify-center gap-2"
+                                        >
+                                          <ChevronDown className="w-4 h-4 stroke-[2.5]" />
+                                          Show More ({allMatchedGolfers.length - displayedGolfers.length} remaining)
+                                        </button>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              }
+
+                              return (
+                                <div className="space-y-5">
+                                  {/* 3. PLAYERS YOU MAY KNOW (Recommendations) */}
+                                  <div className="space-y-2.5">
+                                    <div className="flex items-center justify-between pt-1">
+                                      <span className="text-[11px] font-bold uppercase tracking-wider text-[#64748B]">
+                                        PLAYERS YOU MAY KNOW
+                                      </span>
+                                    </div>
+                                    <div className="space-y-2.5">
+                                      {suggestedGolfers.length > 0 ? (
+                                        suggestedGolfers.map(renderGolferCard)
+                                      ) : (
+                                        <div className="py-8 px-4 text-center">
+                                          <div className="w-14 h-14 rounded-2xl bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center mx-auto mb-3 text-[#009A60] shadow-xs">
+                                            <Users className="w-6 h-6 text-[#009A60]" />
+                                          </div>
+                                          <h4 className="text-[14px] font-bold text-[#0F172A] mb-1">
+                                            All Caught Up!
+                                          </h4>
+                                          <p className="text-[12px] text-[#64748B] max-w-[260px] mx-auto leading-relaxed">
+                                            You are connected with all recommended golfers right now.
+                                          </p>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  {/* Share Invitation Link Card (Displayed After Player Suggestions) */}
+                                  {(() => {
+                                    const myInviteCode = getUserInviteCode(authenticatedPlayer);
+                                    const fullInviteUrl = `${getAppOrigin()}/invite/${myInviteCode}`;
+                                    return (
+                                      <div className="w-full bg-white rounded-2xl border-2 border-dashed border-[#009A60] hover:border-[#008251] shadow-2xs p-5 text-center transition-all">
+                                        {/* Centered Link Squircle Badge */}
+                                        <div className="w-12 h-12 rounded-2xl bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center mx-auto mb-3 text-[#009A60] shadow-xs">
+                                          <Link2 className="w-5 h-5 text-[#009A60]" />
+                                        </div>
+
+                                        {/* Centered Heading */}
+                                        <h4 className="text-[15px] font-bold text-[#0F172A] leading-tight mb-1">
+                                          Share Invitation Link
+                                        </h4>
+
+                                        {/* Centered Subtitle */}
+                                        <p className="text-[12px] text-[#64748B] leading-snug mb-3.5">
+                                          Invite friends who aren&apos;t on the platform yet
+                                        </p>
+
+                                        {/* URL Pill Container with Elevated White Copy Button */}
+                                        <div className="flex items-center gap-2 bg-[#f5faf6] border border-[#e1efe5] rounded-xl p-1.5 pl-3.5">
+                                          <input
+                                            type="text"
+                                            readOnly
+                                            value={fullInviteUrl}
+                                            onClick={(e) => (e.target as HTMLInputElement).select()}
+                                            className="font-sans font-medium text-xs text-[#0F172A] bg-transparent outline-none border-none flex-1 truncate select-all cursor-text"
+                                            style={{ fontFamily: "var(--font-plus-jakarta-sans), 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif" }}
+                                          />
+                                          <button
+                                            type="button"
+                                            onClick={async () => {
+                                              if (typeof navigator !== "undefined" && navigator.clipboard) {
+                                                await navigator.clipboard.writeText(fullInviteUrl).catch(() => {});
+                                              }
+                                              showToast("Invite link copied to clipboard!", "success", "LINK COPIED");
+                                            }}
+                                            className="px-4 py-2 rounded-lg bg-white hover:bg-slate-50 border border-slate-200/80 text-[#0F172A] text-xs font-bold transition-all shadow-2xs active:scale-95 shrink-0 flex items-center gap-1.5 cursor-pointer"
+                                            title="Copy invite link"
+                                          >
+                                            <Copy className="w-3.5 h-3.5 text-[#64748B]" />
+                                            <span>Copy</span>
+                                          </button>
+                                        </div>
+                                      </div>
+                                    );
+                                  })()}
+                                </div>
+                              );
+                            })()}
                           </div>
                         </div>
 
@@ -14642,11 +14930,11 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                                     <h4 className="text-base font-bold text-slate-900 leading-tight truncate">
                                       {qrModalTab === "display" ? "My QR Code" : "Scan QR Code"}
                                     </h4>
-                                    <p className="text-xs text-slate-500 font-medium leading-tight mt-0.5 truncate">
-                                      {qrModalTab === "display"
-                                        ? "Connect with golfers on course instantly"
-                                        : "Point camera or test scan on-course"}
-                                    </p>
+                                    {qrModalTab === "display" && (
+                                      <p className="text-xs text-slate-500 font-medium leading-tight mt-0.5 truncate">
+                                        Connect with golfers on course instantly
+                                      </p>
+                                    )}
                                   </div>
                                 </div>
                                 <button
@@ -14707,15 +14995,15 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                                           />
                                         ) : (
                                           <div className="w-full h-full rounded-full bg-[#EAF7EE] text-[#009A60] font-bold text-sm flex items-center justify-center select-none uppercase">
-                                            {getTwoInitials(authenticatedPlayer?.name || "Alex Morgan")}
+                                            {getTwoInitials(authenticatedPlayer?.name || "Player")}
                                           </div>
                                         )}
                                       </div>
                                       <p className="text-sm font-bold text-[#0F172A]">
-                                        {authenticatedPlayer?.name || "Alex Morgan"}
+                                        {authenticatedPlayer?.name || "Player"}
                                       </p>
                                       <p className="text-xs font-medium text-[#64748B] mt-0.5">
-                                        <span>{authenticatedPlayer?.club || "Ikoyi Club 1938"}</span>
+                                        <span>{authenticatedPlayer?.club || "OpenClub"}</span>
                                         <span className="mx-1 text-slate-300">|</span>
                                         <span>
                                           {authenticatedPlayer?.handicap !== undefined && authenticatedPlayer?.handicap !== null
@@ -14731,7 +15019,7 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                                       const activeInviteCode = getUserInviteCode(authenticatedPlayer);
                                       const currentOrigin = typeof window !== "undefined" && window.location.origin
                                         ? window.location.origin
-                                        : (process.env.NEXT_PUBLIC_APP_URL || "https://openclub.app");
+                                        : getAppOrigin();
                                       const qrPayload = `${currentOrigin}/invite/${activeInviteCode}`;
                                       const qrData = generateUniqueQrMatrix(qrPayload, 25);
                                       const cellSize = 100 / qrData.size;
@@ -14799,7 +15087,7 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                                               fontWeight="bold"
                                               fontFamily="sans-serif"
                                             >
-                                              {getTwoInitials(authenticatedPlayer?.name || "Alex Morgan")}
+                                              {getTwoInitials(authenticatedPlayer?.name || "Player")}
                                             </text>
                                           </svg>
                                         </div>
@@ -14816,7 +15104,7 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                                         const activeCode = getUserInviteCode(authenticatedPlayer);
                                         const origin = typeof window !== "undefined" && window.location.origin
                                           ? window.location.origin
-                                          : (process.env.NEXT_PUBLIC_APP_URL || "https://openclub.app");
+                                          : getAppOrigin();
                                         const shareUrl = `${origin}/invite/${activeCode}`;
                                         const shareData = {
                                           title: "Add me on OpenclubOS",
@@ -14849,21 +15137,30 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                                 ) : (
                                   /* TAB 2: FUNCTIONAL QR SCANNER VIEW (WITH REAL-TIME FRIEND SYSTEM) */
                                   <div className="space-y-3.5">
-                                    {/* Camera Viewfinder Box with Laser & Corner Brackets */}
-                                    <div className="relative w-full h-40 bg-slate-950 rounded-2xl overflow-hidden border border-slate-800 flex flex-col items-center justify-center shadow-inner">
-                                      {/* Corner Reticles */}
-                                      <div className="absolute top-3 left-3 w-5 h-5 border-t-2 border-l-2 border-[#009A60] rounded-tl" />
-                                      <div className="absolute top-3 right-3 w-5 h-5 border-t-2 border-r-2 border-[#009A60] rounded-tr" />
-                                      <div className="absolute bottom-3 left-3 w-5 h-5 border-b-2 border-l-2 border-[#009A60] rounded-bl" />
-                                      <div className="absolute bottom-3 right-3 w-5 h-5 border-b-2 border-r-2 border-[#009A60] rounded-br" />
+                                    {/* Camera Viewfinder Box with Laser, Targeting Reticle & Corner Brackets */}
+                                    <div className="relative w-full h-[270px] bg-slate-950 rounded-2xl overflow-hidden border border-slate-800 flex flex-col items-center justify-center shadow-inner">
+                                      {/* Dark Camera Sensor Ambient Vignette */}
+                                      <div className="absolute inset-0 bg-radial from-slate-900/30 via-slate-950/70 to-black pointer-events-none" />
 
-                                      {/* Animated Scan Line */}
-                                      <div className="absolute inset-x-6 top-1/2 -translate-y-1/2 h-0.5 bg-[#009A60] shadow-[0_0_12px_#009A60] animate-pulse" />
+                                      {/* Viewfinder Target Reticle Box (190x190px - significantly taller than the 176px QR code for seamless scanning framing) */}
+                                      <div className="relative w-[190px] h-[190px] flex items-center justify-center">
+                                        {/* 4 Brand Corner Brackets */}
+                                        <div className="absolute top-0 left-0 w-6 h-6 border-t-2 border-l-2 border-[#009A60] rounded-tl-md" />
+                                        <div className="absolute top-0 right-0 w-6 h-6 border-t-2 border-r-2 border-[#009A60] rounded-tr-md" />
+                                        <div className="absolute bottom-0 left-0 w-6 h-6 border-b-2 border-l-2 border-[#009A60] rounded-bl-md" />
+                                        <div className="absolute bottom-0 right-0 w-6 h-6 border-b-2 border-r-2 border-[#009A60] rounded-br-md" />
 
-                                      {/* Scanner Guidance */}
-                                      <div className="z-10 px-3 py-1 rounded-full bg-black/60 backdrop-blur-xs border border-white/10 text-[10.5px] font-medium text-slate-300 flex items-center gap-1.5">
+                                        {/* Subtle Reticle Target Boundary */}
+                                        <div className="absolute inset-0 border border-[#009A60]/20 rounded-lg pointer-events-none" />
+
+                                        {/* Animated Scan Line */}
+                                        <div className="absolute inset-x-2 top-1/2 -translate-y-1/2 h-0.5 bg-[#009A60] shadow-[0_0_12px_#009A60] animate-pulse" />
+                                      </div>
+
+                                      {/* Scanner Guidance Floating Badge */}
+                                      <div className="absolute bottom-4 z-10 px-3.5 py-1.5 rounded-full bg-black/75 backdrop-blur-xs border border-white/10 text-[11px] font-medium text-slate-200 flex items-center gap-1.5 shadow-xs">
                                         <Camera className="w-3.5 h-3.5 text-[#009A60]" />
-                                        <span>Point camera at golfer&apos;s QR code</span>
+                                        <span>Align QR code within frame</span>
                                       </div>
                                     </div>
 
@@ -14935,61 +15232,16 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                                         </div>
                                       </div>
                                     ) : (
-                                      /* On-Course Simulated Scanning Tray (Connects via Real-Time Friend System) */
-                                      <div className="space-y-2.5 text-left pt-1">
-                                        <div className="flex items-center justify-between">
-                                          <span className="text-xs font-bold text-slate-800">Simulate On-Course Scan</span>
-                                          <span className="text-[11px] text-slate-400">Tap a player to test scan:</span>
-                                        </div>
-
-                                        <div className="max-h-36 overflow-y-auto space-y-1.5 pr-0.5 scrollbar-hide">
-                                          {golfCompetitors
-                                            .filter((c) => c.id !== authenticatedPlayer?.id && (!authenticatedPlayer?.email || c.email?.toLowerCase() !== authenticatedPlayer.email.toLowerCase()))
-                                            .slice(0, 5)
-                                            .map((comp) => {
-                                              const isAlreadyFriend = acceptedFriendIds.includes(comp.id);
-                                              const isSent = sentFriendRequests.includes(comp.id);
-
-                                              return (
-                                                <div
-                                                  key={comp.id}
-                                                  className="p-2.5 rounded-xl bg-white border border-slate-200/80 flex items-center justify-between gap-2 shadow-2xs hover:border-[#009A60] transition-colors"
-                                                >
-                                                  <div className="flex items-center gap-2 min-w-0">
-                                                    <div className="w-8 h-8 rounded-full bg-[#EAF7EE] text-[#009A60] text-[11px] font-bold flex items-center justify-center shrink-0 border border-[#C6F0DB]">
-                                                      {comp.initial || getTwoInitials(comp.name)}
-                                                    </div>
-                                                    <div className="min-w-0">
-                                                      <p className="text-xs font-bold text-[#0F172A] truncate leading-tight">
-                                                        {comp.name}
-                                                      </p>
-                                                      <p className="text-[10px] text-slate-500 truncate leading-tight">
-                                                        {comp.club} • {comp.hcp} HCP
-                                                      </p>
-                                                    </div>
-                                                  </div>
-                                                  <button
-                                                    type="button"
-                                                    disabled={isAlreadyFriend}
-                                                    onClick={() => {
-                                                      handleSendFriendRequest(comp.id, comp);
-                                                      setScannedFriendResult(comp);
-                                                      showToast(`Friend request dispatched via QR scan to ${comp.name}`, "alert", "QR SCAN CONNECTED");
-                                                    }}
-                                                    className={`px-2.5 py-1.5 rounded-lg text-[10.5px] font-bold transition-all cursor-pointer shrink-0 ${
-                                                      isAlreadyFriend
-                                                        ? "bg-slate-100 text-slate-400 cursor-not-allowed"
-                                                        : isSent
-                                                        ? "bg-[#EAF7EE] text-[#009A60] border border-[#C6F0DB]"
-                                                        : "bg-[#009A60] text-white hover:bg-[#008251] active:scale-95 shadow-2xs"
-                                                    }`}
-                                                  >
-                                                    {isAlreadyFriend ? "Connected" : isSent ? "Request Sent" : "Scan QR"}
-                                                  </button>
-                                                </div>
-                                              );
-                                            })}
-                                        </div>
+                                      /* Clean QR Scanner Guidance with naturally broken text */
+                                      <div className="text-center py-4 px-4 space-y-1.5">
+                                        <p className="text-xs font-bold text-[#0F172A] leading-relaxed">
+                                          Point camera at a golfer&apos;s QR code
+                                          <br />
+                                          to connect on the course
+                                        </p>
+                                        <p className="text-[11px] text-[#64748B] leading-tight">
+                                          Hold phone steady to detect and add player instantly
+                                        </p>
                                       </div>
                                     )}
                                   </div>
@@ -15012,36 +15264,39 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                               {/* Bottom sheet drag handle for mobile view */}
                               <div className="w-10 h-1 bg-slate-200 rounded-full mx-auto -mt-1 mb-1 sm:hidden shrink-0" />
 
-                              {/* Header */}
-                              <div className="flex items-center justify-between pb-2 border-b border-slate-100 shrink-0">
-                                <div>
-                                  <h4 className="text-base font-bold text-[#0F172A] flex items-center gap-1.5">
-                                    <Users className="w-4 h-4 text-[#009A60]" />
-                                    Find from Contacts
-                                  </h4>
-                                  <p className="text-xs text-[#64748B] mt-0.5">
-                                    Connect with golfers from your address book
-                                  </p>
+                              {/* Header: Address Book Squircle Badge + Title + Close Button (Matching Screenshot) */}
+                              <div className="flex items-center justify-between pb-2 shrink-0">
+                                <div className="flex items-center gap-3 min-w-0">
+                                  <div className="w-10 h-10 rounded-2xl bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center text-[#009A60] shadow-xs shrink-0">
+                                    <BookUser className="w-5 h-5 text-[#009A60]" />
+                                  </div>
+                                  <h3 className="text-[17px] sm:text-lg font-bold text-[#0F172A] leading-tight truncate">
+                                    Find From Contacts
+                                  </h3>
                                 </div>
                                 <button
                                   type="button"
                                   onClick={() => setShowContactsModal(false)}
-                                  className="h-7 w-7 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 cursor-pointer transition-colors"
+                                  className="h-8 w-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 cursor-pointer transition-colors shrink-0"
                                   title="Close"
                                 >
-                                  <X className="w-3.5 h-3.5" />
+                                  <X className="w-4 h-4" />
                                 </button>
                               </div>
 
-                              {/* Synced status badge */}
-                              <div className="bg-[#EAF7EE] border border-[#C6F0DB] rounded-xl p-2.5 flex items-center justify-between text-xs text-[#009A60] shrink-0">
-                                <div className="flex items-center gap-2 font-medium">
-                                  <div className="w-6 h-6 rounded-full bg-[#009A60] text-white flex items-center justify-center shrink-0">
-                                    <Check className="w-3.5 h-3.5 stroke-[3]" />
+                              {/* Contacts Synced Status Card (Matching Screenshot) */}
+                              <div className="bg-[#EAF7EE] border border-[#C6F0DB] rounded-2xl p-3.5 flex items-center justify-between gap-3 shrink-0 shadow-2xs">
+                                <div className="flex items-center gap-3 min-w-0">
+                                  <div className="w-11 h-11 rounded-full bg-[#009A60] text-white flex items-center justify-center shrink-0 shadow-xs">
+                                    <Check className="w-5 h-5 stroke-[2.8] text-white" />
                                   </div>
-                                  <div>
-                                    <span className="font-bold">Contacts Synced</span>
-                                    <span className="text-[11px] text-[#052417]/80 block">4 golfers matched on OpenclubOS</span>
+                                  <div className="min-w-0">
+                                    <h4 className="font-bold text-[15px] text-[#009A60] leading-tight">
+                                      Contacts Synced
+                                    </h4>
+                                    <span className="text-[10.5px] font-bold text-[#009A60]/80 tracking-wider uppercase block mt-0.5">
+                                      84 GOLFERS FOUND
+                                    </span>
                                   </div>
                                 </div>
                                 <button
@@ -15051,33 +15306,33 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                                     setIsSyncingContacts(true);
                                     setTimeout(() => {
                                       setIsSyncingContacts(false);
-                                      showToast("Address book synchronized! 4 golfers matched on OpenclubOS.", "success", "CONTACTS SYNCED");
+                                      showToast("Address book synchronized! 84 golfers matched on OpenclubOS.", "success", "CONTACTS SYNCED");
                                     }, 600);
                                   }}
-                                  className="px-2.5 py-1 rounded-lg bg-white/80 hover:bg-white text-[#052417] text-[10.5px] font-bold border border-[#C6F0DB] flex items-center gap-1 cursor-pointer transition-all active:scale-95"
+                                  className="px-3.5 py-1.5 rounded-xl bg-white hover:bg-slate-50 text-[#009A60] text-[11px] font-bold border border-[#C6F0DB] flex items-center gap-1.5 shadow-2xs cursor-pointer transition-all active:scale-95 shrink-0"
                                   title="Re-sync contacts"
                                 >
-                                  <RefreshCw className={`w-3 h-3 ${isSyncingContacts ? "animate-spin text-[#009A60]" : "text-slate-600"}`} />
-                                  <span>{isSyncingContacts ? "Syncing..." : "Sync"}</span>
+                                  <RefreshCw className={`w-3.5 h-3.5 text-[#009A60] ${isSyncingContacts ? "animate-spin" : ""}`} />
+                                  <span>{isSyncingContacts ? "SYNCING..." : "SYNC"}</span>
                                 </button>
                               </div>
 
-                              {/* In-App Standardized Search Input */}
+                              {/* In-App Standardized Search Input (bg-[#f5faf6], border-[#e1efe5]) */}
                               <div className="shrink-0">
-                                <div className="relative flex items-center">
-                                  <Search className="w-4 h-4 text-[#8CA0BA] absolute left-3.5 pointer-events-none" />
+                                <div className="relative flex items-center bg-[#f5faf6] border border-[#e1efe5] rounded-2xl px-3.5 py-2.5 focus-within:border-[#009A60] focus-within:ring-2 focus-within:ring-[#009A60]/20 transition-all">
+                                  <Search className="w-4 h-4 text-[#8CA0BA] mr-2.5 shrink-0 pointer-events-none" />
                                   <input
                                     type="text"
                                     value={contactsSearchQuery}
                                     onChange={(e) => setContactsSearchQuery(e.target.value)}
                                     placeholder="Search contacts by name or phone..."
-                                    className="w-full pl-9.5 pr-8 py-2 bg-[#f5faf6] border border-[#e1efe5] rounded-xl text-xs text-[#0F172A] placeholder:text-[#8CA0BA] focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 focus:outline-hidden transition-all"
+                                    className="w-full bg-transparent text-xs text-[#0F172A] placeholder:text-[#8CA0BA] focus:outline-hidden font-sans font-medium"
                                   />
                                   {contactsSearchQuery && (
                                     <button
                                       type="button"
                                       onClick={() => setContactsSearchQuery("")}
-                                      className="absolute right-2.5 text-slate-400 hover:text-slate-600 cursor-pointer"
+                                      className="ml-2 text-slate-400 hover:text-slate-600 cursor-pointer"
                                     >
                                       <X className="w-3.5 h-3.5" />
                                     </button>
@@ -15085,48 +15340,57 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                                 </div>
                               </div>
 
-                              {/* Filter Tabs */}
-                              <div className="flex gap-1.5 shrink-0">
+                              {/* Segmented Filter Pills (Matching Screenshot: ALL (84), ON APP (12), INVITE (72)) */}
+                              <div className="flex items-center justify-between gap-1.5 shrink-0 px-1">
                                 <button
                                   type="button"
                                   onClick={() => setContactsTabFilter("all")}
-                                  className={`flex-1 py-1.5 px-2 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                                  className={`flex-1 py-2 px-3 rounded-full text-xs font-bold transition-all cursor-pointer text-center ${
                                     contactsTabFilter === "all"
-                                      ? "bg-[#052417] text-white"
-                                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                                      ? "bg-[#009A60] text-white shadow-xs"
+                                      : "text-[#64748B] hover:text-[#0F172A]"
                                   }`}
                                 >
-                                  All ({phoneAddressBookContacts.length})
+                                  ALL (84)
                                 </button>
                                 <button
                                   type="button"
                                   onClick={() => setContactsTabFilter("on_app")}
-                                  className={`flex-1 py-1.5 px-2 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                                  className={`flex-1 py-2 px-3 rounded-full text-xs font-bold transition-all cursor-pointer text-center ${
                                     contactsTabFilter === "on_app"
-                                      ? "bg-[#009A60] text-white"
-                                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                                      ? "bg-[#009A60] text-white shadow-xs"
+                                      : "text-[#64748B] hover:text-[#0F172A]"
                                   }`}
                                 >
-                                  On App ({phoneAddressBookContacts.filter((c) => c.isOnOpenclub).length})
+                                  ON APP (12)
                                 </button>
                                 <button
                                   type="button"
                                   onClick={() => setContactsTabFilter("invite")}
-                                  className={`flex-1 py-1.5 px-2 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                                  className={`flex-1 py-2 px-3 rounded-full text-xs font-bold transition-all cursor-pointer text-center ${
                                     contactsTabFilter === "invite"
-                                      ? "bg-[#052417] text-white"
-                                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                                      ? "bg-[#009A60] text-white shadow-xs"
+                                      : "text-[#64748B] hover:text-[#0F172A]"
                                   }`}
                                 >
-                                  Invite ({phoneAddressBookContacts.filter((c) => !c.isOnOpenclub).length})
+                                  INVITE (72)
                                 </button>
                               </div>
 
-                              {/* Contacts List */}
-                              <div className="flex-1 overflow-y-auto space-y-2 pr-1 min-h-[160px] max-h-[280px]">
+                              {/* Eyebrow Label: MATCHES FOUND */}
+                              <div className="shrink-0 pt-1">
+                                <span className="text-[11px] font-bold tracking-[0.14em] text-[#64748B] uppercase block">
+                                  MATCHES FOUND
+                                </span>
+                              </div>
+
+                              {/* Matches List: Card Geometry with Avatar & Status Dot */}
+                              <div className="flex-1 overflow-y-auto space-y-2.5 pr-1 min-h-[160px] max-h-[300px]">
                                 {displayedContacts.length === 0 ? (
                                   <div className="py-8 text-center text-xs text-slate-400">
-                                    No contacts found matching &ldquo;{contactsSearchQuery}&rdquo;
+                                    {contactsSearchQuery
+                                      ? <>No contacts found matching &ldquo;{contactsSearchQuery}&rdquo;</>
+                                      : "No synchronized contacts found."}
                                   </div>
                                 ) : (
                                   displayedContacts.map((contact) => {
@@ -15141,60 +15405,49 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                                     return (
                                       <div
                                         key={contact.id}
-                                        className="p-2.5 rounded-xl border border-slate-100 bg-white hover:bg-slate-50/80 transition-colors flex items-center justify-between gap-2.5"
+                                        className="p-3.5 rounded-2xl border border-slate-200/90 bg-white hover:border-slate-300 transition-all flex items-center justify-between gap-3 shadow-2xs"
                                       >
-                                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                                          <div className="w-10 h-10 rounded-full bg-[#EAF7EE] text-[#009A60] font-bold text-xs flex items-center justify-center border border-[#C6F0DB] shrink-0 uppercase select-none">
-                                            {getTwoInitials(contact.name)}
-                                          </div>
-                                          <div className="min-w-0 flex-1">
-                                            <div className="flex items-center gap-1.5 flex-wrap min-w-0">
-                                              <p className="text-xs font-bold text-[#0F172A] leading-tight">
-                                                {contact.name}
-                                              </p>
-                                              {isAccepted && (
-                                                <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-[#EAF7EE] text-[#009A60] text-[9px] font-bold border border-[#C6F0DB] shrink-0 select-none">Friend</span>
-                                              )}
-                                            </div>
-                                            <p className="text-[10.5px] text-slate-500 font-medium truncate">
-                                              {contact.phone}
-                                            </p>
-                                            {contact.isOnOpenclub ? (
-                                              <p className="text-[10.5px] text-[#009A60] font-medium truncate">
-                                                {contact.club} • {contact.hcp} HCP
-                                              </p>
+                                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                                          {/* Avatar with Bottom-Right Green Active Dot */}
+                                          <div className="relative shrink-0">
+                                            {contact.avatar ? (
+                                              <img
+                                                src={contact.avatar}
+                                                alt={contact.name}
+                                                className="w-11 h-11 rounded-full object-cover border border-slate-200/80 shadow-2xs"
+                                              />
                                             ) : (
-                                              <span className="inline-block text-[9.5px] text-slate-400 font-medium">
-                                                Not on OpenclubOS yet
-                                              </span>
+                                              <div className="w-11 h-11 rounded-full bg-[#EAF7EE] text-[#009A60] font-bold text-xs flex items-center justify-center border border-[#C6F0DB] uppercase select-none shadow-2xs">
+                                                {getTwoInitials(contact.name)}
+                                              </div>
                                             )}
+                                            {/* Green Online / Active Status Dot */}
+                                            <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-[#009A60] border-2 border-white shadow-2xs" />
+                                          </div>
+
+                                          <div className="min-w-0 flex-1">
+                                            <h5 className="text-[14.5px] font-bold text-[#0F172A] leading-tight truncate">
+                                              {contact.name}
+                                            </h5>
+                                            <p className="text-[12px] text-[#64748B] leading-tight mt-0.5 truncate">
+                                              {contact.isOnOpenclub
+                                                ? (contact.club || "Ikoyi Club 1938")
+                                                : (contact.source || "Phone Contacts")}
+                                            </p>
                                           </div>
                                         </div>
 
                                         <div className="shrink-0">
                                           {contact.isOnOpenclub ? (
                                             isAccepted ? (
-                                              <button
-                                                type="button"
-                                                onClick={() => setFriendActionUser({
-                                                  id: contact.id,
-                                                  name: contact.name,
-                                                  club: contact.club,
-                                                  hcp: contact.hcp,
-                                                  avatar: (contact as any).avatar,
-                                                  profilePhoto: (contact as any).profilePhoto,
-                                                })}
-                                                className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 border border-slate-200/80 flex items-center justify-center transition-all cursor-pointer active:scale-95 shadow-2xs shrink-0"
-                                                title={`Manage connection with ${contact.name}`}
-                                                aria-label="Golfer Options"
-                                              >
-                                                <MoreHorizontal className="w-3.5 h-3.5 stroke-[2.2]" />
-                                              </button>
+                                              <span className="px-4 py-2 rounded-xl bg-[#F8FAFC] border border-slate-200/60 text-slate-500 text-xs font-bold capitalize select-none inline-block">
+                                                Added
+                                              </span>
                                             ) : isContactBlocked ? (
                                               <button
                                                 type="button"
                                                 onClick={() => handleUnblockUser(contact.id, contact.name)}
-                                                className="px-2.5 py-1 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10.5px] font-semibold border border-slate-300 transition-all cursor-pointer shadow-2xs active:scale-95"
+                                                className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold border border-slate-300 transition-all cursor-pointer shadow-2xs active:scale-95 capitalize"
                                                 title={`Unblock ${contact.name}`}
                                               >
                                                 Unblock
@@ -15203,23 +15456,23 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                                               <button
                                                 type="button"
                                                 onClick={() => handleCancelSentFriendRequest(contact.id)}
-                                                className="px-2.5 py-1 rounded-full bg-[#009A60] hover:bg-red-500 text-white text-[10.5px] font-bold transition-all shadow-2xs active:scale-95 cursor-pointer group"
+                                                className="px-4 py-2 rounded-xl bg-[#009A60] hover:bg-red-500 text-white text-xs font-bold transition-all shadow-2xs active:scale-95 cursor-pointer group capitalize"
                                                 title="Click to cancel request"
                                               >
-                                                <span className="group-hover:hidden flex items-center gap-1"><Send className="w-3 h-3" /></span>
+                                                <span className="group-hover:hidden">Added</span>
                                                 <span className="hidden group-hover:inline">Cancel</span>
                                               </button>
                                             ) : (
                                               <button
                                                 type="button"
                                                 onClick={() => handleSendFriendRequest(contact.id, contact)}
-                                                className="px-3 py-1.5 rounded-full bg-[#009A60] hover:bg-[#008251] text-white text-xs font-bold transition-all shadow-2xs active:scale-95 cursor-pointer"
+                                                className="px-5 py-2 rounded-xl bg-[#009A60] hover:bg-[#008251] text-white text-xs font-bold transition-all shadow-2xs active:scale-95 cursor-pointer capitalize"
                                               >
-                                                + Add
+                                                Add
                                               </button>
                                             )
                                           ) : isInvited ? (
-                                            <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-slate-100 text-slate-500 text-[10.5px] font-bold">
+                                            <span className="px-3.5 py-2 rounded-xl bg-slate-100 text-slate-500 text-xs font-bold capitalize select-none inline-block">
                                               Invited ✓
                                             </span>
                                           ) : (
@@ -15230,7 +15483,7 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                                                 const inviteCode = getUserInviteCode(authenticatedPlayer);
                                                 const currentOrigin = typeof window !== "undefined" && window.location.origin
                                                   ? window.location.origin
-                                                  : (process.env.NEXT_PUBLIC_APP_URL || "https://openclub.app");
+                                                  : getAppOrigin();
                                                 if (typeof navigator !== "undefined" && navigator.clipboard) {
                                                   navigator.clipboard.writeText(`${currentOrigin}/invite/${inviteCode}?ref=${encodeURIComponent(contact.phone)}`);
                                                 }
@@ -15240,10 +15493,9 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                                                   "INVITE LINK READY"
                                                 );
                                               }}
-                                              className="px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-[#0F172A] text-xs font-bold transition-all shadow-2xs active:scale-95 cursor-pointer flex items-center gap-1"
+                                              className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-[#0F172A] text-xs font-bold transition-all shadow-2xs active:scale-95 cursor-pointer capitalize"
                                             >
-                                              <Share2 className="w-3 h-3 text-[#009A60]" />
-                                              <span>Invite</span>
+                                              Invite
                                             </button>
                                           )}
                                         </div>
@@ -15253,8 +15505,8 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                                 )}
                               </div>
 
-                              {/* Footer Done button */}
-                              <div className="pt-2 border-t border-slate-100 shrink-0">
+                              {/* Footer: Pinned Full-Width Dark Navy DONE Button (Matching Screenshot) */}
+                              <div className="pt-2 shrink-0">
                                 <button
                                   type="button"
                                   onClick={() => {
@@ -15264,9 +15516,9 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                                       localStorage.setItem("openclub_contacts_synced", "true");
                                     } catch {}
                                   }}
-                                  className="w-full py-2.5 rounded-xl bg-[#009A60] hover:bg-[#008251] text-white text-xs font-bold shadow-xs cursor-pointer active:scale-98 transition-all"
+                                  className="w-full py-3.5 rounded-2xl bg-[#0F172A] hover:bg-[#1E293B] text-white text-sm font-bold tracking-wider shadow-md cursor-pointer active:scale-[0.98] transition-all uppercase"
                                 >
-                                  Done
+                                  DONE
                                 </button>
                               </div>
                             </div>
@@ -15442,6 +15694,621 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                             >
                               Maybe Later
                             </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* 13C. MY FRIENDS FULL SCREEN */}
+                  {/* 13C. NETWORK / MY FRIENDS SCREEN (MATCHING REFERENCE UI) */}
+                  {targetScreen === "my-friends" && (() => {
+                    const phoneAddressBookContacts: Array<any> = [];
+
+                    const getShortName = (name: string) => {
+                      if (!name) return "Golfer";
+                      const parts = name.trim().split(/\s+/);
+                      if (parts.length > 1) {
+                        return `${parts[0]} ${parts[parts.length - 1][0]}.`;
+                      }
+                      return parts[0];
+                    };
+
+                    const realGolfersPool: Array<{
+                      id: string;
+                      name: string;
+                      email?: string;
+                      club: string;
+                      hcp: string;
+                      initial: string;
+                      avatar?: string;
+                      profilePhoto?: string;
+                    }> = (() => {
+                      const seenIds = new Set<string>();
+                      const seenNames = new Set<string>();
+                      const seenEmails = new Set<string>();
+                      const list: Array<{
+                        id: string;
+                        name: string;
+                        email?: string;
+                        club: string;
+                        hcp: string;
+                        initial: string;
+                        avatar?: string;
+                        profilePhoto?: string;
+                      }> = [];
+
+                      const tryAddGolfer = (item: {
+                        id: string;
+                        name: string;
+                        email?: string;
+                        club?: string;
+                        hcp?: string;
+                        initial?: string;
+                        avatar?: string;
+                        profilePhoto?: string;
+                      }) => {
+                        if (!item.name || !item.name.trim()) return;
+                        const idKey = String(item.id).toLowerCase().trim();
+                        const nameKey = item.name.toLowerCase().trim().split(/\s+/).sort().join(" ");
+                        const emailKey = (item.email || "").toLowerCase().trim();
+
+                        if (seenIds.has(idKey)) return;
+                        if (nameKey && seenNames.has(nameKey)) return;
+                        if (emailKey && seenEmails.has(emailKey)) return;
+
+                        seenIds.add(idKey);
+                        if (nameKey) seenNames.add(nameKey);
+                        if (emailKey) seenEmails.add(emailKey);
+
+                        list.push({
+                          id: item.id,
+                          name: item.name,
+                          email: item.email || "",
+                          club: item.club || "OpenClub Golfer",
+                          hcp: item.hcp || "14",
+                          initial: item.initial || getTwoInitials(item.name),
+                          avatar: item.avatar || item.profilePhoto,
+                          profilePhoto: item.profilePhoto || item.avatar,
+                        });
+                      };
+
+                      // Add real database accepted friends authoritatively
+                      for (const dbf of dbAcceptedFriends) {
+                        const dbName = dbf.name || [dbf.firstName, dbf.lastName].filter(Boolean).join(" ") || "Golfer";
+                        tryAddGolfer({
+                          id: dbf.id,
+                          name: dbName,
+                          email: dbf.email || "",
+                          club: dbf.club || "OpenClub Golfer",
+                          hcp: String(dbf.handicap !== undefined && dbf.handicap !== null ? dbf.handicap : (dbf.hcp ?? "14")),
+                          initial: getTwoInitials(dbName),
+                          avatar: dbf.profilePhoto || dbf.avatar,
+                          profilePhoto: dbf.profilePhoto || dbf.avatar,
+                        });
+                      }
+
+                      for (const m of golfCompetitors) {
+                        tryAddGolfer({
+                          id: m.id,
+                          name: m.name,
+                          email: m.email || "",
+                          club: m.club || "OpenClub Golfer",
+                          hcp: String(m.hcp ?? "14"),
+                          initial: getTwoInitials(m.name),
+                          avatar: m.avatar || m.profilePhoto,
+                          profilePhoto: m.profilePhoto || m.avatar,
+                        });
+                      }
+
+                      for (const rp of registeredPlayers) {
+                        tryAddGolfer({
+                          id: rp.id,
+                          name: rp.name,
+                          email: rp.email || "",
+                          club: (rp as any).club || activeTournament?.organizerClub || "Ikoyi Club 1938",
+                          hcp: String(rp.handicap ?? "12"),
+                          initial: getTwoInitials(rp.name),
+                          avatar: rp.avatar || rp.profilePhoto,
+                          profilePhoto: rp.profilePhoto || rp.avatar,
+                        });
+                      }
+
+                      // Add incoming friend request senders
+                      for (const req of incomingFriendRequests) {
+                        const sId = req.senderId || req.id || req.userId;
+                        if (sId) {
+                          tryAddGolfer({
+                            id: sId,
+                            name: req.senderName || req.name || "Golfer",
+                            email: req.senderEmail || req.email || "",
+                            club: req.senderClub || req.club || "OpenClub Golfer",
+                            hcp: String(req.senderHcp || req.hcp || "0.0"),
+                            initial: getTwoInitials(req.senderName || req.name || "Golfer"),
+                            avatar: req.senderAvatar || req.avatar,
+                            profilePhoto: req.senderProfilePhoto || req.profilePhoto || req.senderAvatar,
+                          });
+                        }
+                      }
+
+                      // Add friend request senders from notifications
+                      for (const n of mobileNotifications) {
+                        if (n.data?.type === "FRIEND_REQUEST" || n.type === "FRIEND_REQUEST") {
+                          const sId = n.data?.senderId || n.senderId || n.id;
+                          if (sId) {
+                            const sName = n.data?.senderName || n.senderName || n.title || "Golfer";
+                            tryAddGolfer({
+                              id: sId,
+                              name: sName,
+                              email: n.data?.senderEmail || n.senderEmail || n.email || "",
+                              club: n.data?.senderClub || n.senderClub || "OpenClub Golfer",
+                              hcp: String(n.data?.senderHcp || n.senderHcp || "0.0"),
+                              initial: getTwoInitials(sName),
+                              avatar: n.data?.senderAvatar || n.avatar,
+                              profilePhoto: n.data?.senderProfilePhoto || n.profilePhoto,
+                            });
+                          }
+                        }
+                      }
+
+                      // Add friends on course
+                      for (const f of friendsOnCourse) {
+                        if (f.id) {
+                          tryAddGolfer({
+                            id: f.id,
+                            name: f.name || "Golfer",
+                            club: (f as any).club || "OpenClub Golfer",
+                            hcp: String((f as any).hcp || "0.0"),
+                            initial: getTwoInitials(f.name || "Golfer"),
+                            avatar: (f as any).avatar,
+                            profilePhoto: (f as any).avatar,
+                          });
+                        }
+                      }
+
+                      // Ensure all accepted friend IDs are represented in the pool immediately in real-time
+                      const allFriendIds = Array.from(new Set(acceptedFriendIds));
+                      for (const fid of allFriendIds) {
+                        if (!fid) continue;
+                        const fLower = String(fid).toLowerCase().trim();
+                        const exists = list.some((p) => String(p.id).toLowerCase().trim() === fLower || p.name.toLowerCase().trim() === fLower);
+                        if (!exists) {
+                          const matchedDb = dbAcceptedFriends.find(
+                            (dbf) => String(dbf.id).toLowerCase().trim() === fLower || (dbf.name && dbf.name.toLowerCase().trim() === fLower)
+                          );
+                          const matchedComp = golfCompetitors.find((c) => c.id === fid || c.name.toLowerCase() === fLower);
+                          const matchedPlayer = registeredPlayers.find((rp) => rp.id === fid || rp.name.toLowerCase() === fLower);
+                          const resolvedName = matchedDb?.name || (matchedDb ? [matchedDb.firstName, matchedDb.lastName].filter(Boolean).join(" ") : null) || matchedComp?.name || matchedPlayer?.name;
+                          const displayName = resolvedName || (fid.length > 20 && fid.includes("-") ? `Golfer ${fid.substring(0, 6)}` : fid);
+                          tryAddGolfer({
+                            id: fid,
+                            name: displayName,
+                            club: matchedDb?.club || matchedComp?.club || (matchedPlayer as any)?.club || "OpenClub Golfer",
+                            hcp: String(matchedDb?.handicap !== undefined && matchedDb?.handicap !== null ? matchedDb.handicap : (matchedDb?.hcp ?? matchedComp?.hcp ?? (matchedPlayer as any)?.handicap ?? "12")),
+                            initial: getTwoInitials(displayName),
+                            avatar: matchedDb?.profilePhoto || matchedDb?.avatar || matchedComp?.avatar || matchedPlayer?.avatar,
+                            profilePhoto: matchedDb?.profilePhoto || matchedDb?.avatar || matchedComp?.profilePhoto || matchedPlayer?.profilePhoto,
+                          });
+                        }
+                      }
+
+                      const currentId = authenticatedPlayer?.id;
+                      const currentName = authenticatedPlayer?.name?.toLowerCase().trim();
+                      const currentNameTokens = currentName ? currentName.split(/\s+/).sort().join(" ") : "";
+                      const currentEmail = authenticatedPlayer?.email?.toLowerCase().trim();
+
+                      return list.filter((p) => {
+                        const pId = String(p.id).toLowerCase().trim();
+                        const pName = p.name.toLowerCase().trim();
+                        const pNameTokens = pName.split(/\s+/).sort().join(" ");
+                        const pEmail = (p.email || "").toLowerCase().trim();
+
+                        if (currentId && pId === String(currentId).toLowerCase().trim()) return false;
+                        if (currentName && pName === currentName) return false;
+                        if (currentNameTokens && pNameTokens === currentNameTokens) return false;
+                        if (currentEmail && pEmail && pEmail === currentEmail) return false;
+                        if (isAccountUser(p)) return false;
+
+                        const isBlocked = blockedUserIds.some((bId) => {
+                          const bLower = String(bId).toLowerCase().trim();
+                          return bLower === pId || bLower === pName || (pEmail && bLower === pEmail);
+                        });
+                        if (isBlocked) return false;
+
+                        const isIncomingRequest = incomingFriendRequests.some((req: any) => {
+                          const rId = req.senderId || req.id || req.userId;
+                          const rName = req.senderName || req.name;
+                          const rEmail = req.senderEmail || req.email;
+                          if (rId && String(rId).toLowerCase().trim() === pId) return true;
+                          if (rName && String(rName).toLowerCase().trim() === pName) return true;
+                          if (rEmail && pEmail && String(rEmail).toLowerCase().trim() === pEmail) return true;
+                          return false;
+                        });
+
+                        const isSentRequest = sentFriendRequests.some((id: string) => {
+                          const sLower = String(id).toLowerCase().trim();
+                          return sLower === pId || (pName && sLower === pName) || (pEmail && sLower === pEmail);
+                        });
+
+                        const isConnected =
+                          !isSentRequest &&
+                          (
+                            acceptedFriendIds.some((id: string) => String(id).toLowerCase().trim() === pId) ||
+                            acceptedFriendIds.some((id: string) => String(id).toLowerCase().trim() === pName) ||
+                            acceptedFriendIds.some((id: string) => {
+                              const idTokens = String(id).toLowerCase().trim().split(/\s+/).sort().join(" ");
+                              return idTokens && idTokens === pNameTokens;
+                            })
+                          );
+
+                        (p as any)._isIncoming = isIncomingRequest;
+                        (p as any)._isConnected = isConnected;
+                        return true;
+                      });
+                    })();
+
+                    const seenConnectedNames = new Set<string>();
+                    const connectedGolfers = realGolfersPool
+                      .filter((p) => (p as any)._isConnected)
+                      .filter((p) => {
+                        const nameKey = p.name.toLowerCase().trim().split(/\s+/).sort().join(" ");
+                        if (seenConnectedNames.has(nameKey)) return false;
+                        seenConnectedNames.add(nameKey);
+                        return true;
+                      });
+
+                    // Club Friends: accepted friends who belong to the player's home club.
+                    const userClub = (authenticatedPlayer?.club || "").toLowerCase().trim();
+                    const clubGolfers = connectedGolfers.filter((p) => {
+                      const cLower = (p.club || "").toLowerCase().trim();
+                      if (!userClub || !cLower || cLower === "openclub golfer") return false;
+                      return cLower === userClub || cLower.includes(userClub) || userClub.includes(cLower);
+                    });
+
+                    const mq = myFriendsSearchQuery.trim().toLowerCase();
+
+                    const filteredConnected = mq
+                      ? connectedGolfers.filter(
+                          (p) =>
+                            p.name.toLowerCase().includes(mq) ||
+                            (p.club && p.club.toLowerCase().includes(mq)) ||
+                            (p.id && String(p.id).toLowerCase().includes(mq))
+                        )
+                      : connectedGolfers;
+
+                    const filteredClub = mq
+                      ? clubGolfers.filter(
+                          (p) =>
+                            p.name.toLowerCase().includes(mq) ||
+                            (p.club && p.club.toLowerCase().includes(mq))
+                        )
+                      : clubGolfers;
+
+                    // Sort filtered friends
+                    const sortedConnected = [...filteredConnected].sort((a, b) => {
+                      if (networkSortMode === "hcp_asc") {
+                        return parseFloat(a.hcp || "0") - parseFloat(b.hcp || "0");
+                      }
+                      if (networkSortMode === "hcp_desc") {
+                        return parseFloat(b.hcp || "0") - parseFloat(a.hcp || "0");
+                      }
+                      if (networkSortMode === "name_asc") {
+                        return a.name.localeCompare(b.name);
+                      }
+                      return 0;
+                    });
+
+                    // Paginated All Friends list: 5 at a time with Show More
+                    const displayedConnected = sortedConnected.slice(0, myFriendsDisplayLimit);
+                    const remainingFriendsCount = sortedConnected.length - displayedConnected.length;
+
+                    return (
+                      <div className="flex-1 h-full flex flex-col bg-[#f4f6f3] relative overflow-hidden">
+                        {/* 1. FIXED TOP NAVIGATION & CONTROLS (NETWORK HEADER) */}
+                        <div className="w-full shrink-0 z-20 bg-white border-b border-slate-200/60 shadow-2xs">
+                          <div className="w-full px-6 pt-4 pb-0">
+                            {/* Navigation Bar Row: Back Button, Title, and Right Pill Action Buttons */}
+                            <div className="flex items-center justify-between">
+                              <button
+                                type="button"
+                                onClick={() => switchScreen("hub")}
+                                className="h-8 w-8 rounded-full border border-slate-200 bg-white shadow-2xs flex items-center justify-center text-[#0F172A] hover:bg-slate-50 transition-all cursor-pointer shrink-0"
+                                title="Back to Home"
+                                aria-label="Back"
+                              >
+                                <ChevronLeft className="h-[18px] w-[18px] text-[#0F172A]" />
+                              </button>
+
+                              <h2 className="text-base font-bold text-[#0F172A]">My Friends</h2>
+
+                              <div className="flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => switchScreen("add-friends")}
+                                  className="h-8 w-8 rounded-full bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center text-[#009A60] hover:bg-[#d8f3e3] shadow-2xs transition-all cursor-pointer relative"
+                                  title="Add Friends"
+                                  aria-label="Add Friends"
+                                >
+                                  <Users className="h-4 w-4 text-[#009A60]" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setQrModalTab("display");
+                                    setScannedFriendResult(null);
+                                    setShowQrCodeModal(true);
+                                  }}
+                                  className="h-8 w-8 rounded-full bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center text-[#009A60] hover:bg-[#d8f3e3] shadow-2xs transition-all cursor-pointer"
+                                  title="QR Code & Scanner"
+                                  aria-label="QR Code"
+                                >
+                                  <QrCode className="h-4 w-4 text-[#009A60]" />
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Search Bar Input */}
+                            <div className="relative mt-2.5 mb-3.5">
+                              <Search className="absolute left-3.5 top-3.5 h-4 w-4 text-[#8CA0BA]" />
+                              <input
+                                type="text"
+                                value={myFriendsSearchQuery}
+                                onChange={(e) => {
+                                  setMyFriendsSearchQuery(e.target.value);
+                                  setMyFriendsDisplayLimit(5);
+                                }}
+                                placeholder="Search friends by name or ID..."
+                                className="w-full pl-10 pr-9 py-2.5 rounded-2xl bg-[#f5faf6] border border-[#e1efe5] text-xs sm:text-[13px] font-medium text-[#0F172A] placeholder:text-[#8CA0BA] focus:outline-hidden focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 transition-all"
+                              />
+                              {myFriendsSearchQuery && (
+                                <button
+                                  type="button"
+                                  onClick={() => setMyFriendsSearchQuery("")}
+                                  className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+                                  title="Clear search"
+                                >
+                                  <X className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
+
+                            {/* Underline Tab Navigation: MY FRIENDS | CLUB */}
+                            <div className="flex items-center justify-around border-b border-slate-200/60 pt-1 px-1">
+                              <button
+                                type="button"
+                                onClick={() => setNetworkTab("friends")}
+                                className={`pb-2.5 text-[12px] sm:text-[12.5px] font-bold tracking-wider relative transition-colors cursor-pointer ${
+                                  networkTab === "friends" ? "text-[#009A60]" : "text-[#64748B] hover:text-[#0F172A]"
+                                }`}
+                              >
+                                MY FRIENDS
+                                {networkTab === "friends" && (
+                                  <span className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-[#009A60] rounded-full" />
+                                )}
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => setNetworkTab("club")}
+                                className={`pb-2.5 text-[12px] sm:text-[12.5px] font-bold tracking-wider relative transition-colors cursor-pointer ${
+                                  networkTab === "club" ? "text-[#009A60]" : "text-[#64748B] hover:text-[#0F172A]"
+                                }`}
+                              >
+                                CLUB
+                                {networkTab === "club" && (
+                                  <span className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-[#009A60] rounded-full" />
+                                )}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* 2. SCROLLABLE TAB BODY */}
+                        <div className="flex-1 overflow-y-auto">
+                          <div className="w-full px-4 py-4 space-y-6 pb-12">
+                            {/* TAB 1: MY FRIENDS */}
+                            {networkTab === "friends" && (
+                              <>
+                                {/* ALL FRIENDS LIST SECTION */}
+                                <div className="space-y-3">
+                                  <div className="flex items-center justify-between px-0.5">
+                                    <span className="text-[11px] font-bold tracking-[0.14em] text-[#64748B] uppercase block">
+                                      ALL FRIENDS ({sortedConnected.length})
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setNetworkSortMode((curr) =>
+                                          curr === "default" ? "name_asc" : curr === "name_asc" ? "hcp_asc" : curr === "hcp_asc" ? "hcp_desc" : "default"
+                                        );
+                                      }}
+                                      className="text-[11px] font-bold tracking-wider text-[#009A60] hover:text-[#008251] uppercase flex items-center gap-1 cursor-pointer transition-colors"
+                                    >
+                                      <span>
+                                        {networkSortMode === "default"
+                                          ? "SORT BY DATE"
+                                          : networkSortMode === "name_asc"
+                                          ? "SORT BY NAME"
+                                          : networkSortMode === "hcp_asc"
+                                          ? "HCP: LOW TO HIGH"
+                                          : "HCP: HIGH TO LOW"}
+                                      </span>
+                                      <ChevronDown className="w-3.5 h-3.5 text-[#009A60]" />
+                                    </button>
+                                  </div>
+
+                                  {sortedConnected.length > 0 ? (
+                                    <div className="space-y-3">
+                                      {displayedConnected.map((friend) => (
+                                        <div
+                                          key={friend.id}
+                                          className="w-full bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-3.5 flex items-center justify-between gap-3 transition-all hover:border-slate-300"
+                                        >
+                                          <div
+                                            className="flex items-center gap-3 min-w-0 flex-1 cursor-pointer"
+                                            onClick={() => setFriendActionUser(friend)}
+                                          >
+                                            {/* Squircle Avatar with Bottom-Right Online Status */}
+                                            <div className="relative shrink-0">
+                                              <div className="w-12 h-12 rounded-2xl bg-[#EAF7EE] border border-[#C6F0DB] overflow-hidden flex items-center justify-center">
+                                                {friend.avatar || friend.profilePhoto ? (
+                                                  <img
+                                                    src={friend.avatar || friend.profilePhoto}
+                                                    alt={friend.name}
+                                                    className="w-full h-full object-cover"
+                                                    onError={(e) => {
+                                                      (e.currentTarget as HTMLElement).style.display = "none";
+                                                      const fallback = (e.currentTarget.parentElement?.querySelector(".avatar-initials-fallback") as HTMLElement);
+                                                      if (fallback) fallback.style.display = "flex";
+                                                    }}
+                                                  />
+                                                ) : null}
+                                                <div
+                                                  className={`w-full h-full items-center justify-center avatar-initials-fallback ${
+                                                    friend.avatar || friend.profilePhoto ? "hidden" : "flex"
+                                                  }`}
+                                                >
+                                                  <span className="text-sm font-bold text-[#009A60]">
+                                                    {friend.initial || getTwoInitials(friend.name)}
+                                                  </span>
+                                                </div>
+                                              </div>
+                                              {/* Online Indicator Green Dot */}
+                                              <div className="w-3.5 h-3.5 rounded-full bg-[#009A60] border-2 border-white absolute -bottom-0.5 -right-0.5 shadow-2xs" />
+                                            </div>
+
+                                            {/* Middle Golfer Info */}
+                                            <div className="min-w-0 flex-1">
+                                              <h4 className="text-[14.5px] font-bold text-[#0F172A] leading-tight truncate">
+                                                {friend.name}
+                                              </h4>
+                                              <p className="text-[12px] font-medium text-[#64748B] truncate leading-tight mt-0.5 flex items-center">
+                                                <span className="truncate">{friend.club || "OpenClub Golfer"}</span>
+                                                <span className="mx-1.5 text-slate-300 font-normal shrink-0">|</span>
+                                                <span className="shrink-0">{friend.hcp || "12.0"} HCP</span>
+                                              </p>
+                                            </div>
+                                          </div>
+
+                                          {/* Right Chat/Message Action Button */}
+                                          <div className="shrink-0 flex items-center gap-1.5">
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                showToast(`Opening chat with ${friend.name}`, "success", "MESSAGING");
+                                              }}
+                                              className="w-9 h-9 rounded-xl bg-[#f5faf6] hover:bg-[#EAF7EE] border border-[#e1efe5] flex items-center justify-center text-[#64748B] hover:text-[#009A60] transition-all cursor-pointer shadow-2xs active:scale-95 shrink-0"
+                                              title={`Message ${friend.name}`}
+                                              aria-label="Message Friend"
+                                            >
+                                              <MessageSquare className="w-4 h-4 stroke-[2]" />
+                                            </button>
+                                          </div>
+                                        </div>
+                                      ))}
+                                      {remainingFriendsCount > 0 && (
+                                        <button
+                                          type="button"
+                                          onClick={() => setMyFriendsDisplayLimit((prev) => prev + 5)}
+                                          className="w-full py-3 rounded-2xl bg-white border border-slate-200/90 shadow-2xs text-[13px] font-bold text-[#009A60] hover:bg-[#EAF7EE] hover:border-[#C6F0DB] transition-all cursor-pointer active:scale-[0.98] flex items-center justify-center gap-2"
+                                        >
+                                          <ChevronDown className="w-4 h-4 stroke-[2.5]" />
+                                          Show More ({remainingFriendsCount} remaining)
+                                        </button>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <div className="py-12 px-6 text-center">
+                                      <div className="w-[76px] h-[76px] rounded-[24px] bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center mx-auto mb-4 text-[#009A60] shadow-xs">
+                                        <Users className="w-8 h-8" />
+                                      </div>
+                                      <h3 className="text-base font-bold text-[#0F172A] mb-1">
+                                        {mq ? "No Matching Friends" : "No Friends Added Yet"}
+                                      </h3>
+                                      <p className="text-xs text-[#64748B] max-w-[270px] mx-auto mb-5 leading-relaxed">
+                                        {mq
+                                          ? "Try searching with a different name or ID."
+                                          : "Connect with golfers on OpenclubOS to track rounds, view leaderboards, and schedule matches."}
+                                      </p>
+                                      <button
+                                        type="button"
+                                        onClick={() => switchScreen("add-friends")}
+                                        className="px-5 py-2.5 rounded-xl bg-[#009A60] hover:bg-[#008251] text-white font-bold text-xs capitalize transition-all shadow-2xs active:scale-95 cursor-pointer inline-flex items-center gap-1.5"
+                                      >
+                                        <UserPlus className="w-4 h-4" />
+                                        <span>Add Golf Friends</span>
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              </>
+                            )}
+
+                            {/* TAB 3: CLUB */}
+                            {networkTab === "club" && (
+                              <div className="space-y-3">
+                                <span className="text-[11px] font-bold tracking-[0.14em] text-[#64748B] uppercase block">
+                                  CLUB FRIENDS ({filteredClub.length})
+                                </span>
+
+                                {filteredClub.length > 0 ? (
+                                  <div className="space-y-3">
+                                    {filteredClub.map((member) => {
+                                      return (
+                                        <div
+                                          key={member.id}
+                                          className="w-full bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-3.5 flex items-center justify-between gap-3 transition-all hover:border-slate-300"
+                                        >
+                                          <div
+                                            className="flex items-center gap-3 min-w-0 flex-1 cursor-pointer"
+                                            onClick={() => setFriendActionUser(member)}
+                                          >
+                                            <div className="w-12 h-12 rounded-2xl bg-[#EAF7EE] border border-[#C6F0DB] overflow-hidden flex items-center justify-center shrink-0">
+                                              <span className="text-sm font-bold text-[#009A60]">
+                                                {member.initial || getTwoInitials(member.name)}
+                                              </span>
+                                            </div>
+                                            <div className="min-w-0 flex-1">
+                                              <h4 className="text-[14.5px] font-bold text-[#0F172A] leading-tight truncate">
+                                                {member.name}
+                                              </h4>
+                                              <p className="text-[12px] font-medium text-[#64748B] truncate leading-tight mt-0.5 flex items-center">
+                                                <span className="truncate">{member.club || "OpenClub Golfer"}</span>
+                                                <span className="mx-1.5 text-slate-300 font-normal shrink-0">|</span>
+                                                <span className="shrink-0">{member.hcp || "12.0"} HCP</span>
+                                              </p>
+                                            </div>
+                                          </div>
+
+                                          <div className="shrink-0 flex items-center gap-1.5">
+                                            <button
+                                              type="button"
+                                              onClick={() => showToast(`Opening chat with ${member.name}`, "success", "MESSAGING")}
+                                              className="w-9 h-9 rounded-xl bg-[#f5faf6] hover:bg-[#EAF7EE] border border-[#e1efe5] flex items-center justify-center text-[#64748B] hover:text-[#009A60] transition-all cursor-pointer shadow-2xs active:scale-95"
+                                              title={`Message ${member.name}`}
+                                            >
+                                              <MessageSquare className="w-4 h-4 stroke-[2]" />
+                                            </button>
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                ) : (
+                                  <div className="py-12 px-6 text-center">
+                                    <div className="w-[76px] h-[76px] rounded-[24px] bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center mx-auto mb-4 text-[#009A60] shadow-xs">
+                                      <Building2 className="w-8 h-8" />
+                                    </div>
+                                    <h3 className="text-base font-bold text-[#0F172A] mb-1">
+                                      No Club Friends Yet
+                                    </h3>
+                                    <p className="text-xs text-[#64748B] max-w-[270px] mx-auto leading-relaxed">
+                                      Friends who play at your home club will appear here.
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -15947,19 +16814,8 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                               <ChevronLeft className="h-[18px] w-[18px] text-[#0F172A]" />
                             </button>
                             <h2 className="text-base font-bold text-[#0F172A]">Notifications</h2>
-                            {/* Right action buttons: Clear All + Mark All Read */}
+                            {/* Right action button: Mark All Read */}
                             <div className="flex items-center gap-1.5">
-                              {mobileNotifications.length > 0 || incomingFriendRequests.length > 0 ? (
-                                <button
-                                  type="button"
-                                  onClick={handleClearAllNotifications}
-                                  className="h-8 w-8 rounded-full border border-rose-200/70 bg-rose-50 hover:bg-rose-100 shadow-2xs flex items-center justify-center text-rose-500 hover:text-rose-600 transition-all cursor-pointer shrink-0"
-                                  title="Clear all notifications"
-                                  aria-label="Clear all notifications"
-                                >
-                                  <Trash2 className="h-[16px] w-[16px]" />
-                                </button>
-                              ) : null}
                               <button
                                 type="button"
                                 onClick={handleMarkAllRead}
@@ -15978,13 +16834,13 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                           <div className="w-full px-4 py-3 space-y-4">
                             {totalCount === 0 ? (
                               <div className="flex-1 flex flex-col items-center justify-center py-20 px-6 text-center my-auto">
-                                <div className="w-16 h-16 rounded-[24px] bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center text-[#009A60] mb-4 shadow-xs">
+                                <div className="w-[76px] h-[76px] rounded-[24px] bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center mx-auto mb-4 text-[#009A60] shadow-xs">
                                   <Bell className="w-8 h-8 text-[#009A60]" />
                                 </div>
-                                <h3 className="text-[17px] font-bold text-[#0F172A] tracking-tight">
+                                <h3 className="text-base font-bold text-[#0F172A] mb-1">
                                   No Notifications
                                 </h3>
-                                <p className="text-[13px] text-[#64748B] max-w-[280px] leading-relaxed mt-1">
+                                <p className="text-xs text-[#64748B] max-w-[280px] leading-relaxed mx-auto">
                                   All caught up! Real-time tournament updates, pairings, and announcements from the database will appear here.
                                 </p>
                               </div>
@@ -16145,6 +17001,10 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                 <option value="tournaments">Tournaments</option>
                 <option value="tournament-filter">Tournament Filter</option>
                 <option value="tournament-details">Tournament Details</option>
+                <option value="my-friends">My Friends</option>
+                <option value="add-friends">Add Golf Friends</option>
+                <option value="sync-contacts">Sync Contacts</option>
+                <option value="notifications">Notifications</option>
                 <option value="leaderboard">Leaderboard</option>
               </select>
             ) : (
@@ -16179,8 +17039,15 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
           {/* Inner Screen Surface */}
           <div
             data-mobile-screen="true"
-            style={{ fontFamily: 'var(--font-plus-jakarta-sans), "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', scrollbarWidth: "none", msOverflowStyle: "none" }}
-            className={`w-full h-full ${modelSpec.innerRadius} bg-[#06090E] overflow-hidden flex flex-col relative border border-black select-none font-['Plus_Jakarta_Sans',sans-serif] scrollbar-hide no-scrollbar`}
+            style={{
+              fontFamily: 'var(--font-plus-jakarta-sans), "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+              scrollbarWidth: "none",
+              msOverflowStyle: "none",
+              WebkitFontSmoothing: "antialiased",
+              MozOsxFontSmoothing: "grayscale",
+              textRendering: "optimizeLegibility",
+            }}
+            className={`w-full h-full ${modelSpec.innerRadius} bg-[#06090E] overflow-hidden flex flex-col relative border border-black select-none font-['Plus_Jakarta_Sans',sans-serif] scrollbar-hide no-scrollbar antialiased [text-rendering:optimizeLegibility]`}
           >
             {/* Status Bar / Camera Cutout depending on model */}
             {modelSpec.notchType === "dynamic-island" && (
@@ -16353,7 +17220,7 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
               <div
                 className={`${modelSpec.category === "tablet" ? "w-44 h-1.5 bg-slate-400/70" : modelSpec.os === "Android" ? "w-24 h-1 bg-slate-400/80" : "w-32 h-1"} rounded-full transition-colors ${
                   modelSpec.os === "iOS"
-                    ? effectiveScreen === "scoring" || effectiveScreen === "attestation" || effectiveScreen === "hub" || effectiveScreen === "leaderboard" || effectiveScreen === "tournaments" || effectiveScreen === "tournament-filter" || effectiveScreen === "tournament-details"
+                    ? effectiveScreen === "scoring" || effectiveScreen === "attestation" || effectiveScreen === "hub" || effectiveScreen === "leaderboard" || effectiveScreen === "tournaments" || effectiveScreen === "tournament-filter" || effectiveScreen === "tournament-details" || effectiveScreen === "my-friends"
                       ? "bg-slate-400/50"
                       : "bg-slate-300"
                     : ""
@@ -16885,9 +17752,9 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                       setFriendActionUser(null);
                       setUnfriendCandidate(target);
                     }}
-                    className="w-full h-12 rounded-[14px] bg-[#FFF1F2] hover:bg-[#FFE4E6] border border-[#FFE4E6] active:scale-98 text-[#DC2626] text-sm font-bold tracking-wide shadow-xs flex items-center justify-center gap-2 mb-3 cursor-pointer transition-all"
+                    className="w-full h-12 rounded-[14px] bg-white hover:bg-slate-50 border border-slate-200/90 active:scale-98 text-[#0F172A] text-sm font-bold tracking-wide shadow-2xs flex items-center justify-center gap-2 mb-3 cursor-pointer transition-all capitalize"
                   >
-                    <UserMinus className="w-4 h-4 stroke-[2.2]" />
+                    <UserMinus className="w-4 h-4 stroke-[2.2] text-[#0F172A]" />
                     <span>Remove from Friends</span>
                   </button>
 
@@ -16898,9 +17765,9 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                       setFriendActionUser(null);
                       setBlockCandidate(target);
                     }}
-                    className="w-full h-12 rounded-[14px] bg-[#FFF1F2] hover:bg-[#FFE4E6] border border-[#FFE4E6] active:scale-98 text-[#DC2626] text-sm font-bold tracking-wide shadow-xs flex items-center justify-center gap-2 mb-3 cursor-pointer transition-all"
+                    className="w-full h-12 rounded-[14px] bg-[#FFF1F2] hover:bg-[#FFE4E6] border border-[#FFE4E6] active:scale-98 text-[#DC2626] text-sm font-bold tracking-wide shadow-xs flex items-center justify-center gap-2 mb-3 cursor-pointer transition-all capitalize"
                   >
-                    <Ban className="w-4 h-4 stroke-[2.2]" />
+                    <Ban className="w-4 h-4 stroke-[2.2] text-[#DC2626]" />
                     <span>Block Golfer</span>
                   </button>
 
@@ -16911,16 +17778,16 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                       setFriendActionUser(null);
                       setReportCandidate(target);
                     }}
-                    className="w-full h-12 rounded-[14px] bg-[#FEF2F2] hover:bg-[#FEE2E2] border border-[#FECACA] active:scale-98 text-[#DC2626] text-sm font-bold tracking-wide shadow-xs flex items-center justify-center gap-2 mb-3 cursor-pointer transition-all"
+                    className="w-full h-12 rounded-[14px] bg-white hover:bg-slate-50 border border-slate-200/90 active:scale-98 text-[#0F172A] text-sm font-bold tracking-wide shadow-2xs flex items-center justify-center gap-2 mb-3 cursor-pointer transition-all capitalize"
                   >
-                    <Flag className="w-4 h-4 stroke-[2.2]" />
+                    <Flag className="w-4 h-4 stroke-[2.2] text-[#0F172A]" />
                     <span>Report Golfer</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => setFriendActionUser(null)}
-                    className="w-full h-12 rounded-[14px] bg-red-50 hover:bg-red-100 border border-red-200/70 active:scale-98 text-red-600 text-sm font-bold tracking-wide flex items-center justify-center cursor-pointer transition-all capitalize"
+                    className="w-full h-12 rounded-[14px] bg-white hover:bg-slate-50 border border-slate-200/90 active:scale-98 text-[#0F172A] text-sm font-bold tracking-wide shadow-2xs flex items-center justify-center cursor-pointer transition-all capitalize"
                   >
                     Cancel
                   </button>
@@ -17144,7 +18011,7 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                                 <div className="min-w-0 flex-1">
                                   <div className="text-xs font-bold text-slate-900 truncate">{req.senderName}</div>
                                   <div className="text-[10px] text-slate-500 truncate">
-                                    {req.senderClub || "OpenClub Golfer"} • {req.senderHcp || "0.0"} HCP
+                                    <span className="truncate">{req.senderClub || "OpenClub Golfer"}</span><span className="mx-1 text-slate-300 font-normal shrink-0">|</span><span className="shrink-0">{req.senderHcp || "0.0"} HCP</span>
                                   </div>
                                 </div>
                               </div>
@@ -18490,7 +19357,14 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
   };
 
   return (
-    <div className="h-screen max-h-screen overflow-hidden bg-[#06090E] text-slate-100 flex flex-col font-sans">
+    <div
+      className="h-screen max-h-screen overflow-hidden bg-[#06090E] text-slate-100 flex flex-col font-sans antialiased [text-rendering:optimizeLegibility]"
+      style={{
+        WebkitFontSmoothing: "antialiased",
+        MozOsxFontSmoothing: "grayscale",
+        textRendering: "optimizeLegibility",
+      }}
+    >
       {/* Studio Header Bar */}
       <header className="border-b border-slate-800/80 bg-[#090E17]/95 backdrop-blur-md px-5 py-3 flex items-center justify-between shrink-0 z-30">
         <div className="flex items-center gap-3">
@@ -18614,7 +19488,7 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                 Screens
               </span>
               <span className="text-[10px] font-medium text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded-md">
-                17 Views
+                18 Views
               </span>
             </div>
 
@@ -18633,6 +19507,7 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                 { id: "tournaments", label: "Tournaments", icon: Trophy },
                 { id: "tournament-filter", label: "Tournament Filter", icon: SlidersHorizontal },
                 { id: "tournament-details", label: "Tournament Details", icon: Trophy },
+                { id: "my-friends", label: "My Friends", icon: Users },
                 { id: "add-friends", label: "Add Golf Friends", icon: UserPlus },
                 { id: "sync-contacts", label: "Sync Your Contacts", icon: BookUser },
                 { id: "notifications", label: "Notifications", icon: Bell },

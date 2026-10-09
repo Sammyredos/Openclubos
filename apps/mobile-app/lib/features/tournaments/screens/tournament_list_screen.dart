@@ -21,35 +21,24 @@ class _TournamentListScreenState extends State<TournamentListScreen> {
 
   Future<void> _fetchTournaments() async {
     try {
-      final response = await _apiClient.dio.get('/tournaments');
+      dynamic data;
+      try {
+        final publicRes = await _apiClient.dio.get('/tournaments/public');
+        data = publicRes.data;
+      } catch (_) {
+        final authRes = await _apiClient.dio.get('/tournaments');
+        data = authRes.data;
+      }
       setState(() {
-        _tournaments = response.data;
+        _tournaments = (data is Map && data['items'] != null)
+            ? data['items']
+            : (data is List ? data : []);
         _isLoading = false;
       });
     } catch (e) {
       setState(() {
         _isLoading = false;
-        // Mock sample tournament if offline for preview
-        _tournaments = [
-          {
-            'id': 'tourn_1',
-            'name': 'Openclub Masters Invitational 2026',
-            'status': 'LIVE',
-            'course': 'Augusta National GC',
-            'format': 'Stroke Play',
-            'dates': 'Sep 2 - Sep 5',
-            'purse': '$2,500,000',
-          },
-          {
-            'id': 'tourn_2',
-            'name': 'Autumn Club Championship',
-            'status': 'UPCOMING',
-            'course': 'Pinehurst No. 2',
-            'format': 'Stableford',
-            'dates': 'Sep 12 - Sep 14',
-            'purse': '$500,000',
-          },
-        ];
+        _tournaments = [];
       });
     }
   }

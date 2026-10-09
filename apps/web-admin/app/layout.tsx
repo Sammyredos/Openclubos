@@ -27,7 +27,12 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className="h-full antialiased"
+      className="h-full antialiased [text-rendering:optimizeLegibility]"
+      style={{
+        WebkitFontSmoothing: "antialiased",
+        MozOsxFontSmoothing: "grayscale",
+        textRendering: "optimizeLegibility",
+      }}
       suppressHydrationWarning
     >
       <head>
@@ -42,7 +47,15 @@ export default function RootLayout({
           href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css"
         />
       </head>
-      <body className={`min-h-full flex flex-col font-sans ${plusJakartaSans.variable}`} suppressHydrationWarning>
+      <body
+        className={`min-h-full flex flex-col font-sans antialiased [text-rendering:optimizeLegibility] ${plusJakartaSans.variable}`}
+        style={{
+          WebkitFontSmoothing: "antialiased",
+          MozOsxFontSmoothing: "grayscale",
+          textRendering: "optimizeLegibility",
+        }}
+        suppressHydrationWarning
+      >
         <Providers>{children}</Providers>
         <Toaster 
           richColors 

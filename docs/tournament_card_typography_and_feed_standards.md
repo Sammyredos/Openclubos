@@ -104,14 +104,14 @@ To eliminate typographical dissonance and ensure optical rhythm across metric ca
   - Subtle Texture: Tournament banner image layered with 15% opacity and luminosity blend.
   - Border: Subtle emerald border (`border border-[#10B981]/25`).
   - Corner Geometry: `rounded-[22px]` smooth squircle.
-- **White Tournament Discovery Cards (5 Distinct Deterministic Patterns)**:
-  - Each tournament card displays a unique, deterministic golf course vector pattern based on its ID and index (`renderTournamentCardWatermark`):
-    - **Variant 0 (Fairway Contours & Top-Right Rings)**: Sweeping fairway contours with concentric green elevation rings near the top-right.
-    - **Variant 1 (Rolling Greens & Lower Target Rings)**: Undulating gentle hills across the top with lower concentric target rings.
-    - **Variant 2 (Diagonal Ridges & Dual Topographic Hubs)**: Cascading diagonal contour lines with dual elevation hubs.
-    - **Variant 3 (Meandering Fairway Curves & Pinpoint Beacon)**: S-curving organic fairway boundaries with center-field target circles.
-    - **Variant 4 (Coastal Links Horizon & Radial Crests)**: High arched topographic contour curves with radial crests.
-  - Watermark SVG: Faint, luxury mint watermark (`stroke="#009A60"` with opacity 0.03–0.08).
+- **White Tournament Discovery Cards (5 Pure Topographic Curve Variants - Zero Dots/Discs)**:
+  - Each tournament card displays a unique, deterministic golf course vector pattern based on its ID and index (`renderTournamentCardWatermark`), strictly composed of graceful fairway elevation contour lines with zero circular discs, dots, or fill artifacts:
+    - **Variant 0 (Sweeping Fairway Contours)**: Four sweeping elevation curves flowing gracefully from bottom-left across to the upper right.
+    - **Variant 1 (Rolling Greens & Gentle Slopes)**: Undulating hill contours across the upper quadrant with terraced valley strokes below.
+    - **Variant 2 (Diagonal Ridges & Terraced Valleys)**: Cascading diagonal contour lines sweeping across the card body.
+    - **Variant 3 (Meandering Fairway S-Curves)**: Dynamic S-curving organic fairway boundaries with alternating dashed wave rhythms.
+    - **Variant 4 (Coastal Links Horizon & Crest Arcs)**: High-arched horizon curves paired with crest arcs.
+  - Watermark SVG: Faint, luxury mint watermark (`stroke="#009A60"` with opacity 0.05–0.08, all strictly `fill="none"`).
   - Background: Pure daylight white `bg-white` with `overflow-hidden`.
   - Content Layering: All titles, badges, and controls enclosed in `relative z-10` to guarantee high contrast and zero legibility interference.
 
@@ -123,3 +123,4 @@ To eliminate typographical dissonance and ensure optical rhythm across metric ca
   - **Details Button**: `flex-1 h-[38px] rounded-xl bg-slate-100/90 hover:bg-slate-200/90 active:scale-[0.98] text-slate-800 font-bold text-[12.5px] border border-slate-300/90 hover:border-slate-400 flex items-center justify-center gap-1.5 capitalize tracking-normal transition-all cursor-pointer shadow-2xs`.
   - **Slight Colored Dark Border**: Explicitly framed with `border border-slate-300/90` to anchor the button optically against both the white card body and the faint contour watermark.
   - **Register CTA Button**: Emerald action pill (`bg-[#009A60] hover:bg-[#008251] text-white`).
+  - **Unified Arrow Indicator**: Standardized on `ChevronRight` (`w-4 h-4 text-white`) across both featured hero cards and white discovery cards, providing a consistent directional cue and visual rhythm across all tournament registration triggers.

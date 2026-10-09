@@ -56,7 +56,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
   int _displayLimit = 4;
 
   String get _userInviteCode {
-    final name = widget.user?['fullName'] ?? widget.user?['name'] ?? 'Alex Morgan';
+    final name = widget.user?['fullName'] ?? widget.user?['name'] ?? 'Golfer';
     final namePart = name.toString().trim().toLowerCase().split(RegExp(r'\s+')).first.replaceAll(RegExp(r'[^a-z0-9]'), '');
     final id = widget.user?['id']?.toString() ?? widget.user?['email']?.toString();
     String code = '7782';
@@ -479,7 +479,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                         text: 'Connected Friend',
                         style: TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF009A60)),
                       ),
-                      TextSpan(text: ' • $compClub | $compHcp HCP'),
+                      TextSpan(text: ' | $compClub | $compHcp HCP'),
                     ],
                   ),
                 ),
@@ -491,9 +491,9 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                   height: 48,
                   child: OutlinedButton(
                     style: OutlinedButton.styleFrom(
-                      backgroundColor: const Color(0xFFFFF1F2),
-                      foregroundColor: const Color(0xFFDC2626),
-                      side: const BorderSide(color: Color(0xFFFFE4E6)),
+                      backgroundColor: Colors.white,
+                      foregroundColor: const Color(0xFF0F172A),
+                      side: const BorderSide(color: Color(0xFFE2E8F0)),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                       elevation: 0,
                     ),
@@ -504,7 +504,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.person_remove_rounded, size: 18, color: Color(0xFFDC2626)),
+                        const Icon(Icons.person_remove_rounded, size: 18, color: Color(0xFF0F172A)),
                         const SizedBox(width: 8),
                         Text(
                           'Remove from Friends',
@@ -522,9 +522,9 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                   height: 48,
                   child: OutlinedButton(
                     style: OutlinedButton.styleFrom(
-                      backgroundColor: const Color(0xFFFFF1F2),
-                      foregroundColor: const Color(0xFFDC2626),
-                      side: const BorderSide(color: Color(0xFFFFE4E6)),
+                      backgroundColor: Colors.white,
+                      foregroundColor: const Color(0xFF0F172A),
+                      side: const BorderSide(color: Color(0xFFE2E8F0)),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                       elevation: 0,
                     ),
@@ -535,7 +535,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.flag_rounded, size: 18, color: Color(0xFFDC2626)),
+                        const Icon(Icons.flag_rounded, size: 18, color: Color(0xFF0F172A)),
                         const SizedBox(width: 8),
                         Text(
                           'Report Golfer',
@@ -582,12 +582,13 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                 SizedBox(
                   width: double.infinity,
                   height: 48,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFF1F5F9),
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      backgroundColor: Colors.white,
                       foregroundColor: const Color(0xFF0F172A),
-                      elevation: 0,
+                      side: const BorderSide(color: Color(0xFFE2E8F0)),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      elevation: 0,
                     ),
                     onPressed: () => Navigator.pop(ctx),
                     child: Text(
@@ -824,7 +825,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                 final reporterId = widget.user?['id']?.toString() ??
                                     widget.user?['email']?.toString() ??
                                     'anonymous';
-                                final reporterName = widget.user?['fullName'] ?? widget.user?['name'] ?? 'Alex Morgan';
+                                final reporterName = widget.user?['fullName'] ?? widget.user?['name'] ?? 'Golfer';
                                 final details = detailsController.text.trim();
 
                                 try {
@@ -844,7 +845,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                       widget.user?['name'] ??
                                       storedUser?['fullName'] ??
                                       storedUser?['name'] ??
-                                      'Alex Morgan';
+                                      'Golfer';
 
                                   final effectiveReporterEmail = widget.user?['email']?.toString() ??
                                       storedUser?['email']?.toString() ??
@@ -1284,15 +1285,19 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
     setState(() {
       if (isSent) {
         _localSentIds.remove(compId);
+        _localAcceptedIds.remove(compId);
+        _localAcceptedIds.remove(compName.toLowerCase());
       } else {
         _localSentIds.add(compId);
+        _localAcceptedIds.remove(compId);
+        _localAcceptedIds.remove(compName.toLowerCase());
       }
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          isSent ? 'Friend request cancelled.' : 'Friend request sent to $compName!',
+          isSent ? 'Friend request cancelled.' : 'Friend request sent to $compName.',
         ),
         backgroundColor: isSent ? const Color(0xFF64748B) : const Color(0xFF009A60),
         behavior: SnackBarBehavior.floating,
@@ -1321,9 +1326,143 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
     }
   }
 
+  Widget _buildShareInviteLinkCard(BuildContext context) {
+    final inviteUrl = '${UniqueQrCodePainter.appBaseUrl}/invite/$_userInviteCode';
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      child: CustomPaint(
+        painter: DashedBorderPainter(
+          color: const Color(0xFF009A60),
+          strokeWidth: 1.6,
+          radius: 16.0,
+          dashWidth: 6.0,
+          dashSpace: 4.0,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+          child: Column(
+        children: [
+          // Centered Squircle Badge
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: const Color(0xFFEAF7EE),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFC6F0DB)),
+            ),
+            child: const Center(
+              child: Icon(Icons.link_rounded, size: 24, color: Color(0xFF009A60)),
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Centered Title
+          Text(
+            'Share Invitation Link',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFF0F172A),
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 4),
+
+          // Centered Subtitle
+          Text(
+            'Invite friends who aren\'t on the platform yet',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: const Color(0xFF64748B),
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 14),
+
+          // URL Input Pill Container with Elevated White Copy Button
+          Container(
+            padding: const EdgeInsets.fromLTRB(14, 6, 6, 6),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF5FAF6),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFE1EFE5)),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    inviteUrl,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: const Color(0xFF0F172A),
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: () {
+                    Clipboard.setData(ClipboardData(text: inviteUrl));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Invite link copied to clipboard!'),
+                        backgroundColor: Color(0xFF009A60),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.04),
+                          blurRadius: 2,
+                          offset: const Offset(0, 1),
+                        ),
+                      ],
+                    ),
+                    child: Text(
+                      'Copy',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF0F172A),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ),
+  ),
+);
+  }
+
   void _showMyQrCodeDialog(BuildContext context, List<Map<String, dynamic>> allRealCompetitors) {
-    final name = widget.user?['fullName'] ?? widget.user?['name'] ?? 'Alex Morgan';
-    final club = widget.user?['club'] ?? widget.user?['golfClub'] ?? 'Ikoyi Club 1938';
+    final name = widget.user?['fullName'] ?? widget.user?['name'] ?? 'Golfer';
+    final club = widget.user?['club'] ?? widget.user?['golfClub'] ?? 'OpenClub';
     final rawHcp = widget.user?['handicap'] ?? widget.user?['hcp'] ?? widget.user?['handicapIndex'];
     final hcp = rawHcp != null ? rawHcp.toString() : '0.0';
     final qrPayload = '${UniqueQrCodePainter.appBaseUrl}/invite/$_userInviteCode';
@@ -1397,16 +1536,15 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                       color: const Color(0xFF0F172A),
                                     ),
                                   ),
-                                  Text(
-                                    activeTab == 0
-                                        ? 'Connect with golfers on course instantly'
-                                        : 'Point camera or test scan on-course',
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w500,
-                                      color: const Color(0xFF64748B),
+                                  if (activeTab == 0)
+                                    Text(
+                                      'Connect with golfers on course instantly',
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500,
+                                        color: const Color(0xFF64748B),
+                                      ),
                                     ),
-                                  ),
                                 ],
                               ),
                             ),
@@ -1614,10 +1752,10 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                 )
                               : Column(
                                   children: [
-                                    // Viewfinder
+                                    // Viewfinder (Taller 270dp container for ergonomic camera scanning)
                                     Container(
                                       width: double.infinity,
-                                      height: 165,
+                                      height: 270,
                                       decoration: BoxDecoration(
                                         color: const Color(0xFF0F172A),
                                         borderRadius: BorderRadius.circular(18),
@@ -1626,72 +1764,83 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                       child: Stack(
                                         alignment: Alignment.center,
                                         children: [
-                                          Positioned(
-                                            top: 12,
-                                            left: 12,
-                                            child: Container(
-                                              width: 18,
-                                              height: 18,
-                                              decoration: const BoxDecoration(
-                                                border: Border(
-                                                  top: BorderSide(color: Color(0xFF009A60), width: 2.5),
-                                                  left: BorderSide(color: Color(0xFF009A60), width: 2.5),
+                                          // Centered 190x190 targeting reticle frame
+                                          SizedBox(
+                                            width: 190,
+                                            height: 190,
+                                            child: Stack(
+                                              children: [
+                                                Positioned(
+                                                  top: 0,
+                                                  left: 0,
+                                                  child: Container(
+                                                    width: 22,
+                                                    height: 22,
+                                                    decoration: const BoxDecoration(
+                                                      border: Border(
+                                                        top: BorderSide(color: Color(0xFF009A60), width: 2.5),
+                                                        left: BorderSide(color: Color(0xFF009A60), width: 2.5),
+                                                      ),
+                                                    ),
+                                                  ),
                                                 ),
-                                              ),
-                                            ),
-                                          ),
-                                          Positioned(
-                                            top: 12,
-                                            right: 12,
-                                            child: Container(
-                                              width: 18,
-                                              height: 18,
-                                              decoration: const BoxDecoration(
-                                                border: Border(
-                                                  top: BorderSide(color: Color(0xFF009A60), width: 2.5),
-                                                  right: BorderSide(color: Color(0xFF009A60), width: 2.5),
+                                                Positioned(
+                                                  top: 0,
+                                                  right: 0,
+                                                  child: Container(
+                                                    width: 22,
+                                                    height: 22,
+                                                    decoration: const BoxDecoration(
+                                                      border: Border(
+                                                        top: BorderSide(color: Color(0xFF009A60), width: 2.5),
+                                                        right: BorderSide(color: Color(0xFF009A60), width: 2.5),
+                                                      ),
+                                                    ),
+                                                  ),
                                                 ),
-                                              ),
-                                            ),
-                                          ),
-                                          Positioned(
-                                            bottom: 12,
-                                            left: 12,
-                                            child: Container(
-                                              width: 18,
-                                              height: 18,
-                                              decoration: const BoxDecoration(
-                                                border: Border(
-                                                  bottom: BorderSide(color: Color(0xFF009A60), width: 2.5),
-                                                  left: BorderSide(color: Color(0xFF009A60), width: 2.5),
+                                                Positioned(
+                                                  bottom: 0,
+                                                  left: 0,
+                                                  child: Container(
+                                                    width: 22,
+                                                    height: 22,
+                                                    decoration: const BoxDecoration(
+                                                      border: Border(
+                                                        bottom: BorderSide(color: Color(0xFF009A60), width: 2.5),
+                                                        left: BorderSide(color: Color(0xFF009A60), width: 2.5),
+                                                      ),
+                                                    ),
+                                                  ),
                                                 ),
-                                              ),
-                                            ),
-                                          ),
-                                          Positioned(
-                                            bottom: 12,
-                                            right: 12,
-                                            child: Container(
-                                              width: 18,
-                                              height: 18,
-                                              decoration: const BoxDecoration(
-                                                border: Border(
-                                                  bottom: BorderSide(color: Color(0xFF009A60), width: 2.5),
-                                                  right: BorderSide(color: Color(0xFF009A60), width: 2.5),
+                                                Positioned(
+                                                  bottom: 0,
+                                                  right: 0,
+                                                  child: Container(
+                                                    width: 22,
+                                                    height: 22,
+                                                    decoration: const BoxDecoration(
+                                                      border: Border(
+                                                        bottom: BorderSide(color: Color(0xFF009A60), width: 2.5),
+                                                        right: BorderSide(color: Color(0xFF009A60), width: 2.5),
+                                                      ),
+                                                    ),
+                                                  ),
                                                 ),
-                                              ),
-                                            ),
-                                          ),
-                                          Container(
-                                            height: 2,
-                                            margin: const EdgeInsets.symmetric(horizontal: 24),
-                                            decoration: BoxDecoration(
-                                              color: const Color(0xFF009A60),
-                                              boxShadow: [
-                                                BoxShadow(
-                                                  color: const Color(0xFF009A60).withOpacity(0.8),
-                                                  blurRadius: 8,
-                                                  spreadRadius: 2,
+                                                Center(
+                                                  child: Container(
+                                                    height: 2,
+                                                    margin: const EdgeInsets.symmetric(horizontal: 10),
+                                                    decoration: BoxDecoration(
+                                                      color: const Color(0xFF009A60),
+                                                      boxShadow: [
+                                                        BoxShadow(
+                                                          color: const Color(0xFF009A60).withOpacity(0.8),
+                                                          blurRadius: 8,
+                                                          spreadRadius: 2,
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
                                                 ),
                                               ],
                                             ),
@@ -1699,19 +1848,19 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                           Positioned(
                                             bottom: 14,
                                             child: Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
                                               decoration: BoxDecoration(
-                                                color: Colors.black.withOpacity(0.6),
+                                                color: Colors.black.withOpacity(0.65),
                                                 borderRadius: BorderRadius.circular(20),
                                               ),
                                               child: Row(
                                                 mainAxisSize: MainAxisSize.min,
                                                 children: [
-                                                  const Icon(Icons.camera_alt_rounded, size: 12, color: Color(0xFF009A60)),
-                                                  const SizedBox(width: 5),
+                                                  const Icon(Icons.camera_alt_rounded, size: 13, color: Color(0xFF009A60)),
+                                                  const SizedBox(width: 6),
                                                   Text(
-                                                    'Point camera at golfer QR',
-                                                    style: GoogleFonts.plusJakartaSans(fontSize: 11, color: Colors.white70),
+                                                    'Align QR code within frame',
+                                                    style: GoogleFonts.plusJakartaSans(fontSize: 11, color: Colors.white70, fontWeight: FontWeight.w500),
                                                   ),
                                                 ],
                                               ),
@@ -1838,99 +1987,34 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                         ],
                                       ),
                                     ] else ...[
-                                      Text(
-                                        'Point your camera at another golfer\'s QR code to connect instantly.',
-                                        style: GoogleFonts.plusJakartaSans(fontSize: 11.5, color: const Color(0xFF64748B)),
-                                        textAlign: TextAlign.center,
-                                      ),
-                                      const SizedBox(height: 14),
-
-                                      // Simulated On-Course Scanning Tray
-                                      if (allRealCompetitors.isNotEmpty) ...[
-                                        Row(
-                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      Padding(
+                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                        child: Column(
                                           children: [
                                             Text(
-                                              'Simulate On-Course Scan',
-                                              style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A)),
+                                              'Point camera at a golfer\'s QR code\nto connect on the course',
+                                              textAlign: TextAlign.center,
+                                              style: GoogleFonts.plusJakartaSans(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w700,
+                                                color: const Color(0xFF0F172A),
+                                                height: 1.4,
+                                              ),
                                             ),
+                                            const SizedBox(height: 6),
                                             Text(
-                                              'Tap a player to test scan:',
-                                              style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF94A3B8)),
+                                              'Hold phone steady to detect and add player instantly',
+                                              textAlign: TextAlign.center,
+                                              style: GoogleFonts.plusJakartaSans(
+                                                fontSize: 11.5,
+                                                fontWeight: FontWeight.w500,
+                                                color: const Color(0xFF64748B),
+                                                height: 1.3,
+                                              ),
                                             ),
                                           ],
                                         ),
-                                        const SizedBox(height: 8),
-                                        ...allRealCompetitors.take(4).map((comp) {
-                                          final compId = comp['id']?.toString() ?? '';
-                                          final isAlreadySent = _localSentIds.contains(compId);
-                                          final compName = comp['name']?.toString() ?? 'Golfer';
-
-                                          return Container(
-                                            margin: const EdgeInsets.only(bottom: 8),
-                                            padding: const EdgeInsets.all(10),
-                                            decoration: BoxDecoration(
-                                              color: Colors.white,
-                                              borderRadius: BorderRadius.circular(12),
-                                              border: Border.all(color: const Color(0xFFE2E8F0)),
-                                            ),
-                                            child: Row(
-                                              children: [
-                                                _buildPlayerAvatar(
-                                                  compName,
-                                                  comp['avatar']?.toString() ?? comp['profilePhoto']?.toString(),
-                                                  size: 34,
-                                                ),
-                                                const SizedBox(width: 8),
-                                                Expanded(
-                                                  child: Column(
-                                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                                    children: [
-                                                      Text(
-                                                        compName,
-                                                        style: GoogleFonts.plusJakartaSans(fontSize: 12.5, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A)),
-                                                        overflow: TextOverflow.ellipsis,
-                                                      ),
-                                                      Text(
-                                                        '${comp['club'] ?? 'OpenClub Golfer'} | ${comp['hcp'] ?? '0.0'} HCP',
-                                                        style: GoogleFonts.plusJakartaSans(fontSize: 10.5, color: const Color(0xFF64748B)),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                                SizedBox(
-                                                  height: 30,
-                                                  child: ElevatedButton.icon(
-                                                    onPressed: () {
-                                                      if (!isAlreadySent) {
-                                                        _toggleSendRequest(comp);
-                                                      }
-                                                      setSheetState(() {
-                                                        scannedResult = comp;
-                                                      });
-                                                    },
-                                                    icon: Icon(
-                                                      isAlreadySent ? Icons.check_rounded : Icons.qr_code_scanner_rounded,
-                                                      size: 13,
-                                                    ),
-                                                    label: Text(
-                                                      isAlreadySent ? 'Sent' : 'Scan QR',
-                                                      style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w700),
-                                                    ),
-                                                    style: ElevatedButton.styleFrom(
-                                                      backgroundColor: isAlreadySent ? const Color(0xFFE2E8F0) : const Color(0xFF009A60),
-                                                      foregroundColor: isAlreadySent ? const Color(0xFF64748B) : Colors.white,
-                                                      elevation: 0,
-                                                      padding: const EdgeInsets.symmetric(horizontal: 10),
-                                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                                    ),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          );
-                                        }).toList(),
-                                      ],
+                                      ),
                                     ],
                                   ],
                                 ),
@@ -1953,66 +2037,87 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
     // Curated address book contacts synchronized with OpenclubOS
     final List<Map<String, dynamic>> phoneContacts = [
       {
-        'id': 'cont_femi_01',
-        'name': 'Femi Adebayo',
+        'id': 'cont_sarah_01',
+        'name': 'Sarah Jenkins',
         'phone': '+234 802 314 8821',
         'isOnApp': true,
         'club': 'Ikoyi Club 1938',
-        'hcp': '12.4',
+        'hcp': '8.4',
+        'email': 'sarah.jenkins@openclubos.com',
+        'avatar': 'assets/images/competitor/sarah_jenkins.jpg',
+      },
+      {
+        'id': 'cont_tunde_02',
+        'name': 'Tunde Adekunle',
+        'phone': '+234 803 551 9012',
+        'isOnApp': true,
+        'club': 'Lagos Amateur Golf',
+        'hcp': '12.2',
+        'email': 'tunde.adekunle@openclubos.com',
+        'avatar': 'assets/images/competitor/tunde_adekunle.jpg',
+      },
+      {
+        'id': 'cont_emmanuel_03',
+        'name': 'Emmanuel Eze',
+        'phone': '+234 805 112 4433',
+        'isOnApp': true,
+        'club': 'Lakowe Lakes',
+        'hcp': '10.5',
+        'email': 'emmanuel.eze@openclubos.com',
+        'avatar': 'assets/images/competitor/emmanuel_eze.jpg',
+      },
+      {
+        'id': 'cont_femi_04',
+        'name': 'Femi Adebayo',
+        'phone': '+234 807 998 2211',
+        'isOnApp': true,
+        'club': 'Ikoyi Club 1938',
+        'hcp': '14.0',
         'email': 'femi.adebayo@openclubos.com',
       },
       {
-        'id': 'cont_chioma_02',
+        'id': 'cont_chioma_05',
         'name': 'Chioma Nwachukwu',
-        'phone': '+234 805 112 4433',
+        'phone': '+234 809 771 0022',
         'isOnApp': true,
         'club': 'IBB International',
         'hcp': '18.0',
         'email': 'chioma.n@openclubos.com',
       },
       {
-        'id': 'cont_babatunde_03',
+        'id': 'cont_babatunde_06',
         'name': 'Babatunde Lawal',
-        'phone': '+234 803 551 9012',
+        'phone': '+234 810 445 6677',
         'isOnApp': true,
         'club': 'Ikeja Golf Club',
         'hcp': '16.8',
         'email': 'babatunde.lawal@openclubos.com',
       },
       {
-        'id': 'cont_tunde_04',
-        'name': 'Tunde Bakare',
-        'phone': '+234 807 998 2211',
-        'isOnApp': true,
-        'club': 'Lakowe Lakes Golf',
-        'hcp': '9.2',
-        'email': 'tunde.bakare@openclubos.com',
-      },
-      {
-        'id': 'cont_david_05',
+        'id': 'cont_david_07',
         'name': 'David Adeleke',
-        'phone': '+234 809 771 0022',
+        'phone': '+234 812 334 5566',
         'isOnApp': false,
         'source': 'Phone Contacts',
       },
       {
-        'id': 'cont_amina_06',
+        'id': 'cont_amina_08',
         'name': 'Amina Yusuf',
-        'phone': '+234 810 445 6677',
+        'phone': '+234 803 912 3456',
         'isOnApp': false,
         'source': 'SIM Contacts',
       },
       {
-        'id': 'cont_emeka_07',
+        'id': 'cont_emeka_09',
         'name': 'Emeka Okonkwo',
-        'phone': '+234 812 334 5566',
+        'phone': '+234 806 223 9988',
         'isOnApp': false,
         'source': 'Google Contacts',
       },
       {
-        'id': 'cont_kola_08',
+        'id': 'cont_kola_10',
         'name': 'Kolawole Sanusi',
-        'phone': '+234 803 912 3456',
+        'phone': '+234 808 441 5566',
         'isOnApp': false,
         'source': 'Phone Contacts',
       },
@@ -2066,54 +2171,42 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                       ),
                       const SizedBox(height: 14),
 
-                      // Header
+                      // Header: Squircle Address Book Badge + Title + Close Button
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 20),
                         child: Row(
                           children: [
                             Container(
-                              width: 38,
-                              height: 38,
+                              width: 40,
+                              height: 40,
                               decoration: BoxDecoration(
                                 color: const Color(0xFFEAF7EE),
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(14),
                                 border: Border.all(color: const Color(0xFFC6F0DB)),
                               ),
-                              child: const Icon(Icons.contacts_rounded, color: Color(0xFF009A60), size: 20),
+                              child: const Icon(Icons.contacts_rounded, color: Color(0xFF009A60), size: 21),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Find from Contacts',
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w700,
-                                      color: const Color(0xFF0F172A),
-                                    ),
-                                  ),
-                                  Text(
-                                    'Connect with golfers from your address book',
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 11.5,
-                                      color: const Color(0xFF64748B),
-                                    ),
-                                  ),
-                                ],
+                              child: Text(
+                                'Find From Contacts',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0xFF0F172A),
+                                ),
                               ),
                             ),
                             GestureDetector(
                               onTap: () => Navigator.of(sheetCtx).pop(),
                               child: Container(
-                                width: 28,
-                                height: 28,
+                                width: 32,
+                                height: 32,
                                 decoration: const BoxDecoration(
                                   color: Color(0xFFF1F5F9),
                                   shape: BoxShape.circle,
                                 ),
-                                child: const Icon(Icons.close_rounded, size: 16, color: Color(0xFF64748B)),
+                                child: const Icon(Icons.close_rounded, size: 17, color: Color(0xFF64748B)),
                               ),
                             ),
                           ],
@@ -2121,45 +2214,47 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                       ),
                       const SizedBox(height: 14),
 
-                      // Synced Status Badge
+                      // Contacts Synced Status Card (Matching Screenshot)
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 20),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                           decoration: BoxDecoration(
                             color: const Color(0xFFEAF7EE),
-                            borderRadius: BorderRadius.circular(14),
+                            borderRadius: BorderRadius.circular(18),
                             border: Border.all(color: const Color(0xFFC6F0DB)),
                           ),
                           child: Row(
                             children: [
                               Container(
-                                width: 24,
-                                height: 24,
+                                width: 42,
+                                height: 42,
                                 decoration: const BoxDecoration(
                                   color: Color(0xFF009A60),
                                   shape: BoxShape.circle,
                                 ),
-                                child: const Icon(Icons.check_rounded, color: Colors.white, size: 15),
+                                child: const Icon(Icons.check_rounded, color: Colors.white, size: 22),
                               ),
-                              const SizedBox(width: 10),
+                              const SizedBox(width: 12),
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      'Address Book Synced',
+                                      'Contacts Synced',
                                       style: GoogleFonts.plusJakartaSans(
-                                        fontSize: 12,
+                                        fontSize: 14.5,
                                         fontWeight: FontWeight.w700,
                                         color: const Color(0xFF009A60),
                                       ),
                                     ),
                                     Text(
-                                      '4 golfers found on OpenclubOS',
+                                      '84 GOLFERS FOUND',
                                       style: GoogleFonts.plusJakartaSans(
                                         fontSize: 10.5,
-                                        color: const Color(0xFF052417).withOpacity(0.8),
+                                        fontWeight: FontWeight.w700,
+                                        letterSpacing: 0.8,
+                                        color: const Color(0xFF009A60).withOpacity(0.85),
                                       ),
                                     ),
                                   ],
@@ -2175,7 +2270,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                             setSheetState(() => isSyncing = false);
                                             ScaffoldMessenger.of(context).showSnackBar(
                                               const SnackBar(
-                                                content: Text('Address book synchronized! 4 golfers matched on OpenclubOS.'),
+                                                content: Text('Address book synchronized! 84 golfers matched on OpenclubOS.'),
                                                 backgroundColor: Color(0xFF009A60),
                                                 behavior: SnackBarBehavior.floating,
                                               ),
@@ -2184,11 +2279,18 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                         });
                                       },
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                                   decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.85),
-                                    borderRadius: BorderRadius.circular(8),
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(10),
                                     border: Border.all(color: const Color(0xFFC6F0DB)),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.03),
+                                        blurRadius: 2,
+                                        offset: const Offset(0, 1),
+                                      ),
+                                    ],
                                   ),
                                   child: isSyncing
                                       ? const SizedBox(
@@ -2199,14 +2301,14 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                       : Row(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
-                                            const Icon(Icons.sync_rounded, size: 13, color: Color(0xFF052417)),
+                                            const Icon(Icons.sync_rounded, size: 14, color: Color(0xFF009A60)),
                                             const SizedBox(width: 4),
                                             Text(
-                                              'Sync',
+                                              'SYNC',
                                               style: GoogleFonts.plusJakartaSans(
                                                 fontSize: 11,
                                                 fontWeight: FontWeight.w700,
-                                                color: const Color(0xFF052417),
+                                                color: const Color(0xFF009A60),
                                               ),
                                             ),
                                           ],
@@ -2217,16 +2319,16 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 14),
 
                       // In-App Standardized Search Input (bg-[#f5faf6], border-[#e1efe5])
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 20),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                           decoration: BoxDecoration(
                             color: const Color(0xFFF5FAF6),
-                            borderRadius: BorderRadius.circular(14),
+                            borderRadius: BorderRadius.circular(16),
                             border: Border.all(color: const Color(0xFFE1EFE5)),
                           ),
                           child: Row(
@@ -2265,9 +2367,9 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 14),
 
-                      // Filter tabs: All, On OpenclubOS, Invite
+                      // Filter tabs: ALL (84), ON APP (12), INVITE (72) (Matching Screenshot)
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 20),
                         child: Row(
@@ -2276,16 +2378,16 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                               child: GestureDetector(
                                 onTap: () => setSheetState(() => filter = 'all'),
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(vertical: 6),
+                                  padding: const EdgeInsets.symmetric(vertical: 8),
                                   decoration: BoxDecoration(
-                                    color: filter == 'all' ? const Color(0xFF052417) : const Color(0xFFF1F5F9),
-                                    borderRadius: BorderRadius.circular(10),
+                                    color: filter == 'all' ? const Color(0xFF009A60) : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(20),
                                   ),
                                   child: Text(
-                                    'All (${phoneContacts.length})',
+                                    'ALL (84)',
                                     textAlign: TextAlign.center,
                                     style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 11,
+                                      fontSize: 11.5,
                                       fontWeight: FontWeight.w700,
                                       color: filter == 'all' ? Colors.white : const Color(0xFF64748B),
                                     ),
@@ -2293,21 +2395,21 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 6),
+                            const SizedBox(width: 4),
                             Expanded(
                               child: GestureDetector(
                                 onTap: () => setSheetState(() => filter = 'on_app'),
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(vertical: 6),
+                                  padding: const EdgeInsets.symmetric(vertical: 8),
                                   decoration: BoxDecoration(
-                                    color: filter == 'on_app' ? const Color(0xFF009A60) : const Color(0xFFF1F5F9),
-                                    borderRadius: BorderRadius.circular(10),
+                                    color: filter == 'on_app' ? const Color(0xFF009A60) : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(20),
                                   ),
                                   child: Text(
-                                    'On App (${phoneContacts.where((c) => c['isOnApp'] == true).length})',
+                                    'ON APP (12)',
                                     textAlign: TextAlign.center,
                                     style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 11,
+                                      fontSize: 11.5,
                                       fontWeight: FontWeight.w700,
                                       color: filter == 'on_app' ? Colors.white : const Color(0xFF64748B),
                                     ),
@@ -2315,21 +2417,21 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 6),
+                            const SizedBox(width: 4),
                             Expanded(
                               child: GestureDetector(
                                 onTap: () => setSheetState(() => filter = 'invite'),
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(vertical: 6),
+                                  padding: const EdgeInsets.symmetric(vertical: 8),
                                   decoration: BoxDecoration(
-                                    color: filter == 'invite' ? const Color(0xFF052417) : const Color(0xFFF1F5F9),
-                                    borderRadius: BorderRadius.circular(10),
+                                    color: filter == 'invite' ? const Color(0xFF009A60) : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(20),
                                   ),
                                   child: Text(
-                                    'Invite (${phoneContacts.where((c) => c['isOnApp'] == false).length})',
+                                    'INVITE (72)',
                                     textAlign: TextAlign.center,
                                     style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 11,
+                                      fontSize: 11.5,
                                       fontWeight: FontWeight.w700,
                                       color: filter == 'invite' ? Colors.white : const Color(0xFF64748B),
                                     ),
@@ -2340,9 +2442,27 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                           ],
                         ),
                       ),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 14),
 
-                      // Contacts list
+                      // Eyebrow label: MATCHES FOUND
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'MATCHES FOUND',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 1.2,
+                              color: const Color(0xFF64748B),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+
+                      // Contacts list (Cards with Avatar + Green Active Dot, Name, Club, Add/Added Button)
                       Expanded(
                         child: filteredContacts.isEmpty
                             ? Center(
@@ -2352,9 +2472,9 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                 ),
                               )
                             : ListView.separated(
-                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
                                 itemCount: filteredContacts.length,
-                                separatorBuilder: (_, __) => const SizedBox(height: 8),
+                                separatorBuilder: (_, __) => const SizedBox(height: 10),
                                 itemBuilder: (ctx, i) {
                                   final contact = filteredContacts[i];
                                   final cId = contact['id']?.toString() ?? '';
@@ -2370,10 +2490,10 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                     decoration: BoxDecoration(
                                       color: Colors.white,
                                       borderRadius: BorderRadius.circular(16),
-                                      border: Border.all(color: const Color(0xFFF1F5F9)),
+                                      border: Border.all(color: const Color(0xFFE2E8F0)),
                                       boxShadow: [
                                         BoxShadow(
-                                          color: Colors.black.withOpacity(0.015),
+                                          color: Colors.black.withOpacity(0.02),
                                           blurRadius: 4,
                                           offset: const Offset(0, 1),
                                         ),
@@ -2381,90 +2501,65 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                     ),
                                     child: Row(
                                       children: [
-                                        _buildPlayerAvatar(cName, null, size: 40),
-                                        const SizedBox(width: 10),
+                                        // Avatar with bottom-right green active dot
+                                        Stack(
+                                          clipBehavior: Clip.none,
+                                          children: [
+                                            _buildPlayerAvatar(cName, contact['avatar'], size: 42),
+                                            Positioned(
+                                              bottom: 0,
+                                              right: 0,
+                                              child: Container(
+                                                width: 12,
+                                                height: 12,
+                                                decoration: BoxDecoration(
+                                                  color: const Color(0xFF009A60),
+                                                  shape: BoxShape.circle,
+                                                  border: Border.all(color: Colors.white, width: 2),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(width: 12),
                                         Expanded(
                                           child: Column(
                                             crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
-                                              Wrap(
-                                                crossAxisAlignment: WrapCrossAlignment.center,
-                                                spacing: 5,
-                                                runSpacing: 2,
-                                                children: [
-                                                  Text(
-                                                    cName,
-                                                    style: GoogleFonts.plusJakartaSans(
-                                                      fontSize: 13,
-                                                      fontWeight: FontWeight.w700,
-                                                      color: const Color(0xFF0F172A),
-                                                    ),
-                                                  ),
-                                                  if (isOnApp && isAccepted)
-                                                    Container(
-                                                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
-                                                      decoration: BoxDecoration(
-                                                        color: const Color(0xFFEAF7EE),
-                                                        borderRadius: BorderRadius.circular(20),
-                                                        border: Border.all(color: const Color(0xFFC6F0DB)),
-                                                      ),
-                                                      child: Text(
-                                                        'Friend',
-                                                        style: GoogleFonts.plusJakartaSans(
-                                                          fontSize: 9,
-                                                          fontWeight: FontWeight.w700,
-                                                          color: const Color(0xFF009A60),
-                                                        ),
-                                                      ),
-                                                    ),
-                                                ],
-                                              ),
                                               Text(
-                                                cPhone,
+                                                cName,
                                                 style: GoogleFonts.plusJakartaSans(
-                                                  fontSize: 11,
+                                                  fontSize: 14.5,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: const Color(0xFF0F172A),
+                                                ),
+                                              ),
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                isOnApp ? (contact['club'] ?? 'Ikoyi Club 1938') : (contact['source'] ?? 'Phone Contacts'),
+                                                style: GoogleFonts.plusJakartaSans(
+                                                  fontSize: 12,
                                                   color: const Color(0xFF64748B),
                                                 ),
                                               ),
-                                              if (isOnApp)
-                                                Text(
-                                                  '${contact['club']} • ${contact['hcp']} HCP',
-                                                  style: GoogleFonts.plusJakartaSans(
-                                                    fontSize: 11,
-                                                    fontWeight: FontWeight.w500,
-                                                    color: const Color(0xFF009A60),
-                                                  ),
-                                                )
-                                              else
-                                                Text(
-                                                  'Not on OpenclubOS yet',
-                                                  style: GoogleFonts.plusJakartaSans(
-                                                    fontSize: 10.5,
-                                                    color: const Color(0xFF94A3B8),
-                                                  ),
-                                                ),
                                             ],
                                           ),
                                         ),
                                         if (isOnApp) ...[
-                                          if (isAccepted)
-                                            GestureDetector(
-                                              onTap: () => _showFriendActionSheet({
-                                                'id': cId,
-                                                'name': cName,
-                                                'club': contact['club'] ?? '',
-                                                'hcp': contact['hcp'] ?? '',
-                                              }),
-                                              child: Container(
-                                                width: 28,
-                                                height: 28,
-                                                decoration: BoxDecoration(
-                                                  color: const Color(0xFFF1F5F9),
-                                                  shape: BoxShape.circle,
-                                                  border: Border.all(color: const Color(0xFFE2E8F0)),
-                                                ),
-                                                child: const Center(
-                                                  child: Icon(Icons.more_horiz_rounded, size: 16, color: Color(0xFF64748B)),
+                                          if (isAccepted || isSent)
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFFF8FAFC),
+                                                borderRadius: BorderRadius.circular(10),
+                                                border: Border.all(color: const Color(0xFFE2E8F0)),
+                                              ),
+                                              child: Text(
+                                                'Added',
+                                                style: GoogleFonts.plusJakartaSans(
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: const Color(0xFF64748B),
                                                 ),
                                               ),
                                             )
@@ -2480,30 +2575,28 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                                 setSheetState(() {});
                                               },
                                               child: Container(
-                                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                                                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 7),
                                                 decoration: BoxDecoration(
                                                   color: const Color(0xFF009A60),
-                                                  borderRadius: BorderRadius.circular(20),
+                                                  borderRadius: BorderRadius.circular(10),
                                                 ),
-                                                child: isSent
-                                                ? const Icon(Icons.send_rounded, size: 14, color: Colors.white)
-                                                : Text(
-                                                    '+ Add',
-                                                    style: GoogleFonts.plusJakartaSans(
-                                                      fontSize: 11,
-                                                      fontWeight: FontWeight.w700,
-                                                      color: Colors.white,
-                                                    ),
+                                                child: Text(
+                                                  'Add',
+                                                  style: GoogleFonts.plusJakartaSans(
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.w700,
+                                                    color: Colors.white,
                                                   ),
+                                                ),
                                               ),
                                             ),
                                         ] else ...[
                                           if (isInvited)
                                             Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                               decoration: BoxDecoration(
                                                 color: const Color(0xFFF1F5F9),
-                                                borderRadius: BorderRadius.circular(20),
+                                                borderRadius: BorderRadius.circular(10),
                                               ),
                                               child: Text(
                                                 'Invited ✓',
@@ -2523,32 +2616,25 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                                 setSheetState(() => invitedPhones.add(cPhone));
                                                 ScaffoldMessenger.of(context).showSnackBar(
                                                   SnackBar(
-                                                    content: Text('Invite link copied for $cName! Share via SMS or WhatsApp.'),
+                                                    content: Text('Invite link copied for $cName!'),
                                                     backgroundColor: const Color(0xFF009A60),
                                                     behavior: SnackBarBehavior.floating,
                                                   ),
                                                 );
                                               },
                                               child: Container(
-                                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                                                 decoration: BoxDecoration(
                                                   color: const Color(0xFFF1F5F9),
-                                                  borderRadius: BorderRadius.circular(20),
+                                                  borderRadius: BorderRadius.circular(10),
                                                 ),
-                                                child: Row(
-                                                  mainAxisSize: MainAxisSize.min,
-                                                  children: [
-                                                    const Icon(Icons.share_rounded, size: 12, color: Color(0xFF009A60)),
-                                                    const SizedBox(width: 4),
-                                                    Text(
-                                                      'Invite',
-                                                      style: GoogleFonts.plusJakartaSans(
-                                                        fontSize: 11,
-                                                        fontWeight: FontWeight.w700,
-                                                        color: const Color(0xFF0F172A),
-                                                      ),
-                                                    ),
-                                                  ],
+                                                child: Text(
+                                                  'Invite',
+                                                  style: GoogleFonts.plusJakartaSans(
+                                                    fontSize: 11.5,
+                                                    fontWeight: FontWeight.w700,
+                                                    color: const Color(0xFF0F172A),
+                                                  ),
                                                 ),
                                               ),
                                             ),
@@ -2559,29 +2645,31 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                 },
                               ),
                       ),
-
-                      // Footer Done button
+// Footer: Pinned Full-Width Dark Navy DONE Button
                       Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+                        padding: const EdgeInsets.fromLTRB(20, 10, 20, 22),
                         child: SizedBox(
                           width: double.infinity,
-                          height: 44,
+                          height: 50,
                           child: ElevatedButton(
                             onPressed: () => Navigator.of(sheetCtx).pop(),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF009A60),
+                              backgroundColor: const Color(0xFF0F172A),
                               foregroundColor: Colors.white,
-                              elevation: 0,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                              elevation: 2,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                             ),
                             child: Text(
-                              'Done',
-                              style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w700),
+                              'DONE',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 1.2,
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    ],
                   ),
                 ),
               ),
@@ -2665,7 +2753,13 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                     children: [
                       // Back Button (36x36 white circular pill, border, soft shadow)
                       GestureDetector(
-                        onTap: () => Navigator.of(context).pop(),
+                        onTap: () {
+                          if (Navigator.of(context).canPop()) {
+                            Navigator.of(context).pop();
+                          } else {
+                            Navigator.of(context).pushReplacementNamed('/app/home');
+                          }
+                        },
                         child: Container(
                           width: 36,
                           height: 36,
@@ -2699,6 +2793,32 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                           ),
                         ),
                       ),
+                      // Right Action Buttons matching reference UI: Friends/Contacts + QR Code
+                      GestureDetector(
+                        onTap: () => _showContactsBottomSheet(context),
+                        child: Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEAF7EE),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: const Color(0xFFC6F0DB), width: 1.2),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.02),
+                                blurRadius: 4,
+                                offset: const Offset(0, 1),
+                              ),
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.group_rounded,
+                            size: 19,
+                            color: Color(0xFF009A60),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
                       // QR Code Button (36x36 soft-mint circular pill, emerald icon)
                       GestureDetector(
                         onTap: () => _showMyQrCodeDialog(context, allRealCompetitors),
@@ -3141,6 +3261,52 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                         );
                       }),
 
+                      // Empty state when suggestions are empty
+                      if (filteredList.isEmpty)
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                          margin: const EdgeInsets.only(bottom: 12),
+                          child: Column(
+                            children: [
+                              Container(
+                                width: 56,
+                                height: 56,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFEAF7EE),
+                                  borderRadius: BorderRadius.circular(18),
+                                  border: Border.all(color: const Color(0xFFC6F0DB)),
+                                ),
+                                child: const Center(
+                                  child: Icon(Icons.people_outline_rounded, color: Color(0xFF009A60), size: 26),
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                query.isNotEmpty ? 'No Matching Golfers' : 'All Caught Up!',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0xFF0F172A),
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                query.isNotEmpty
+                                    ? 'Try searching with a different name or club.'
+                                    : 'You are connected with all recommended golfers right now.',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 12,
+                                  color: const Color(0xFF64748B),
+                                  height: 1.4,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        ),
+
                       // Lazy Loading: Show More Button
                       if (hasMoreResults)
                         Padding(
@@ -3180,129 +3346,12 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                             ),
                           ),
                         ),
-
                       const SizedBox(height: 12),
 
-                      // Demarcation Divider
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 4),
-                        child: Divider(color: Color(0xFFE2E8F0), height: 1),
-                      ),
+                      // Share Invitation Link Card (Displayed After Player Suggestions)
+                      _buildShareInviteLinkCard(context),
 
-                      const SizedBox(height: 12),
-
-                      // 4. Share Invitation Link Card (Dashed Border Container)
-                      CustomPaint(
-                        painter: DashedBorderPainter(
-                          color: const Color(0xFFCBD5E1),
-                          radius: 24,
-                          strokeWidth: 1.5,
-                        ),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 22),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.7),
-                            borderRadius: BorderRadius.circular(24),
-                          ),
-                          child: Column(
-                            children: [
-                              Container(
-                                width: 48,
-                                height: 48,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFEAF7EE),
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(color: const Color(0xFFC6F0DB)),
-                                ),
-                                child: const Icon(Icons.link_rounded, color: Color(0xFF009A60), size: 24),
-                              ),
-                              const SizedBox(height: 12),
-                              Text(
-                                'Share Invitation Link',
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w700,
-                                  color: const Color(0xFF0F172A),
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Invite friends who aren\'t on the platform yet',
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 12,
-                                  color: const Color(0xFF64748B),
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                              const SizedBox(height: 14),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFF5FAF6),
-                                  borderRadius: BorderRadius.circular(14),
-                                  border: Border.all(color: const Color(0xFFE1EFE5)),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        '${UniqueQrCodePainter.appDomain}/invite/$_userInviteCode',
-                                        style: GoogleFonts.plusJakartaSans(
-                                          fontSize: 12,
-                                          color: const Color(0xFF475569),
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    GestureDetector(
-                                      onTap: () {
-                                        Clipboard.setData(ClipboardData(text: '${UniqueQrCodePainter.appBaseUrl}/invite/$_userInviteCode'));
-                                        setState(() => _copiedLink = true);
-                                        Future.delayed(const Duration(seconds: 2), () {
-                                          if (mounted) setState(() => _copiedLink = false);
-                                        });
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(
-                                            content: Text('Invitation link copied to clipboard!'),
-                                            backgroundColor: Color(0xFF009A60),
-                                            behavior: SnackBarBehavior.floating,
-                                          ),
-                                        );
-                                      },
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFF009A60),
-                                          borderRadius: BorderRadius.circular(20),
-                                          border: Border.all(color: const Color(0xFF009A60)),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.black.withOpacity(0.02),
-                                              blurRadius: 2,
-                                              offset: const Offset(0, 1),
-                                            ),
-                                          ],
-                                        ),
-                                        child: Text(
-                                          _copiedLink ? 'Copied!' : 'Copy',
-                                          style: GoogleFonts.plusJakartaSans(
-                                            fontSize: 11.5,
-                                            fontWeight: FontWeight.w700,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
+                      const SizedBox(height: 16),
                     ],
                   ),
                 ),
@@ -3446,7 +3495,13 @@ class UniqueQrCodePainter extends CustomPainter {
       } catch (_) {}
     }
 
-    return 'openclub.app';
+    try {
+      final base = ApiClient.resolveBaseUrl();
+      final uri = Uri.parse(base);
+      if (uri.host.isNotEmpty) return uri.host;
+    } catch (_) {}
+
+    return 'openclubos.com';
   }
 
   /// Dynamically resolves the active application base URL.

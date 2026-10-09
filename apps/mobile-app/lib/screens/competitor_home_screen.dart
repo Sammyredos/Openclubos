@@ -34,6 +34,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
 
   // Live competitors on course for horizontal carousel
   List<Map<String, dynamic>> _friendsOnCourse = [];
+  List<Map<String, dynamic>> _acceptedFriendsList = [];
   final Set<String> _acceptedFriendIds = {};
   final Set<String> _sentRequestIds = {};
   final Set<String> _blockedUserIds = {};
@@ -533,6 +534,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
         }
         if (mounted) {
           setState(() {
+            _acceptedFriendsList = list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
             _acceptedFriendIds.addAll(accepted);
             _acceptedFriendIds.removeWhere((id) => _sentRequestIds.contains(id));
           });
@@ -613,9 +615,15 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
 
   Future<void> _fetchTournaments() async {
     try {
-      final response = await _apiClient.dio.get('/tournaments');
+      dynamic data;
+      try {
+        final publicRes = await _apiClient.dio.get('/tournaments/public');
+        data = publicRes.data;
+      } catch (_) {
+        final authRes = await _apiClient.dio.get('/tournaments');
+        data = authRes.data;
+      }
       if (mounted) {
-        final data = response.data;
         final List<dynamic> list = (data is Map && data['items'] != null)
             ? data['items']
             : (data is List ? data : []);
@@ -626,7 +634,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
 
         if (list.isNotEmpty) {
           final liveTourn = list.firstWhere(
-            (t) => (t['status'] == 'LIVE' || t['status'] == 'IN_PROGRESS' || t['status'] == 'ACTIVE'),
+            (t) => (t['status'] == 'LIVE' || t['status'] == 'IN_PROGRESS' || t['status'] == 'ACTIVE' || t['status'] == 'ONGOING'),
             orElse: () => list.first,
           );
           if (liveTourn != null && liveTourn['id'] != null) {
@@ -1336,6 +1344,12 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
         combined[id] = ac;
       }
     }
+    for (final f in _acceptedFriendsList) {
+      final id = f['id']?.toString() ?? '';
+      if (id.isNotEmpty && !combined.containsKey(id)) {
+        combined[id] = f;
+      }
+    }
 
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -1603,7 +1617,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
         final senderNotifItem = {
           'id': 'notif_sent_' + DateTime.now().millisecondsSinceEpoch.toString(),
           'title': 'Friend Request Sent',
-          'desc': 'You sent a friend request to ' + (comp['name'] ?? '') + ' (' + (comp['club'] ?? '') + ' • HCP ' + (comp['hcp'] ?? '') + '). Pending acceptance.',
+          'desc': 'You sent a friend request to ' + (comp['name'] ?? '') + ' (' + (comp['club'] ?? '') + ' | ' + (comp['hcp'] ?? '') + ' HCP). Pending acceptance.',
           'time': 'Just now',
           'createdAt': nowIso,
           'unread': false,
@@ -5367,6 +5381,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                             const SizedBox(height: 5),
                             Builder(
                               builder: (context) {
+                                final isTablet = MediaQuery.of(context).size.width >= 600;
                                 final titleLines = _formatFeaturedTournamentTitle(title);
                                 return Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -5377,7 +5392,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                       style: GoogleFonts.plusJakartaSans(
-                                        fontSize: 15,
+                                        fontSize: isTablet ? 17 : 15,
                                         fontWeight: FontWeight.w700,
                                         color: Colors.white,
                                         height: 1.15,
@@ -5390,7 +5405,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                         style: GoogleFonts.plusJakartaSans(
-                                          fontSize: 15,
+                                          fontSize: isTablet ? 17 : 15,
                                           fontWeight: FontWeight.w700,
                                           color: Colors.white,
                                           height: 1.15,
@@ -5585,7 +5600,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
   Widget _buildMenuDrawer() {
     final firstName = _user?['firstName'] ?? 'Tournament';
     final lastName = _user?['lastName'] ?? 'Player';
-    final email = _user?['email'] ?? 'player@openclub.app';
+    final email = _user?['email'] ?? 'player@openclubos.com';
 
     return Drawer(
       backgroundColor: Colors.white,

@@ -393,7 +393,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       const SizedBox(height: 2),
                       Text(
                         senderClub.isNotEmpty
-                            ? '$senderClub${senderHcp.isNotEmpty ? " • HCP $senderHcp" : ""}'
+                            ? '$senderClub${senderHcp.isNotEmpty ? " | $senderHcp HCP" : ""}'
                             : 'Sent you a friend request',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 12,
@@ -969,8 +969,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Container(
-                                  width: 64,
-                                  height: 64,
+                                  width: 76,
+                                  height: 76,
                                   decoration: BoxDecoration(
                                     color: const Color(0xFFEAF7EE),
                                     borderRadius: BorderRadius.circular(24),

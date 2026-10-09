@@ -230,14 +230,26 @@
 }
 
 @layer base {
-  * {
+  *,
+  *::before,
+  *::after {
     @apply border-border outline-ring/50;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
 
-
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
 
   body {
     @apply bg-background text-foreground font-sans tracking-[0.01em];
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
 
   table tbody td {
@@ -316,5 +328,80 @@
 [class*="font-black"] {
   font-weight: 700 !important;
 }
+
+/* Global font smoothing and legibility rendering from web to mobile */
+html,
+body,
+*,
+*::before,
+*::after,
+input,
+textarea,
+select,
+button,
+[data-mobile-screen],
+[data-mobile-screen] *,
+.mobile-preview-container,
+.mobile-preview-container *,
+.mobile-simulator-viewport,
+.mobile-simulator-viewport * {
+  -webkit-font-smoothing: antialiased !important;
+  -moz-osx-font-smoothing: grayscale !important;
+  text-rendering: optimizeLegibility !important;
+}
+
+/* Universal Text Transform Capitalize on Mobile App & Simulator */
+.mobile-simulator-viewport button,
+.mobile-simulator-viewport [role="button"],
+.mobile-simulator-viewport h1,
+.mobile-simulator-viewport h2,
+.mobile-simulator-viewport h3,
+.mobile-simulator-viewport h4,
+.mobile-simulator-viewport h5,
+.mobile-simulator-viewport h6,
+.mobile-simulator-viewport p,
+.mobile-simulator-viewport span,
+.mobile-simulator-viewport a,
+.mobile-simulator-viewport label,
+.mobile-simulator-viewport .btn,
+.mobile-simulator-viewport [data-capitalize],
+[data-mobile-screen] button,
+[data-mobile-screen] [role="button"],
+[data-mobile-screen] h1,
+[data-mobile-screen] h2,
+[data-mobile-screen] h3,
+[data-mobile-screen] h4,
+[data-mobile-screen] h5,
+[data-mobile-screen] h6,
+[data-mobile-screen] p,
+[data-mobile-screen] span,
+[data-mobile-screen] a,
+[data-mobile-screen] label,
+[data-mobile-screen] .btn {
+  text-transform: capitalize;
+}
+
+/* Explicitly protect inputs, textareas, code, monospaced items, uppercase labels/eyebrows, and normal-case classes */
+.mobile-simulator-viewport input,
+.mobile-simulator-viewport textarea,
+.mobile-simulator-viewport code,
+.mobile-simulator-viewport pre,
+.mobile-simulator-viewport .font-mono,
+.mobile-simulator-viewport .uppercase,
+.mobile-simulator-viewport .normal-case,
+.mobile-simulator-viewport .lowercase,
+.mobile-simulator-viewport .no-capitalize,
+[data-mobile-screen] input,
+[data-mobile-screen] textarea,
+[data-mobile-screen] code,
+[data-mobile-screen] pre,
+[data-mobile-screen] .font-mono,
+[data-mobile-screen] .uppercase,
+[data-mobile-screen] .normal-case,
+[data-mobile-screen] .lowercase,
+[data-mobile-screen] .no-capitalize {
+  text-transform: unset !important;
+}
+
 
 

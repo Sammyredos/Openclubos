@@ -20,38 +20,6 @@ interface InvitePageProps {
   }>;
 }
 
-// Known golfer profiles for realistic demo resolution
-const KNOWN_GOLFERS: Record<
-  string,
-  { name: string; club: string; hcp: string; avatar?: string }
-> = {
-  "alex-0001": {
-    name: "Alex Morgan",
-    club: "Ikoyi Club 1938",
-    hcp: "9.4",
-  },
-  "alex-7782": {
-    name: "Alex Morgan",
-    club: "Ikoyi Club 1938",
-    hcp: "9.4",
-  },
-  "femi-01": {
-    name: "Femi Adebayo",
-    club: "Ikoyi Club 1938",
-    hcp: "11.2",
-  },
-  "chioma-02": {
-    name: "Chioma Nnamdi",
-    club: "Lekki Golf Club",
-    hcp: "14.8",
-  },
-  "tunde-04": {
-    name: "Tunde Bakare",
-    club: "Ikeja Golf Club",
-    hcp: "8.6",
-  },
-};
-
 function formatSlugToName(slug: string): string {
   if (!slug) return "A Fellow Golfer";
   const clean = slug.split("-")[0];
@@ -69,11 +37,38 @@ function getInitials(name: string): string {
 
 export default function MemberInvitePage({ params }: InvitePageProps) {
   const { slug } = use(params);
+  const [liveGolfer, setLiveGolfer] = React.useState<{ name: string; club: string; hcp: string; avatar?: string } | null>(null);
 
-  const matchedProfile = KNOWN_GOLFERS[slug.toLowerCase()] || {
+  React.useEffect(() => {
+    let isMounted = true;
+    const fetchMember = async () => {
+      try {
+        const backendBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
+        const cleanNamePart = slug.split("-")[0];
+        const res = await fetch(`${backendBase}/members?search=${encodeURIComponent(cleanNamePart || slug)}`).catch(() => null);
+        if (res && res.ok) {
+          const data = await res.json().catch(() => null);
+          const membersList = Array.isArray(data) ? data : data?.items || [];
+          if (membersList.length > 0 && isMounted) {
+            const m = membersList[0];
+            setLiveGolfer({
+              name: m.name || m.fullName || formatSlugToName(slug),
+              club: m.club || m.golfClub || "Openclub Golf Community",
+              hcp: String(m.handicap ?? m.hcp ?? "0.0"),
+              avatar: m.avatar || m.profilePhoto,
+            });
+          }
+        }
+      } catch {}
+    };
+    fetchMember();
+    return () => { isMounted = false; };
+  }, [slug]);
+
+  const matchedProfile = liveGolfer || {
     name: formatSlugToName(slug),
     club: "Openclub Golf Community",
-    hcp: "10.5",
+    hcp: "0.0",
   };
 
   const registerHref = `/mobile-preview?screen=register&ref=${encodeURIComponent(slug)}`;
