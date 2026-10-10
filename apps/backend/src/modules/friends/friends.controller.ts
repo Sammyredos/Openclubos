@@ -93,6 +93,26 @@ export class FriendsController {
     return this.friendsService.unblockUser(targetId, req.user, xUserId);
   }
 
+  @Post('messages')
+  @UseGuards(OptionalJwtAuthGuard)
+  async sendMessage(
+    @Body(new ValidationPipe({ whitelist: false, forbidNonWhitelisted: false, transform: false })) dto: any,
+    @Request() req: any,
+  ) {
+    const xUserId = req.headers ? (req.headers['x-user-id'] as string) : undefined;
+    return this.friendsService.sendMessage(dto, req.user, xUserId);
+  }
+
+  @Get('messages/:friendId')
+  @UseGuards(OptionalJwtAuthGuard)
+  async getMessages(
+    @Param('friendId') friendId: string,
+    @Request() req: any,
+  ) {
+    const xUserId = req.headers ? (req.headers['x-user-id'] as string) : undefined;
+    return this.friendsService.getMessages(friendId, req.user, xUserId);
+  }
+
   @Delete(':targetId')
   @UseGuards(OptionalJwtAuthGuard)
   async removeFriend(

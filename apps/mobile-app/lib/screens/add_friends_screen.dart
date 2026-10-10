@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../core/api/api_client.dart';
 import 'sync_contacts_screen.dart';
+import 'chat_screen.dart';
 
 class AddFriendsScreen extends StatefulWidget {
   final Map<String, dynamic>? user;
@@ -484,6 +485,46 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                   ),
                 ),
                 const SizedBox(height: 24),
+
+                // Button 0: Send Direct Message
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF009A60),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      elevation: 0,
+                    ),
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ChatScreen(
+                            friendId: player['id']?.toString() ?? '',
+                            friendName: compName,
+                            friendAvatar: resolvedPhoto,
+                            isOnline: true,
+                          ),
+                        ),
+                      );
+                    },
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.chat_bubble_outline_rounded, size: 18, color: Colors.white),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Send Direct Message',
+                          style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
 
                 // Button 1: Remove from Friends
                 SizedBox(
@@ -3146,21 +3187,53 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                               const SizedBox(width: 8),
                               // Right Action Button: Four Authentic Interactive States
                               if (isConnected)
-                                // Accepted state: single 3-dot action button opening forfeit-style action sheet
-                                GestureDetector(
-                                  onTap: () => _showFriendActionSheet(player),
-                                  child: Container(
-                                    width: 32,
-                                    height: 32,
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFF1F5F9),
-                                      shape: BoxShape.circle,
-                                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    GestureDetector(
+                                      onTap: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) => ChatScreen(
+                                              friendId: player['id']?.toString() ?? '',
+                                              friendName: name,
+                                              friendAvatar: player['avatar']?.toString() ?? player['profilePhoto']?.toString(),
+                                              isOnline: true,
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                      child: Container(
+                                        width: 32,
+                                        height: 32,
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFF5FAF6),
+                                          shape: BoxShape.circle,
+                                          border: Border.all(color: const Color(0xFFE1EFE5)),
+                                        ),
+                                        child: const Center(
+                                          child: Icon(Icons.chat_bubble_outline_rounded, size: 16, color: Color(0xFF009A60)),
+                                        ),
+                                      ),
                                     ),
-                                    child: const Center(
-                                      child: Icon(Icons.more_horiz_rounded, size: 18, color: Color(0xFF64748B)),
+                                    const SizedBox(width: 6),
+                                    GestureDetector(
+                                      onTap: () => _showFriendActionSheet(player),
+                                      child: Container(
+                                        width: 32,
+                                        height: 32,
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFF1F5F9),
+                                          shape: BoxShape.circle,
+                                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                                        ),
+                                        child: const Center(
+                                          child: Icon(Icons.more_horiz_rounded, size: 18, color: Color(0xFF64748B)),
+                                        ),
+                                      ),
                                     ),
-                                  ),
+                                  ],
                                 )
                               else if (isIncoming)
                                 // Incoming state: displays mark icon button (accept) + cancel icon button (decline)

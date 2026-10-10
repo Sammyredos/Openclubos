@@ -64,6 +64,8 @@ model User {
   blockedByUsers       BlockedUser[]       @relation("BlockedUsers")
   filedReports         UserReport[]        @relation("FiledReports")
   receivedReports      UserReport[]        @relation("ReceivedReports")
+  sentDirectMessages     DirectMessage[]   @relation("SentDirectMessages")
+  receivedDirectMessages DirectMessage[]   @relation("ReceivedDirectMessages")
 
   @@index([clubId])
   @@index([role])
@@ -772,4 +774,24 @@ model UserReport {
   @@index([reportedId])
   @@index([status])
   @@index([createdAt])
+}
+
+model DirectMessage {
+  id         String   @id @default(uuid(7))
+  senderId   String
+  receiverId String
+  text       String
+  hasImage   Boolean  @default(false)
+  imageUrl   String?
+  status     String   @default("read")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  sender     User     @relation("SentDirectMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver   User     @relation("ReceivedDirectMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([createdAt])
+  @@index([senderId, receiverId])
 }

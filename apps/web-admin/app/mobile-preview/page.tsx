@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   Smartphone,
   CheckCircle2,
@@ -88,7 +89,12 @@ import {
   Trash2,
   Database,
   Crown,
+  User,
+  Play,
   MessageSquare,
+  Layers,
+  Mic,
+  MoreVertical,
 } from "lucide-react";
 import { formatNumber, formatTitleCase, subscribeAdminEvents, broadcastAdminEvent, getCurrencySymbol, formatTournamentFee, formatWithOrdinal, formatShortDate, formatDateRange } from "@/lib/utils";
 import { forfeitTournamentRound } from "@/lib/api/scores";
@@ -205,7 +211,7 @@ const ALL_COMPREHENSIVE_GOLF_CLUBS = [
   "Oakwood Country Club",
 ];
 
-type ScreenId = "landing" | "scoring" | "attestation" | "hub" | "leaderboard" | "login" | "verify" | "register" | "forgot-password" | "check-inbox" | "reset-password" | "player-scorecard" | "add-friends" | "sync-contacts" | "notifications" | "tournaments" | "tournament-filter" | "tournament-details" | "my-friends";
+type ScreenId = "splash" | "landing" | "scoring" | "attestation" | "hub" | "leaderboard" | "login" | "verify" | "register" | "forgot-password" | "check-inbox" | "reset-password" | "player-scorecard" | "add-friends" | "sync-contacts" | "notifications" | "tournaments" | "tournament-filter" | "tournament-details" | "my-friends" | "chat";
 
 type DeviceModelId = "iphone-16-pro" | "galaxy-s24" | "pixel-9" | "iphone-notch" | "iphone-16-max" | "ipad-pro-11" | "ipad-mini" | "galaxy-tab-s9";
 type DeviceColorId = "natural-titanium" | "midnight" | "silver" | "desert-gold" | "emerald-pine";
@@ -812,12 +818,49 @@ export interface DummyKeyboardConfig {
 }
 
 export default function MobilePreviewPage() {
-  const [activeScreen, setActiveScreen] = useState<ScreenId>("landing");
+  const searchParams = useSearchParams();
+  const urlScreen = searchParams?.get("screen") as ScreenId | null;
+
+  const validScreens: ScreenId[] = useMemo(() => [
+    "splash", "landing", "scoring", "attestation", "hub", "leaderboard",
+    "login", "verify", "register", "forgot-password", "check-inbox",
+    "reset-password", "player-scorecard", "add-friends", "sync-contacts",
+    "notifications", "tournaments", "tournament-filter", "tournament-details", "my-friends", "chat"
+  ], []);
+
+  const [activeScreen, setActiveScreen] = useState<ScreenId>(() => {
+    if (urlScreen && validScreens.includes(urlScreen)) {
+      return urlScreen;
+    }
+    if (typeof window !== "undefined") {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const s = params.get("screen") as ScreenId | null;
+        if (s && validScreens.includes(s)) {
+          return s;
+        }
+        const token = localStorage.getItem("openclub_access_token") || localStorage.getItem("openclub_mobile_token");
+        const saved = localStorage.getItem("openclub_authenticated_player");
+        if (token || saved) return "hub";
+        return "splash";
+      } catch {}
+    }
+    return "hub";
+  });
+  const lastSyncedScreenRef = useRef<ScreenId | null>(activeScreen);
   const [landingSlide, setLandingSlide] = useState(0);
   const [landingTouchStartX, setLandingTouchStartX] = useState<number | null>(null);
   const [showInspector, setShowInspector] = useState(false);
   const [isInspectorExpanded, setIsInspectorExpanded] = useState(false);
   const [deviceScale, setDeviceScale] = useState<number>(100);
+  const [forceSkeletonLoading, setForceSkeletonLoading] = useState<boolean>(false);
+
+  // --- 3-Second Splash State ---
+  const [rememberedEmail, setRememberedEmail] = useState<string>("");
+  const [splashProgress, setSplashProgress] = useState<number>(0);
+  const [splashCountdown, setSplashCountdown] = useState<number>(3);
+  const splashTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const splashAnimIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // --- Simulator Dummy Virtual Mobile Keyboard State ---
   const [virtualKeyboard, setVirtualKeyboard] = useState<DummyKeyboardConfig | null>(null);
@@ -1052,20 +1095,51 @@ export default function MobilePreviewPage() {
     }
   };
 
-  // Sync screen with URL ?screen= and ?ref= query param
+  // Sync screen with URL ?screen= and ?ref= query param when navigated externally
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      const s = params.get("screen") as ScreenId | null;
-      if (s && ["landing", "scoring", "attestation", "hub", "leaderboard", "login", "verify", "register", "forgot-password", "check-inbox", "reset-password", "player-scorecard", "add-friends", "sync-contacts", "notifications", "tournaments", "tournament-filter", "tournament-details", "my-friends"].includes(s)) {
-        setActiveScreen(s);
-      }
-      const refCode = params.get("ref");
-      if (refCode) {
-        setIncomingReferrer(refCode);
+    if (urlScreen && validScreens.includes(urlScreen)) {
+      if (lastSyncedScreenRef.current !== urlScreen) {
+        lastSyncedScreenRef.current = urlScreen;
+        setActiveScreen(urlScreen);
+        if (urlScreen === "tournaments") {
+          setActiveBottomNavTab("tournaments");
+        } else if (urlScreen === "hub") {
+          setActiveBottomNavTab("home");
+        }
       }
     }
-  }, []);
+    if (typeof window !== "undefined") {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const refCode = params.get("ref");
+        if (refCode) {
+          setIncomingReferrer(refCode);
+        }
+      } catch {}
+    }
+  }, [urlScreen, validScreens]);
+
+  // Handle browser Back / Forward popstate navigation
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handlePopState = () => {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const s = params.get("screen") as ScreenId | null;
+        if (s && validScreens.includes(s) && lastSyncedScreenRef.current !== s) {
+          lastSyncedScreenRef.current = s;
+          setActiveScreen(s);
+          if (s === "tournaments") {
+            setActiveBottomNavTab("tournaments");
+          } else if (s === "hub") {
+            setActiveBottomNavTab("home");
+          }
+        }
+      } catch {}
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [validScreens]);
 
   // Always reset scroll to top on screen change
   useEffect(() => {
@@ -1073,15 +1147,18 @@ export default function MobilePreviewPage() {
   }, [activeScreen]);
 
   const switchScreen = (screen: ScreenId) => {
+    if (screen === "landing") {
+      const hasToken = typeof window !== "undefined" && (localStorage.getItem("openclub_access_token") || localStorage.getItem("openclub_mobile_token"));
+      const isAuth = (authenticatedPlayer && (authenticatedPlayer.id || authenticatedPlayer.email)) || hasToken;
+      screen = isAuth ? "hub" : "login";
+    }
+    lastSyncedScreenRef.current = screen;
     setActiveScreen(screen);
     if (screen === "tournaments") {
       setActiveBottomNavTab("tournaments");
     }
     if (screen === "hub") {
       setActiveBottomNavTab("home");
-    }
-    if (screen === "landing") {
-      setLandingSlide(0);
     }
     if (screen === "verify") {
       setVerifySuccess(false);
@@ -1102,9 +1179,11 @@ export default function MobilePreviewPage() {
       }
     }
     if (typeof window !== "undefined") {
-      const url = new URL(window.location.href);
-      url.searchParams.set("screen", screen);
-      window.history.replaceState({}, "", url.toString());
+      try {
+        const url = new URL(window.location.href);
+        url.searchParams.set("screen", screen);
+        window.history.replaceState({}, "", url.toString());
+      } catch {}
     }
     scrollToTopAll();
   };
@@ -1146,7 +1225,10 @@ export default function MobilePreviewPage() {
   const [selectedFeaturedTournamentForInfo, setSelectedFeaturedTournamentForInfo] = useState<any>(null);
 
   // --- Mobile Bottom Navigation State (5-item bar with flush PLAY GOLF button) ---
-  const [activeBottomNavTab, setActiveBottomNavTab] = useState<"home" | "tournaments" | "challenges" | "deals">("home");
+  const [activeBottomNavTab, setActiveBottomNavTab] = useState<"home" | "tournaments" | "challenges" | "deals">(() => {
+    if (urlScreen === "tournaments") return "tournaments";
+    return "home";
+  });
   const [tournamentFilter, setTournamentFilter] = useState<"All" | "Ongoing" | "Upcoming" | "Completed">("All");
   const [tournamentSearchQuery, setTournamentSearchQuery] = useState("");
   const [showTournamentFilterModal, setShowTournamentFilterModal] = useState(false);
@@ -1340,6 +1422,91 @@ export default function MobilePreviewPage() {
   }[]>([]);
   const [simulatedActiveFriendIds, setSimulatedActiveFriendIds] = useState<string[]>([]);
 
+  // --- Online Status Detection System ---
+  // Only detect players online by displaying the green dot. If not online, display ZERO color.
+  const [onlinePlayerIds, setOnlinePlayerIds] = useState<Set<string>>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem("openclub_online_player_ids");
+        if (stored) return new Set(JSON.parse(stored));
+      } catch {}
+    }
+    return new Set<string>([
+      "usr_pusha",
+      "pusha lastman",
+      "usr_samuel_obadina",
+      "samuel obadina",
+      "p-101",
+      "p-102",
+      "samuel-adesola",
+    ]);
+  });
+
+  const isPlayerOnline = useCallback((player: any): boolean => {
+    if (!player) return false;
+    if (player.isOnline === true) return true;
+    if (player.isOnline === false) return false;
+    const pId = String(player.id || "").toLowerCase().trim();
+    const pName = String(player.name || "").toLowerCase().trim();
+    const pEmail = String(player.email || "").toLowerCase().trim();
+    
+    // Explicit presence registry
+    if (onlinePlayerIds.has(pId) || onlinePlayerIds.has(pName) || (pEmail && onlinePlayerIds.has(pEmail))) return true;
+    
+    // Competitors currently active on golf course
+    if (friendsOnCourse.some((f) => f.id === player.id || f.name.toLowerCase().trim() === pName)) return true;
+    
+    // Connected friends in acceptedFriendIds
+    if (acceptedFriendIds.some((id) => {
+      const clean = String(id).toLowerCase().trim();
+      return clean === pId || clean === pName || (pEmail && clean === pEmail);
+    })) return true;
+
+    // Database accepted friends records
+    if (dbAcceptedFriends.some((f) => {
+      const fId = String(f.id || "").toLowerCase().trim();
+      const fName = String(f.name || [f.firstName, f.lastName].filter(Boolean).join(" ")).toLowerCase().trim();
+      const fEmail = String(f.email || "").toLowerCase().trim();
+      return fId === pId || fName === pName || (pEmail && fEmail === pEmail);
+    })) return true;
+
+    return false;
+  }, [onlinePlayerIds, friendsOnCourse, acceptedFriendIds, dbAcceptedFriends]);
+
+  // --- Direct Chat / Messaging Screen State ---
+  const [activeChatFriend, setActiveChatFriend] = useState<{
+    id: string;
+    name: string;
+    avatar?: string;
+    club?: string;
+    hcp?: string;
+    isOnline: boolean;
+  }>({
+    id: "samuel-obadina",
+    name: "Samuel Obadina",
+    avatar: undefined,
+    club: "Ikoyi Golf Club",
+    hcp: "20 HCP",
+    isOnline: true,
+  });
+
+  interface ChatMessageItem {
+    id: string;
+    sender: "them" | "me";
+    text: string;
+    time: string;
+    attachmentImage?: string;
+    status?: "sent" | "delivered" | "read";
+  }
+
+  // Real database-backed conversation storage keyed by recipient friend ID (No dummy seed data)
+  const [conversationsByFriendId, setConversationsByFriendId] = useState<Record<string, ChatMessageItem[]>>({});
+
+  const [showE2eeModal, setShowE2eeModal] = useState(false);
+  const [chatInputText, setChatInputText] = useState("");
+  const chatScrollRef = useRef<HTMLDivElement>(null);
+  const isTypingReplyRef = useRef<boolean>(false);
+
   // --- Active On-Course Competitors Data & Telemetry Scorecards ---
   const STANDARD_PARS = [4, 4, 3, 5, 4, 4, 3, 5, 4, 4, 4, 3, 5, 4, 4, 3, 4, 5];
   const STANDARD_YARDS = [385, 410, 175, 520, 395, 430, 190, 545, 415, 405, 390, 165, 535, 415, 440, 185, 420, 550];
@@ -1523,6 +1690,11 @@ export default function MobilePreviewPage() {
             setAuthenticatedPlayer(parsed);
           }
         }
+        const savedEmail = localStorage.getItem("openclub_last_user_email");
+        if (savedEmail) {
+          setRememberedEmail(savedEmail);
+          setLoginEmail((prev) => prev || savedEmail);
+        }
         const synced = localStorage.getItem("openclub_contacts_synced");
         if (synced === "true") {
           setShowContactsConnected(true);
@@ -1530,6 +1702,273 @@ export default function MobilePreviewPage() {
       } catch { }
     }
   }, []);
+
+  // Direct Session Check:
+  const isUserLoggedIn = useMemo(() => {
+    if (authenticatedPlayer && (authenticatedPlayer.id || authenticatedPlayer.email)) {
+      return true;
+    }
+    if (typeof window !== "undefined") {
+      try {
+        const token = localStorage.getItem("openclub_access_token") || localStorage.getItem("openclub_mobile_token");
+        if (token && token.trim().length > 0) return true;
+        const saved = localStorage.getItem("openclub_authenticated_player");
+        if (saved && saved.trim().length > 0) return true;
+      } catch {}
+    }
+    return false;
+  }, [authenticatedPlayer]);
+
+  // Live Database Sync: fetch real messages from database when opening chat screen
+  useEffect(() => {
+    if (activeScreen !== "chat" || !activeChatFriend?.name) return;
+    const backendBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
+    const currentUserId = authenticatedPlayer?.id || "player-user";
+    const token = typeof window !== "undefined" ? localStorage.getItem("openclub_access_token") : null;
+    const friendTarget = activeChatFriend.id || activeChatFriend.name;
+    const friendKey = String(friendTarget).toLowerCase().trim().replace(/\s+/g, "-");
+    const rawFriendId = String(activeChatFriend.id || "").toLowerCase().trim();
+    const rawFriendName = String(activeChatFriend.name || "").toLowerCase().trim();
+    const friendFirst = rawFriendName.split(/\s+/)[0] || "";
+
+    const authHeaders: Record<string, string> = { "x-user-id": currentUserId };
+    if (token) authHeaders["Authorization"] = `Bearer ${token}`;
+
+    fetch(`${backendBase}/friends/messages/${friendTarget}`, { headers: authHeaders })
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data: any[]) => {
+        if (Array.isArray(data)) {
+          const formatted: ChatMessageItem[] = data.map((m) => ({
+            id: m.id || `msg-${Date.now()}`,
+            sender: m.sender || "them",
+            text: m.text || "",
+            time: m.time || "",
+            status: m.status || "read",
+            attachmentImage: m.imageUrl || undefined,
+          }));
+          setConversationsByFriendId((prev) => ({
+            ...prev,
+            [friendKey]: formatted,
+            [rawFriendId]: formatted,
+            [rawFriendName]: formatted,
+            [friendFirst]: formatted,
+          }));
+          setTimeout(() => {
+            if (chatScrollRef.current) {
+              chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+            }
+          }, 60);
+        }
+      })
+      .catch(() => null);
+  }, [activeScreen, activeChatFriend, authenticatedPlayer]);
+
+
+
+  const handleSendMessage = () => {
+    if (!chatInputText.trim()) return;
+    const friendTarget = activeChatFriend?.id || activeChatFriend?.name || "chat-golfer";
+    const friendKey = String(friendTarget).toLowerCase().trim().replace(/\s+/g, "-");
+    const rawFriendId = String(activeChatFriend?.id || "").toLowerCase().trim();
+    const rawFriendName = String(activeChatFriend?.name || "").toLowerCase().trim();
+    const friendFirst = rawFriendName.split(/\s+/)[0] || "";
+
+    const now = new Date();
+    const hours = now.getHours();
+    const minutes = now.getMinutes();
+    const ampm = hours >= 12 ? "PM" : "AM";
+    const formattedHours = hours % 12 || 12;
+    const formattedMinutes = minutes < 10 ? `0${minutes}` : minutes;
+    const timeStr = `${formattedHours < 10 ? `0${formattedHours}` : formattedHours}:${formattedMinutes} ${ampm}`;
+
+    const textToSend = chatInputText.trim();
+    const tempId = `msg-${Date.now()}`;
+    const newMsg: ChatMessageItem = {
+      id: tempId,
+      sender: "me",
+      text: textToSend,
+      time: timeStr,
+      status: "read",
+    };
+
+    setConversationsByFriendId((prev) => {
+      const currentList = prev[friendKey] || prev[rawFriendId] || prev[rawFriendName] || [];
+      const updatedList = [...currentList, newMsg];
+      return {
+        ...prev,
+        [friendKey]: updatedList,
+        [rawFriendId]: updatedList,
+        [rawFriendName]: updatedList,
+        [friendFirst]: updatedList,
+      };
+    });
+    setChatInputText("");
+
+    setTimeout(() => {
+      if (chatScrollRef.current) {
+        chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+      }
+    }, 50);
+
+    // Persist real message to PostgreSQL database via backend API
+    const backendBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
+    const currentUserId = authenticatedPlayer?.id || "player-user";
+    const token = typeof window !== "undefined" ? localStorage.getItem("openclub_access_token") : null;
+    const authHeaders: Record<string, string> = { "Content-Type": "application/json", "x-user-id": currentUserId };
+    if (token) authHeaders["Authorization"] = `Bearer ${token}`;
+
+    fetch(`${backendBase}/friends/messages`, {
+      method: "POST",
+      headers: authHeaders,
+      body: JSON.stringify({
+        receiverId: friendTarget,
+        targetUserId: friendTarget,
+        text: textToSend,
+        clientTempId: tempId,
+      }),
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.id) {
+          setConversationsByFriendId((prev) => {
+            const next = { ...prev };
+            [friendKey, rawFriendId, rawFriendName, friendFirst].forEach((k) => {
+              if (next[k]) {
+                next[k] = next[k].map((m) =>
+                  m.id === tempId ? { ...m, id: data.id, status: "sent" } : m
+                );
+              }
+            });
+            return next;
+          });
+        }
+      })
+      .catch(() => null);
+  };
+
+  const handleSendPreset = (presetText: string) => {
+    if (!presetText) return;
+    const friendTarget = activeChatFriend?.id || activeChatFriend?.name || "chat-golfer";
+    const friendKey = String(friendTarget).toLowerCase().trim().replace(/\s+/g, "-");
+    const rawFriendId = String(activeChatFriend?.id || "").toLowerCase().trim();
+    const rawFriendName = String(activeChatFriend?.name || "").toLowerCase().trim();
+    const friendFirst = rawFriendName.split(/\s+/)[0] || "";
+
+    const now = new Date();
+    const hours = now.getHours();
+    const minutes = now.getMinutes();
+    const ampm = hours >= 12 ? "PM" : "AM";
+    const formattedHours = hours % 12 || 12;
+    const formattedMinutes = minutes < 10 ? `0${minutes}` : minutes;
+    const timeStr = `${formattedHours < 10 ? `0${formattedHours}` : formattedHours}:${formattedMinutes} ${ampm}`;
+
+    const textToSend = presetText.trim();
+    const tempId = `msg-${Date.now()}`;
+    const newMsg: ChatMessageItem = {
+      id: tempId,
+      sender: "me",
+      text: textToSend,
+      time: timeStr,
+      status: "read",
+    };
+
+    setConversationsByFriendId((prev) => {
+      const currentList = prev[friendKey] || prev[rawFriendId] || prev[rawFriendName] || [];
+      const updatedList = [...currentList, newMsg];
+      return {
+        ...prev,
+        [friendKey]: updatedList,
+        [rawFriendId]: updatedList,
+        [rawFriendName]: updatedList,
+        [friendFirst]: updatedList,
+      };
+    });
+
+    setTimeout(() => {
+      if (chatScrollRef.current) {
+        chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+      }
+    }, 50);
+
+    // Persist real message to PostgreSQL database via backend API
+    const backendBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
+    const currentUserId = authenticatedPlayer?.id || "player-user";
+    const token = typeof window !== "undefined" ? localStorage.getItem("openclub_access_token") : null;
+    const authHeaders: Record<string, string> = { "Content-Type": "application/json", "x-user-id": currentUserId };
+    if (token) authHeaders["Authorization"] = `Bearer ${token}`;
+
+    fetch(`${backendBase}/friends/messages`, {
+      method: "POST",
+      headers: authHeaders,
+      body: JSON.stringify({
+        receiverId: friendTarget,
+        targetUserId: friendTarget,
+        text: textToSend,
+        clientTempId: tempId,
+      }),
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.id) {
+          setConversationsByFriendId((prev) => {
+            const next = { ...prev };
+            [friendKey, rawFriendId, rawFriendName, friendFirst].forEach((k) => {
+              if (next[k]) {
+                next[k] = next[k].map((m) =>
+                  m.id === tempId ? { ...m, id: data.id, status: "sent" } : m
+                );
+              }
+            });
+            return next;
+          });
+        }
+      })
+      .catch(() => null);
+  };
+  // Transition from Splash screen after 3 seconds:
+  // - If user is logged in: simply login user to their dashboard (hub) without any UI
+  // - If user is logged out: make the default landing page the login page directly without any UI
+  const advanceFromSplash = useCallback(() => {
+    if (isUserLoggedIn) {
+      switchScreen("hub");
+    } else {
+      switchScreen("login");
+    }
+  }, [isUserLoggedIn]);
+
+  // Splash Screen 3-Second Display & Auto-Navigation Effect
+  useEffect(() => {
+    if (activeScreen !== "splash") {
+      setSplashProgress(0);
+      setSplashCountdown(3);
+      if (splashTimerRef.current) clearTimeout(splashTimerRef.current);
+      if (splashAnimIntervalRef.current) clearInterval(splashAnimIntervalRef.current);
+      return;
+    }
+
+    setSplashProgress(0);
+    setSplashCountdown(3);
+
+    const startTime = Date.now();
+    const duration = 3000;
+
+    splashAnimIntervalRef.current = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(100, (elapsed / duration) * 100);
+      const remainingSeconds = Math.max(0, Math.ceil((duration - elapsed) / 1000));
+      setSplashProgress(progress);
+      setSplashCountdown(remainingSeconds);
+    }, 40);
+
+    splashTimerRef.current = setTimeout(() => {
+      advanceFromSplash();
+    }, duration);
+
+    return () => {
+      if (splashTimerRef.current) clearTimeout(splashTimerRef.current);
+      if (splashAnimIntervalRef.current) clearInterval(splashAnimIntervalRef.current);
+    };
+  }, [activeScreen, advanceFromSplash]);
 
   // User-scoped storage keys for sent requests, accepted friends, incoming requests, and notifications
   const getSentRequestsKey = (userId?: string | null) =>
@@ -1871,10 +2310,152 @@ export default function MobilePreviewPage() {
     }
   }, [authenticatedPlayer?.id, authenticatedPlayer?.email, authenticatedPlayer?.name]);
 
+  // Real-Time Direct Message Drop-in Handler
+  const handleIncomingChatMessage = useCallback((payload: any) => {
+    if (!payload || !payload.text) return;
+
+    const currentMyId = String(authenticatedPlayer?.id || "player-user").toLowerCase().trim();
+    const currentMyEmail = String(authenticatedPlayer?.email || "").toLowerCase().trim();
+    const currentMyName = String(authenticatedPlayer?.name || "").toLowerCase().trim();
+
+    const senderId = String(payload.senderId || "").toLowerCase().trim();
+    const receiverId = String(payload.receiverId || "").toLowerCase().trim();
+
+    // Check if outgoing (sent by current user)
+    const isOutgoing =
+      payload.sender === "me" ||
+      (senderId && (senderId === currentMyId || senderId === currentMyEmail || senderId === currentMyName));
+
+    const otherPartyId = isOutgoing ? receiverId : senderId;
+    const otherPartyName = isOutgoing ? (payload.receiverName || "") : (payload.senderName || "");
+
+    // Format display time consistently in 12-hour AM/PM format
+    let timeStr = "";
+    if (payload.createdAt) {
+      try {
+        const d = new Date(payload.createdAt);
+        const hours = d.getHours();
+        const minutes = d.getMinutes();
+        const ampm = hours >= 12 ? "PM" : "AM";
+        const formattedHours = hours % 12 || 12;
+        const formattedMinutes = minutes < 10 ? `0${minutes}` : minutes;
+        timeStr = `${formattedHours < 10 ? `0${formattedHours}` : formattedHours}:${formattedMinutes} ${ampm}`;
+      } catch {}
+    }
+    if (!timeStr && payload.time && payload.time.includes("M")) {
+      timeStr = payload.time;
+    }
+    if (!timeStr) {
+      const now = new Date();
+      const hours = now.getHours();
+      const minutes = now.getMinutes();
+      const ampm = hours >= 12 ? "PM" : "AM";
+      const formattedHours = hours % 12 || 12;
+      const formattedMinutes = minutes < 10 ? `0${minutes}` : minutes;
+      timeStr = `${formattedHours < 10 ? `0${formattedHours}` : formattedHours}:${formattedMinutes} ${ampm}`;
+    }
+
+    const newMsgItem: ChatMessageItem = {
+      id: String(payload.id || `msg-${Date.now()}`),
+      sender: isOutgoing ? "me" : "them",
+      text: String(payload.text),
+      time: timeStr,
+      status: (payload.status as any) || "read",
+      attachmentImage: payload.imageUrl || payload.attachmentImage || undefined,
+    };
+
+    // Collect all alias keys for the conversation
+    const keysToUpdate = new Set<string>();
+    if (otherPartyId) {
+      keysToUpdate.add(otherPartyId);
+      keysToUpdate.add(otherPartyId.replace(/\s+/g, "-"));
+    }
+    if (otherPartyName) {
+      const lowerName = otherPartyName.toLowerCase().trim();
+      keysToUpdate.add(lowerName);
+      keysToUpdate.add(lowerName.replace(/\s+/g, "-"));
+      const first = lowerName.split(/\s+/)[0];
+      if (first) keysToUpdate.add(first);
+    }
+    if (activeChatFriend) {
+      const actId = String(activeChatFriend.id || "").toLowerCase().trim();
+      const actName = String(activeChatFriend.name || "").toLowerCase().trim();
+      const actSlug = actName.replace(/\s+/g, "-");
+      const actFirst = actName.split(/\s+/)[0];
+
+      const matchesActive =
+        (actId && keysToUpdate.has(actId)) ||
+        (actName && keysToUpdate.has(actName)) ||
+        (actSlug && keysToUpdate.has(actSlug)) ||
+        (actFirst && keysToUpdate.has(actFirst));
+
+      if (matchesActive) {
+        if (actId) keysToUpdate.add(actId);
+        if (actName) keysToUpdate.add(actName);
+        if (actSlug) keysToUpdate.add(actSlug);
+        if (actFirst) keysToUpdate.add(actFirst);
+      }
+    }
+
+    setConversationsByFriendId((prev) => {
+      const next = { ...prev };
+      keysToUpdate.forEach((key) => {
+        const currentList = next[key] || [];
+        const matchIdx = currentList.findIndex((m) => {
+          if (m.id === newMsgItem.id) return true;
+          if (payload.clientTempId && (m.id === payload.clientTempId || (m as any).clientTempId === payload.clientTempId)) return true;
+          if (isOutgoing && m.sender === "me" && m.text.trim() === newMsgItem.text.trim()) return true;
+          return false;
+        });
+
+        if (matchIdx >= 0) {
+          // Upgrade existing message in-place without duplicating
+          const updatedList = [...currentList];
+          updatedList[matchIdx] = {
+            ...updatedList[matchIdx],
+            ...newMsgItem,
+            id: newMsgItem.id,
+            status: "sent",
+          };
+          next[key] = updatedList;
+        } else {
+          // Append new incoming or unrecorded message
+          next[key] = [...currentList, newMsgItem];
+        }
+      });
+      return next;
+    });
+
+    setTimeout(() => {
+      if (chatScrollRef.current) {
+        chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+      }
+    }, 50);
+
+    // If incoming message and user is NOT looking at this friend's chat screen:
+    if (!isOutgoing) {
+      const isCurrentlyLooking =
+        activeScreen === "chat" &&
+        activeChatFriend &&
+        (
+          (activeChatFriend.id && keysToUpdate.has(String(activeChatFriend.id).toLowerCase().trim())) ||
+          (activeChatFriend.name && keysToUpdate.has(String(activeChatFriend.name).toLowerCase().trim()))
+        );
+
+      if (!isCurrentlyLooking) {
+        const senderDisplayName = payload.senderName || otherPartyName || "A friend";
+        showToast(
+          `${senderDisplayName}: ${newMsgItem.text}`,
+          "alert",
+          "NEW MESSAGE"
+        );
+      }
+    }
+  }, [authenticatedPlayer, activeChatFriend, activeScreen]);
+
   // --- Real-Time Socket Connection for Friend Activity & Notifications ---
   useEffect(() => {
-    const userId = authenticatedPlayer?.id;
-    if (!userId) return;
+    const userId = authenticatedPlayer?.id || authenticatedPlayer?.email || "player-user";
 
     const getSocketUrl = () => {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
@@ -1898,6 +2479,9 @@ export default function MobilePreviewPage() {
 
     socket.on("connect", () => {
       socket.emit("subscribe:user", { userId });
+      if (authenticatedPlayer?.id) socket.emit("subscribe:user", { userId: authenticatedPlayer.id });
+      if (authenticatedPlayer?.email) socket.emit("subscribe:user", { userId: authenticatedPlayer.email });
+      if (authenticatedPlayer?.name) socket.emit("subscribe:user", { userId: authenticatedPlayer.name });
     });
 
     // 1. Live Friend Request Received
@@ -2167,11 +2751,28 @@ export default function MobilePreviewPage() {
       }
     });
 
+    // 9. Live Direct Messages dropping in in real-time
+    socket.on("chat:message_received", (payload: any) => {
+      if (payload) handleIncomingChatMessage(payload);
+    });
+
+    socket.on("chat:message", (payload: any) => {
+      if (payload) handleIncomingChatMessage(payload);
+    });
+
+    // Multi-window / multi-tab live sync via BroadcastChannel
+    const unsubscribeAdmin = subscribeAdminEvents((evt) => {
+      if (evt.type === "chat:message_received" || evt.type === "CHAT_MESSAGE_RECEIVED") {
+        handleIncomingChatMessage(evt.payload);
+      }
+    });
+
     return () => {
+      unsubscribeAdmin();
       socket.emit("unsubscribe:user", { userId });
       socket.disconnect();
     };
-  }, [authenticatedPlayer?.id, authenticatedPlayer?.email]);
+  }, [authenticatedPlayer?.id, authenticatedPlayer?.email, authenticatedPlayer?.name, handleIncomingChatMessage]);
 
   // Handle accepting an incoming friend request
   const handleAcceptFriendRequest = (req: any) => {
@@ -3697,7 +4298,7 @@ export default function MobilePreviewPage() {
         }
 
         // Never trigger in-game inactivity notifications on public or auth screens
-        const authScreens = ["landing", "login", "register", "verify-email", "check-inbox", "forgot-password", "reset-password"];
+        const authScreens = ["splash", "landing", "login", "register", "verify-email", "check-inbox", "forgot-password", "reset-password"];
         if (authScreens.includes(activeScreen)) {
           setHasInactivityWarning(false);
           return;
@@ -4548,6 +5149,8 @@ export default function MobilePreviewPage() {
           email: targetEmail,
           password: regPassword,
           name: playerName,
+          firstName: regFirstName.trim(),
+          lastName: regLastName.trim(),
           handicap: handicapNum,
           gender: regGender || undefined,
           phone: formattedPhone,
@@ -4658,46 +5261,31 @@ export default function MobilePreviewPage() {
     }
 
     setIsVerifying(true);
-
-    // If matches active preview OTP, allow immediate verification
-    if (activeOtpCode && code === activeOtpCode) {
-      activateRegisteredPlayer();
-      setVerifySuccess(true);
-      showToast("Email verified successfully! Competitor profile activated.");
-      setTimeout(() => setActiveScreen("hub"), 1200);
-      setIsVerifying(false);
-      return;
-    }
+    const targetEmail = (verifyEmailTarget || regEmail).trim().toLowerCase();
 
     try {
       const backendBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
       const res = await fetch(`${backendBase}/auth/verify-email`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token: code }),
+        body: JSON.stringify({ token: code, email: targetEmail || undefined }),
       });
       const data = await res.json().catch(() => null);
 
-      if (res.ok && (data?.success || res.status === 200)) {
-        activateRegisteredPlayer(data?.user);
+      if (res.ok && (data?.success || res.status === 200 || data?.user || data?.accessToken)) {
         setVerifySuccess(true);
-        showToast("Email verified successfully! Competitor profile activated.");
-        setTimeout(() => setActiveScreen("hub"), 1200);
+        // Pre-fill login screen credentials so user can log in with newly created details
+        setLoginEmail(targetEmail);
+        setLoginPassword("");
+        setOtpDigits(["", "", "", "", "", ""]);
+        setActiveOtpCode(null);
+        showToast("Email verified successfully! Please sign in with your credentials.", "success", "ACCOUNT VERIFIED");
+        setTimeout(() => switchScreen("login"), 800);
       } else {
-        if (code === "849201" || code === "123456") {
-          activateRegisteredPlayer();
-          setVerifySuccess(true);
-          showToast("Email verified successfully! Competitor profile activated.");
-          setTimeout(() => setActiveScreen("hub"), 1200);
-        } else {
-          showToast(data?.message || "Invalid or expired verification code.", "error", "ACCESS RESTRICTED");
-        }
+        showToast(data?.message || "Invalid or expired verification code.", "error", "ACCESS RESTRICTED");
       }
-    } catch {
-      activateRegisteredPlayer();
-      setVerifySuccess(true);
-      showToast("Email verified successfully! Competitor profile activated.");
-      setTimeout(() => setActiveScreen("hub"), 1200);
+    } catch (err: any) {
+      showToast(err?.message || "Unable to reach server. Please check your backend connection.", "error", "VERIFICATION ERROR");
     } finally {
       setIsVerifying(false);
     }
@@ -4983,13 +5571,15 @@ export default function MobilePreviewPage() {
       }
 
       // Successful player login directly from database
+      const user = data.user || data;
       if (data.accessToken) {
         try {
           localStorage.setItem("openclub_access_token", data.accessToken);
           localStorage.setItem("openclub_mobile_token", data.accessToken);
+          localStorage.setItem("openclub_last_user_email", user.email || email);
+          setRememberedEmail(user.email || email);
         } catch {}
       }
-      const user = data.user || data;
       const rawName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
       const name = rawName || (user.name ? user.name : user.email ? (user.email.split("@")[0].toLowerCase() === "admin" ? "Tournament Administrator" : user.email.split("@")[0]) : "Tournament Player");
       const initials = `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`.toUpperCase() || user.email.substring(0, 2).toUpperCase();
@@ -5012,7 +5602,7 @@ export default function MobilePreviewPage() {
 
       // Seamless direct transition to tournament hub without intrusive toast
       setGroupingsRefreshKey((k) => k + 1);
-      setActiveScreen("hub");
+      switchScreen("hub");
     } catch {
       setLoginError(null);
       showToast("Unable to connect to the backend server. Please verify your connection.", "error", "SERVER CONNECTION FAILURE");
@@ -5172,6 +5762,72 @@ export default function MobilePreviewPage() {
     ScreenId,
     { path: string; summary: string; snippet: string }
   > = {
+    splash: {
+      path: "apps/mobile-app/lib/screens/splash_screen.dart",
+      summary:
+        "Official OpenclubOS brand splash screen featuring the emerald golf ball & tee squircle emblem over a luminous green gradient, centralized 2-second system load bar, Precision Management tagline, and active 3-dot loading sequence.",
+      snippet: `// Dart & Flutter: splash_screen.dart (Brand Splash & Launch Screen)
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+class SplashScreen extends StatefulWidget {
+  const SplashScreen({super.key});
+
+  @override
+  State<SplashScreen> createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<SplashScreen> {
+  @override
+  void initState() {
+    super.initState();
+    Future.delayed(const Duration(milliseconds: 2800), () {
+      if (mounted) {
+        Navigator.of(context).pushReplacementNamed('/landing');
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 124,
+                      height: 124,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF009A60),
+                        borderRadius: BorderRadius.circular(34),
+                      ),
+                      child: const Center(
+                        child: Icon(Icons.golf_course_rounded, color: Colors.white, size: 54),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Text('OPENCLUBOS', style: GoogleFonts.plusJakartaSans(fontSize: 28, fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 8),
+                    Text('THE ULTIMATE GOLF ECOSYSTEM', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 2.2, color: Color(0xFF009A60))),
+                    const SizedBox(height: 8),
+                    Text('Precision management for the modern golfer and club.', textAlign: TextAlign.center),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}`,
+    },
     landing: {
       path: "apps/mobile-app/lib/screens/landing_screen.dart",
       summary:
@@ -6264,6 +6920,32 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
   }
 }`,
     },
+    chat: {
+      path: "apps/mobile-app/lib/screens/chat_screen.dart",
+      summary:
+        "Direct Message / Chat screen featuring fixed top header with circular back button, friend avatar with online green indicator dot, message thread with Today date pill and pin placement attachment, and bottom composer input with attachment, send, and voice memo triggers.",
+      snippet: `// Dart & Flutter: chat_screen.dart (Direct Messaging Screen)
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+class ChatScreen extends StatelessWidget {
+  final String friendName;
+  final bool isOnline;
+  const ChatScreen({super.key, this.friendName = 'Victoria Chen', this.isOnline = true});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF4F6F3),
+      appBar: AppBar(
+        title: Text(friendName, style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700)),
+        backgroundColor: Colors.white,
+      ),
+      body: Center(child: Text('Chat with \$friendName')),
+    );
+  }
+}`,
+    },
   };
 
   const copyCode = () => {
@@ -6319,6 +7001,445 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
     return [phoneSlots[0], phoneSlots[1], phoneSlots[2]];
   };
 
+  // --- Consistent Skeleton Loaders for all Mobile Screens ---
+  const renderHubSkeleton = () => (
+    <div className="flex-1 min-h-full flex flex-col pb-6 bg-[#f4f6f3] relative overflow-x-hidden select-none animate-pulse">
+      {/* 1. Top Scenic Hero Area Placeholder */}
+      <div className="relative w-full h-[310px] shrink-0 bg-[#0a261a] p-4 flex flex-col justify-between">
+        {/* Top Action Bar */}
+        <div className="flex items-center justify-end gap-2 pt-1">
+          <div className="w-9 h-9 rounded-full bg-white/15 border border-white/20" />
+          <div className="w-9 h-9 rounded-full bg-white/15 border border-white/20" />
+          <div className="w-9 h-9 rounded-full bg-white/15 border border-white/20" />
+          <div className="w-9 h-9 rounded-full bg-white/15 border border-white/20" />
+        </div>
+        {/* Competitor Profile Identity */}
+        <div className="flex flex-col items-start pb-2">
+          <div className="w-14 h-14 rounded-full bg-white/20 border-2 border-white/40 mb-3" />
+          <div className="h-2.5 w-28 rounded-md bg-white/20 mb-2" />
+          <div className="h-6 w-44 rounded-lg bg-white/30 mb-2.5" />
+          <div className="h-6 w-32 rounded-full bg-white/15 border border-white/20" />
+        </div>
+      </div>
+
+      {/* 2. Dual Floating Action Cards */}
+      <div className="-mt-5 px-4 relative z-10 w-full">
+        <div className="flex items-center gap-2.5">
+          <div className="flex-1 h-[68px] bg-white rounded-2xl px-3 border border-slate-200/80 shadow-2xs flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-full bg-[#e2ede5] shrink-0" />
+            <div className="space-y-1.5 flex-1 min-w-0">
+              <div className="h-3.5 w-16 rounded-md bg-slate-200/80" />
+              <div className="h-2.5 w-24 rounded-md bg-slate-100" />
+            </div>
+          </div>
+          <div className="flex-1 h-[68px] bg-white rounded-2xl px-3 border border-slate-200/80 shadow-2xs flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-full bg-[#e2ede5] shrink-0" />
+            <div className="space-y-1.5 flex-1 min-w-0">
+              <div className="h-3.5 w-16 rounded-md bg-slate-200/80" />
+              <div className="h-2.5 w-24 rounded-md bg-slate-100" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 3. Playing Now Active Round Card */}
+      <div className="w-full px-4 pt-6 pb-2">
+        <div className="w-full h-[145px] rounded-2xl bg-[#052417] border border-[#0D3826] p-4 shadow-2xs flex flex-col justify-between">
+          <div className="flex items-start gap-3">
+            <div className="w-14 h-[68px] rounded-xl bg-[#0B3523] border border-[#16603E]" />
+            <div className="space-y-2 flex-1">
+              <div className="h-3 w-20 rounded-md bg-[#16603E]" />
+              <div className="h-4 w-44 rounded-md bg-[#16603E]" />
+              <div className="h-3 w-28 rounded-md bg-[#16603E]" />
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="flex-[7] h-9 rounded-xl bg-[#009A60]/40" />
+            <div className="flex-[3] h-9 rounded-xl bg-[#0C241B]" />
+          </div>
+        </div>
+      </div>
+
+      {/* 4. Friends Playing Now Avatar Row */}
+      <div className="w-full px-4 pt-4">
+        <div className="h-4 w-36 rounded-md bg-slate-200/90 mb-3" />
+        <div className="flex items-center gap-3">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="flex flex-col items-center gap-1.5">
+              <div className="w-12 h-12 rounded-full bg-white border border-slate-200/80 shadow-2xs" />
+              <div className="h-2 w-10 rounded-md bg-slate-200/80" />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* 5. Featured Tournaments Carousel Section */}
+      <div className="w-full px-4 pt-5">
+        <div className="h-4 w-44 rounded-md bg-slate-200/90 mb-3" />
+        <div className="w-[280px] h-[190px] rounded-2xl bg-white border border-slate-200/80 shadow-2xs p-3 flex flex-col justify-between">
+          <div className="w-full h-[95px] rounded-xl bg-slate-200/70" />
+          <div className="space-y-1.5">
+            <div className="h-3.5 w-3/4 rounded-md bg-slate-200/80" />
+            <div className="h-2.5 w-1/2 rounded-md bg-slate-100" />
+          </div>
+          <div className="flex items-center justify-between pt-1">
+            <div className="h-5 w-16 rounded-full bg-[#eaf7ee]" />
+            <div className="h-5 w-14 rounded-full bg-slate-100" />
+          </div>
+        </div>
+      </div>
+
+      {/* 6. Recent Rounds Section */}
+      <div className="w-full px-4 pt-5 pb-6 space-y-2.5">
+        <div className="h-4 w-32 rounded-md bg-slate-200/90 mb-1" />
+        {[0, 1].map((i) => (
+          <div key={i} className="h-[64px] rounded-2xl bg-white border border-slate-200/80 shadow-2xs p-3 flex items-center justify-between">
+            <div className="space-y-1.5">
+              <div className="h-3.5 w-40 rounded-md bg-slate-200/80" />
+              <div className="h-2.5 w-24 rounded-md bg-slate-100" />
+            </div>
+            <div className="w-9 h-9 rounded-xl bg-[#e2ede5]" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  const renderTournamentsSkeleton = () => (
+    <div className="flex-1 flex flex-col bg-[#F4F6F3] min-h-0 select-none animate-pulse">
+      {/* Fixed Top Section: Header & Search Bar */}
+      <div className="w-full shrink-0 z-20 bg-white border-b border-slate-200/60 shadow-2xs">
+        <div className="w-full px-6 pt-4 pb-3 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="h-10 w-10 rounded-full border border-slate-200 bg-white shadow-2xs" />
+            <div className="h-5 w-32 rounded-md bg-slate-200/90" />
+            <div className="h-10 w-10 rounded-full bg-[#EAF7EE] border border-[#C6F0DB] shadow-2xs" />
+          </div>
+          <div className="h-12 w-full rounded-xl bg-[#f5faf6] border border-[#e1efe5] px-3.5 flex items-center gap-2.5">
+            <div className="w-4 h-4 rounded-full bg-[#8CA0BA]/50" />
+            <div className="h-3.5 w-36 rounded-md bg-slate-200/70" />
+          </div>
+        </div>
+      </div>
+
+      {/* Category Filter Pills Row */}
+      <div className="px-4 py-3 flex gap-2 overflow-x-hidden shrink-0">
+        <div className="h-8 w-16 rounded-full bg-white border border-[#e1efe5] shadow-xs" />
+        <div className="h-8 w-22 rounded-full bg-[#f5faf6] border border-transparent" />
+        <div className="h-8 w-24 rounded-full bg-[#f5faf6] border border-transparent" />
+        <div className="h-8 w-24 rounded-full bg-[#f5faf6] border border-transparent" />
+      </div>
+
+      {/* Featured Event Hero Card */}
+      <div className="mx-4 my-1 h-[175px] rounded-2xl bg-white border border-slate-200/80 shadow-2xs p-3.5 flex flex-col justify-between shrink-0">
+        <div className="w-full h-[88px] rounded-xl bg-slate-200/70" />
+        <div className="space-y-1.5">
+          <div className="h-4 w-3/4 rounded-md bg-slate-200/90" />
+          <div className="h-3 w-1/2 rounded-md bg-slate-100" />
+        </div>
+        <div className="flex items-center justify-between">
+          <div className="h-5 w-20 rounded-full bg-[#EAF7EE]" />
+          <div className="h-5 w-16 rounded-full bg-slate-100" />
+        </div>
+      </div>
+
+      {/* Tournament Card List */}
+      <div className="px-4 pt-3 pb-6 space-y-3 flex-1 overflow-y-auto">
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="rounded-2xl bg-white border border-slate-200/80 shadow-2xs p-3.5 flex gap-3">
+            <div className="w-20 h-20 rounded-xl bg-slate-200/80 shrink-0" />
+            <div className="flex-1 space-y-2 py-0.5">
+              <div className="h-4 w-5/6 rounded-md bg-slate-200/90" />
+              <div className="h-3 w-3/5 rounded-md bg-slate-100" />
+              <div className="flex items-center gap-2 pt-1">
+                <div className="h-5 w-18 rounded-full bg-[#EAF7EE]" />
+                <div className="h-5 w-14 rounded-full bg-slate-100" />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  const renderTournamentDetailsSkeleton = () => (
+    <div className="flex-1 flex flex-col bg-[#F4F6F3] min-h-0 select-none animate-pulse">
+      {/* Top Nav Bar */}
+      <div className="px-6 pt-4 pb-3 flex items-center justify-between bg-white border-b border-slate-100 shrink-0">
+        <div className="h-8 w-8 rounded-full bg-white border border-slate-200 shadow-2xs" />
+        <div className="h-4 w-32 rounded-md bg-slate-200/90" />
+        <div className="h-8 w-8 rounded-full bg-white border border-slate-200 shadow-2xs" />
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-4 pt-4 pb-8 space-y-5">
+        {/* Cover Banner */}
+        <div className="w-full h-[185px] rounded-2xl bg-slate-200/80 shadow-2xs" />
+
+        {/* Title and Organizer */}
+        <div className="space-y-2">
+          <div className="h-5 w-3/4 rounded-md bg-slate-200/90" />
+          <div className="h-3.5 w-1/2 rounded-md bg-slate-100" />
+        </div>
+
+        {/* 3-Column Spec Card (bg-[#f5faf6] border-[#e1efe5]) */}
+        <div className="rounded-2xl bg-[#f5faf6] border border-[#e1efe5] divide-x divide-[#e1efe5] grid grid-cols-3 p-3">
+          <div className="px-2 text-center space-y-1">
+            <div className="h-2.5 w-10 mx-auto rounded-md bg-slate-200/70" />
+            <div className="h-4 w-12 mx-auto rounded-md bg-slate-200/90" />
+          </div>
+          <div className="px-2 text-center space-y-1">
+            <div className="h-2.5 w-10 mx-auto rounded-md bg-slate-200/70" />
+            <div className="h-4 w-12 mx-auto rounded-md bg-slate-200/90" />
+          </div>
+          <div className="px-2 text-center space-y-1">
+            <div className="h-2.5 w-12 mx-auto rounded-md bg-slate-200/70" />
+            <div className="h-4 w-14 mx-auto rounded-md bg-slate-200/90" />
+          </div>
+        </div>
+
+        {/* Description Lines */}
+        <div className="space-y-2">
+          <div className="h-3 w-full rounded-md bg-slate-200/70" />
+          <div className="h-3 w-5/6 rounded-md bg-slate-200/70" />
+          <div className="h-3 w-2/3 rounded-md bg-slate-200/70" />
+        </div>
+
+        {/* Rules & Details bones */}
+        <div className="space-y-3 pt-2">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="flex items-center gap-3">
+              <div className="w-7 h-7 rounded-full bg-[#EAF7EE] shrink-0" />
+              <div className="h-3.5 w-4/5 rounded-md bg-slate-200/80" />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Pinned Bottom CTA Bar */}
+      <div className="p-4 bg-white border-t border-slate-100 shrink-0">
+        <div className="h-12 w-full rounded-xl bg-[#009A60]/30" />
+      </div>
+    </div>
+  );
+
+  const renderNotificationsSkeleton = () => (
+    <div className="flex-1 flex flex-col bg-[#F4F6F3] min-h-0 select-none animate-pulse">
+      {/* Top Header */}
+      <div className="px-6 pt-4 pb-3 flex items-center justify-between bg-white border-b border-slate-100 shrink-0">
+        <div className="h-8 w-8 rounded-full bg-white border border-slate-200 shadow-2xs" />
+        <div className="h-4 w-28 rounded-md bg-slate-200/90" />
+        <div className="h-6 w-16 rounded-md bg-slate-100" />
+      </div>
+
+      {/* Filter Tabs */}
+      <div className="px-4 pt-3 pb-2 shrink-0">
+        <div className="h-10 w-full rounded-xl bg-[#f5faf6] border border-[#e1efe5] p-1 flex gap-1">
+          <div className="flex-1 rounded-lg bg-white shadow-2xs" />
+          <div className="flex-1 rounded-lg bg-transparent" />
+          <div className="flex-1 rounded-lg bg-transparent" />
+        </div>
+      </div>
+
+      {/* Feed Cards */}
+      <div className="px-4 py-2 space-y-3 flex-1 overflow-y-auto">
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className="rounded-2xl bg-white border border-slate-200/80 shadow-2xs p-3.5 flex gap-3 items-start">
+            <div className="w-10 h-10 rounded-full bg-[#E2EDE5] shrink-0" />
+            <div className="flex-1 space-y-2">
+              <div className="h-3.5 w-3/4 rounded-md bg-slate-200/90" />
+              <div className="h-3 w-5/6 rounded-md bg-slate-100" />
+              <div className="h-2.5 w-16 rounded-md bg-slate-100" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  const renderAddFriendsSkeleton = () => (
+    <div className="flex-1 flex flex-col bg-[#F4F6F3] min-h-0 select-none animate-pulse">
+      {/* Top Header */}
+      <div className="px-6 pt-4 pb-3 flex items-center justify-between bg-white border-b border-slate-100 shrink-0">
+        <div className="h-8 w-8 rounded-full bg-white border border-slate-200 shadow-2xs" />
+        <div className="h-4 w-28 rounded-md bg-slate-200/90" />
+        <div className="h-8 w-8 rounded-full bg-white border border-slate-200 shadow-2xs" />
+      </div>
+
+      <div className="px-4 py-4 space-y-4 flex-1 overflow-y-auto">
+        {/* Contact Sync Banner */}
+        <div className="rounded-2xl bg-white border border-slate-200/80 shadow-2xs p-4 flex items-center justify-between">
+          <div className="space-y-1.5 flex-1 pr-3">
+            <div className="h-4 w-36 rounded-md bg-slate-200/90" />
+            <div className="h-3 w-48 rounded-md bg-slate-100" />
+          </div>
+          <div className="h-9 w-24 rounded-xl bg-[#009A60]/30 shrink-0" />
+        </div>
+
+        {/* Search Bar */}
+        <div className="h-11 w-full rounded-xl bg-[#f5faf6] border border-[#e1efe5] px-3.5 flex items-center gap-2">
+          <div className="w-4 h-4 rounded-full bg-[#8CA0BA]/50" />
+          <div className="h-3.5 w-36 rounded-md bg-slate-200/70" />
+        </div>
+
+        {/* Suggested Golfer Cards */}
+        <div className="space-y-3">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="rounded-2xl bg-white border border-slate-200/80 shadow-2xs p-3.5 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-full bg-[#E2EDE5] shrink-0" />
+                <div className="space-y-1.5">
+                  <div className="h-3.5 w-32 rounded-md bg-slate-200/90" />
+                  <div className="h-2.5 w-20 rounded-md bg-slate-100" />
+                </div>
+              </div>
+              <div className="h-8 w-22 rounded-full bg-[#EAF7EE] border border-[#C6F0DB]" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderLoginSkeleton = () => (
+    <div className="flex-1 flex flex-col justify-between p-6 bg-white overflow-y-auto select-none animate-pulse">
+      <div className="w-full max-w-sm mx-auto space-y-4">
+        {/* Top Header Placeholder (No back button) */}
+        <div className="flex items-center justify-center pb-1 -mt-1">
+          <div className="h-3 w-20 rounded-md bg-slate-200/70" />
+        </div>
+
+        {/* Hero Squircle Brand Badge (76x76 geometry) */}
+        <div className="flex justify-center pt-2 pb-1">
+          <div className="w-[76px] h-[76px] rounded-[24px] bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center shadow-xs">
+            <div className="w-8 h-8 rounded-full bg-[#009A60]/40" />
+          </div>
+        </div>
+
+        {/* Title & Subtitle */}
+        <div className="text-center space-y-2 pb-1">
+          <div className="h-7 w-48 rounded-lg bg-slate-200/90 mx-auto" />
+          <div className="h-3.5 w-32 rounded-md bg-slate-100 mx-auto" />
+        </div>
+
+        {/* Google OAuth Button */}
+        <div className="w-full h-12 rounded-2xl border border-slate-200/90 bg-white shadow-2xs" />
+
+        {/* Divider */}
+        <div className="h-2 w-28 rounded-md bg-slate-100 mx-auto my-2" />
+
+        {/* Inputs */}
+        <div className="space-y-3.5">
+          <div className="w-full h-12 rounded-xl bg-[#f5faf6] border border-[#e1efe5]" />
+          <div className="w-full h-12 rounded-xl bg-[#f5faf6] border border-[#e1efe5]" />
+        </div>
+
+        {/* Action Row */}
+        <div className="flex items-center justify-between pt-1">
+          <div className="h-3 w-24 rounded-md bg-slate-100" />
+          <div className="h-3 w-28 rounded-md bg-slate-100" />
+        </div>
+
+        {/* Submit Button */}
+        <div className="w-full h-12 rounded-xl bg-[#009A60]/30 mt-2" />
+      </div>
+    </div>
+  );
+
+  const renderLeaderboardSkeleton = () => (
+    <div className="flex-1 flex flex-col bg-[#F4F6F3] min-h-0 select-none animate-pulse">
+      <div className="px-6 pt-4 pb-3 flex items-center justify-between bg-white border-b border-slate-100 shrink-0">
+        <div className="h-8 w-8 rounded-full bg-white border border-slate-200 shadow-2xs" />
+        <div className="h-4 w-32 rounded-md bg-slate-200/90" />
+        <div className="h-8 w-8 rounded-full bg-white border border-slate-200 shadow-2xs" />
+      </div>
+      <div className="px-4 py-3 space-y-3 flex-1 overflow-y-auto">
+        <div className="rounded-2xl bg-[#f5faf6] border border-[#e1efe5] p-3.5 flex justify-between">
+          <div className="space-y-1">
+            <div className="h-3 w-28 rounded-md bg-slate-200/80" />
+            <div className="h-2.5 w-16 rounded-md bg-slate-100" />
+          </div>
+          <div className="h-6 w-16 rounded-full bg-[#EAF7EE]" />
+        </div>
+        {[0, 1, 2, 3, 4].map((i) => (
+          <div key={i} className="rounded-2xl bg-white border border-slate-200/80 shadow-2xs p-3.5 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-6 h-6 rounded-md bg-slate-200/80" />
+              <div className="w-9 h-9 rounded-full bg-[#E2EDE5]" />
+              <div className="space-y-1">
+                <div className="h-3.5 w-32 rounded-md bg-slate-200/90" />
+                <div className="h-2.5 w-20 rounded-md bg-slate-100" />
+              </div>
+            </div>
+            <div className="h-6 w-10 rounded-md bg-slate-200/80" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  const renderScorecardSkeleton = () => (
+    <div className="flex-1 flex flex-col bg-[#F4F6F3] min-h-0 select-none animate-pulse">
+      <div className="px-6 pt-4 pb-3 flex items-center justify-between bg-white border-b border-slate-100 shrink-0">
+        <div className="h-8 w-8 rounded-full bg-white border border-slate-200 shadow-2xs" />
+        <div className="h-4 w-36 rounded-md bg-slate-200/90" />
+        <div className="w-8" />
+      </div>
+      <div className="px-4 py-3 space-y-3 flex-1 overflow-y-auto">
+        <div className="h-32 rounded-2xl bg-[#0A2619] p-4 flex flex-col justify-between">
+          <div className="h-4 w-40 rounded-md bg-emerald-700/60" />
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-xl bg-emerald-800/80" />
+            <div className="space-y-1.5 flex-1">
+              <div className="h-3 w-32 rounded-md bg-emerald-700/60" />
+              <div className="h-2.5 w-24 rounded-md bg-emerald-700/40" />
+            </div>
+          </div>
+        </div>
+        <div className="rounded-2xl bg-white border border-slate-200/80 shadow-2xs p-3.5 space-y-2">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="h-10 rounded-xl bg-[#f5faf6] border border-[#e1efe5] flex items-center justify-between px-3">
+              <div className="h-3 w-16 rounded-md bg-slate-200/80" />
+              <div className="h-4 w-8 rounded-md bg-slate-200/80" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderScreenSkeleton = (screen: ScreenId) => {
+    switch (screen) {
+      case "hub":
+        return renderHubSkeleton();
+      case "tournaments":
+      case "tournament-filter":
+        return renderTournamentsSkeleton();
+      case "tournament-details":
+        return renderTournamentDetailsSkeleton();
+      case "notifications":
+        return renderNotificationsSkeleton();
+      case "add-friends":
+      case "my-friends":
+      case "sync-contacts":
+        return renderAddFriendsSkeleton();
+      case "login":
+      case "register":
+      case "forgot-password":
+      case "reset-password":
+      case "verify":
+      case "check-inbox":
+        return renderLoginSkeleton();
+      case "leaderboard":
+        return renderLeaderboardSkeleton();
+      case "player-scorecard":
+      case "scoring":
+      case "attestation":
+        return renderScorecardSkeleton();
+      default:
+        return renderHubSkeleton();
+    }
+  };
+
   // Reusable Screen Content Renderer for any phone slot
   const renderScreenContent = (targetScreen: ScreenId, phoneIdx: number) => {
     const currentDisplayName = authenticatedPlayer?.name || (regFirstName ? `${regFirstName} ${regLastName}`.trim() : "Tournament Player");
@@ -6357,6 +7478,30 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
       ])
     ).filter(Boolean).sort((a, b) => a.localeCompare(b));
 
+    // Global Skeleton Mode: render target screen's consistent skeleton loader
+    if (forceSkeletonLoading && targetScreen !== "splash") {
+      return (
+        <div
+          ref={(el) => {
+            phoneScrollRefs.current[phoneIdx] = el;
+            if (phoneIdx === 0) {
+              (phoneContentScrollRef as any).current = el;
+            }
+          }}
+          className="flex-1 relative flex flex-col antialiased [text-rendering:optimizeLegibility] overflow-y-auto scrollbar-hide no-scrollbar"
+          style={{
+            scrollbarWidth: "none",
+            msOverflowStyle: "none",
+            WebkitFontSmoothing: "antialiased",
+            MozOsxFontSmoothing: "grayscale",
+            textRendering: "optimizeLegibility",
+          }}
+        >
+          {renderScreenSkeleton(targetScreen)}
+        </div>
+      );
+    }
+
     return (
       <div
         ref={(el) => {
@@ -6366,7 +7511,7 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
           }
         }}
         className={`flex-1 relative flex flex-col antialiased [text-rendering:optimizeLegibility] ${
-          targetScreen === "scoring" || targetScreen === "register" || targetScreen === "landing"
+          targetScreen === "scoring" || targetScreen === "register" || targetScreen === "landing" || targetScreen === "splash"
             ? "overflow-hidden"
             : "overflow-y-auto scrollbar-hide no-scrollbar"
         }`}
@@ -6379,193 +7524,117 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
         }}
       >
 
-                  {/* 0. GET STARTED / LANDING ONBOARDING SCREEN (Pixel-Perfect Reference Match) */}
-                  {targetScreen === "landing" && (
+                  {/* 00. BRAND SPLASH SCREEN (Pixel-Perfect Reference Match) */}
+                  {targetScreen === "splash" && (
                     <div
-                      className="flex-1 relative flex flex-col justify-between overflow-hidden select-none bg-black"
-                      onTouchStart={(e) => setLandingTouchStartX(e.touches[0].clientX)}
-                      onTouchEnd={(e) => {
-                        if (landingTouchStartX === null) return;
-                        const diff = landingTouchStartX - e.changedTouches[0].clientX;
-                        if (diff > 45 && landingSlide < 2) {
-                          setLandingSlide((prev) => prev + 1);
-                        } else if (diff < -45 && landingSlide > 0) {
-                          setLandingSlide((prev) => prev - 1);
-                        }
-                        setLandingTouchStartX(null);
-                      }}
+                      className="flex-1 relative flex flex-col justify-between overflow-hidden select-none bg-gradient-to-b from-[#FFFFFF] via-[#F3FAF6] to-[#E2F4EA]"
                     >
-                      {/* Carousel Background Images with Slide Transition */}
-                      <div className="absolute inset-0 overflow-hidden">
-                        <div
-                          className="flex h-full transition-transform duration-500 ease-[cubic-bezier(0.25,1,0.5,1)]"
-                          style={{
-                            transform: `translateX(-${landingSlide * 33.333333}%)`,
-                            width: "300%",
-                          }}
-                        >
-                          {/* Slide 1: African Tournament Golfer Mid-Swing */}
-                          <div className="relative w-1/3 h-full shrink-0">
-                            <img
-                              src="/images/landing/onboarding1.jpg"
-                              alt="The Modern Operating System for Golf Tournaments"
-                              className="w-full h-full object-cover object-[center_18%]"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-transparent to-black/35 pointer-events-none" />
-                          </div>
-
-                          {/* Slide 2: African Golfers on Putting Green */}
-                          <div className="relative w-1/3 h-full shrink-0">
-                            <img
-                              src="/images/landing/onboarding2.jpg"
-                              alt="Real-Time Leaderboards & Live Scoring"
-                              className="w-full h-full object-cover object-[center_38%]"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-transparent to-black/35 pointer-events-none" />
-                          </div>
-
-                          {/* Slide 3: African Sunset Practice Session & Luxury Clubhouse */}
-                          <div className="relative w-1/3 h-full shrink-0">
-                            <img
-                              src="/images/landing/onboarding3.jpg"
-                              alt="Automated Bookings & Practice Rounds"
-                              className="w-full h-full object-cover object-[center_35%]"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-transparent to-black/35 pointer-events-none" />
-                          </div>
-                        </div>
+                      {/* Ambient soft glowing aura and bokeh blooms over green gradient */}
+                      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                        <div className="absolute top-[38%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[280px] h-[280px] rounded-full bg-[#009A60]/[0.05] blur-3xl pointer-events-none" />
+                        <div className="absolute top-[45%] -left-12 w-[220px] h-[220px] rounded-full bg-[#009A60]/[0.035] blur-2xl pointer-events-none" />
+                        <div className="absolute bottom-[20%] -right-12 w-[240px] h-[240px] rounded-full bg-[#009A60]/[0.045] blur-2xl pointer-events-none" />
                       </div>
 
-                      {/* Top Header: Centered OpenclubOS Brand Badge */}
-                      <div className="relative z-20 pt-4 px-6 flex justify-center items-center pointer-events-none">
-                        <div className="px-3.5 py-1.5 rounded-[20px] bg-black/30 backdrop-blur-md border border-white/15 flex items-center gap-2 shadow-lg">
-                          <div className="w-7 h-7 rounded-lg bg-[#009A60] flex items-center justify-center shadow-xs">
-                            <svg
-                              className="w-4 h-4 text-white"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2.2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            >
-                              <path d="M15 13.5c.3-.8 1-1.6 1.8-2.3 1-.9 1.7-2.1 1.7-3.7a6.5 6.5 0 1 0-13 0c0 1.6.7 2.8 1.7 3.7.8.7 1.5 1.5 1.8 2.3" />
-                              <path d="M9.5 17.5h5" />
-                              <path d="M10.5 20.5h3" />
+                      {/* Top Spacer */}
+                      <div className="pt-16 shrink-0" />
+
+                      {/* Center Brand Identity Section */}
+                      <div className="relative z-10 flex flex-col items-center justify-center px-6 text-center my-auto">
+                        {/* Squircle Emblem with soft organic outer ring */}
+                        <div className="relative mb-7">
+                          {/* Soft organic outer contour ring */}
+                          <div className="absolute -inset-3 rounded-[44px] border border-[#A7DEC0]/55 rotate-[5deg] pointer-events-none" />
+
+                          {/* Squircle Container */}
+                          <div className="relative w-[124px] h-[124px] rounded-[34px] bg-[#009A60] shadow-[0_16px_40px_rgba(0,154,96,0.22)] flex items-center justify-center">
+                            {/* Stylized Golf Ball on Tee Vector Icon */}
+                            <svg viewBox="0 0 100 100" className="w-[68px] h-[68px]" fill="none">
+                              {/* Golf Ball (Pure White Circle) */}
+                              <circle cx="50" cy="40" r="17" fill="white" />
+
+                              {/* Dimple Accents (3 crescent curves on the right half) */}
+                              <path
+                                d="M54 33 C56.5 34.5 56.5 37.5 54 39"
+                                stroke="#009A60"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                              />
+                              <path
+                                d="M58 39 C60.5 40.5 60.5 43.5 58 45"
+                                stroke="#009A60"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                              />
+                              <path
+                                d="M52 44 C54.5 45.5 54.5 48 52 49"
+                                stroke="#009A60"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                              />
+
+                              {/* Golf Tee */}
+                              <path
+                                d="M43 57 C45 59 47.5 60 50 60 C52.5 60 55 59 57 57 Z"
+                                fill="white"
+                              />
+                              <rect x="42" y="56" width="16" height="2.5" rx="1.2" fill="white" />
+                              <path
+                                d="M47.5 58.5 L47.5 66.5 H44.5 V68.5 H47.5 L48 76 C48.5 77 51.5 77 52 76 L52.5 68.5 H55.5 V66.5 H52.5 L52.5 58.5 Z"
+                                fill="white"
+                              />
                             </svg>
                           </div>
-                          <div className="text-[17px] font-bold tracking-tight leading-none">
-                            <span className="text-white">Openclub</span>
-                            <span className="text-[#10B981]">OS</span>
-                          </div>
+                        </div>
+
+                        {/* Main Brand Title */}
+                        <h1 className="text-[29px] font-bold tracking-tight text-[#0F172A] leading-none mb-3">
+                          OPENCLUB<span className="text-[#009A60]">OS</span>
+                        </h1>
+
+                        {/* Sub-tagline: — EVOLUTION OF GOLF — */}
+                        <div className="flex items-center justify-center gap-3">
+                          <div className="h-[1px] w-12 bg-[#A7DEC0]/80" />
+                          <p className="text-[10.5px] font-bold tracking-[0.28em] text-[#52796F] uppercase">
+                            EVOLUTION OF GOLF
+                          </p>
+                          <div className="h-[1px] w-12 bg-[#A7DEC0]/80" />
                         </div>
                       </div>
 
-                      {/* Bottom Sheet Card with Rounded Top & Generous Vertical Rhythm */}
-                      <div className="relative z-20 bg-white rounded-t-[36px] shadow-[0_-12px_40px_rgba(0,0,0,0.3)] px-6 pt-6 pb-6 flex flex-col items-center">
-                        {/* Pagination Pill & Dots with 24px vertical separation */}
-                        <div className="flex items-center justify-center gap-1.5 mb-6">
-                          {[0, 1, 2].map((idx) => {
-                            const isActive = landingSlide === idx;
-                            return (
-                              <button
-                                key={idx}
-                                type="button"
-                                onClick={() => setLandingSlide(idx)}
-                                aria-label={`Go to slide ${idx + 1}`}
-                                className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
-                                  isActive
-                                    ? "w-7 bg-[#009A60]"
-                                    : "w-1.5 bg-[#E2E8F0] hover:bg-slate-300"
-                                }`}
-                              />
-                            );
-                          })}
-                        </div>
+                      {/* Lower Section: Centralized System Load Bar & Precision Tagline & 3 Loading Dots */}
+                      <div className="relative z-10 flex flex-col items-center pb-8 shrink-0">
+                        {/* Centralized SYSTEM LOAD (v2.x removed) */}
+                        <p className="text-[10.5px] font-bold tracking-[0.2em] text-[#7E9892] uppercase mb-2.5">
+                          SYSTEM LOAD
+                        </p>
 
-                        {/* Sliding Headline & Subtitle Carousel with 26px separation to button */}
-                        <div className="w-full overflow-hidden mb-6.5">
+                        {/* Centralized 2-Second Smooth Progress Bar */}
+                        <div className="w-[220px] h-[2.5px] bg-[#CCEBD8] rounded-full overflow-hidden mb-8 shadow-2xs">
                           <div
-                            className="flex transition-transform duration-500 ease-[cubic-bezier(0.25,1,0.5,1)]"
-                            style={{ transform: `translateX(-${landingSlide * 100}%)` }}
-                          >
-                            {/* Slide 1 Content */}
-                            <div className="w-full shrink-0 flex flex-col items-center text-center px-1">
-                              <h2 className="text-[25px] sm:text-[26px] font-bold text-[#0F172A] tracking-tight leading-[1.22] mb-3">
-                                The Modern Operating<br />
-                                System for <span className="text-[#009A60] italic font-bold">Golf</span><br />
-                                <span className="text-[#009A60] italic font-bold">Tournaments</span>
-                              </h2>
-                              <p className="text-[14px] text-[#5B6B7F] font-normal leading-[1.5] max-w-[310px] mx-auto">
-                                Experience elite tournament management, real-time leaderboards, and automated peer-attested scoring.
-                              </p>
-                            </div>
-
-                            {/* Slide 2 Content */}
-                            <div className="w-full shrink-0 flex flex-col items-center text-center px-1">
-                              <h2 className="text-[25px] sm:text-[26px] font-bold text-[#0F172A] tracking-tight leading-[1.22] mb-3">
-                                Real-Time Leaderboards<br />
-                                & <span className="text-[#009A60] italic font-bold">Live Scoring</span>
-                              </h2>
-                              <p className="text-[14px] text-[#5B6B7F] font-normal leading-[1.5] max-w-[310px] mx-auto">
-                                Follow the action as it happens. Every stroke, every hole, updated instantly across all devices.
-                              </p>
-                            </div>
-
-                            {/* Slide 3 Content */}
-                            <div className="w-full shrink-0 flex flex-col items-center text-center px-1">
-                              <h2 className="text-[25px] sm:text-[26px] font-bold text-[#0F172A] tracking-tight leading-[1.22] mb-3">
-                                Automated Bookings &<br />
-                                <span className="text-[#009A60] italic font-bold">Practice Rounds</span>
-                              </h2>
-                              <p className="text-[14px] text-[#5B6B7F] font-normal leading-[1.5] max-w-[310px] mx-auto">
-                                Secure your spot. Manage tee times, payments, and practice sessions with seamless automation.
-                              </p>
-                            </div>
-                          </div>
+                            className="h-full bg-[#009A60] rounded-full transition-all ease-linear"
+                            style={{ width: `${splashProgress}%` }}
+                          />
                         </div>
 
-                        {/* Primary Button: "Continue >" or "Get Started Free >" */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (landingSlide < 2) {
-                              setLandingSlide((prev) => prev + 1);
-                            } else {
-                              switchScreen("register");
-                            }
-                          }}
-                          className="w-full h-12 rounded-2xl bg-[#009A60] hover:bg-[#008251] active:scale-[0.99] text-white font-bold text-[15px] flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer mb-4"
-                        >
-                          <span>{landingSlide === 2 ? "Get Started Free" : "Continue"}</span>
-                          <ChevronRight className="w-4 h-4 stroke-[2.5]" />
-                        </button>
+                        {/* Precision Management for the Modern Golfers */}
+                        <p className="text-[9.5px] font-bold tracking-[0.22em] text-[#7E9892] uppercase mb-2.5 text-center px-4 max-w-[340px]">
+                          PRECISION MANAGEMENT FOR THE MODERN GOLFERS
+                        </p>
 
-                        {/* Secondary Link: "Already a member? Sign In" */}
-                        <div className="text-center text-[13px] text-[#64748B] font-normal mb-5">
-                          <span>Already a member? </span>
-                          <button
-                            type="button"
-                            onClick={() => switchScreen("login")}
-                            className="text-[13px] font-bold text-[#009A60] underline underline-offset-2 hover:text-[#008754] cursor-pointer"
-                          >
-                            Sign In
-                          </button>
-                        </div>
-
-                        {/* Certified Trust Badges */}
-                        <div className="flex items-center justify-center gap-5 pt-0.5 pb-1">
-                          <div className="flex items-center gap-1.5 text-[#8CA0BA]">
-                            <ShieldCheck className="w-3.5 h-3.5 stroke-[1.8]" />
-                            <span className="text-[9.5px] font-normal tracking-[0.8px] uppercase">SOC2 TYPE II</span>
-                          </div>
-                          <div className="flex items-center gap-1.5 text-[#8CA0BA]">
-                            <Lock className="w-3.5 h-3.5 stroke-[1.8]" />
-                            <span className="text-[9.5px] font-normal tracking-[0.8px] uppercase">GDPR READY</span>
-                          </div>
+                        {/* 3 Animated Loading State Dots */}
+                        <div className="flex items-center justify-center gap-1.5 pb-2">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#009A60] animate-bounce [animation-delay:-0.3s]" />
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#009A60] animate-bounce [animation-delay:-0.15s]" />
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#009A60] animate-bounce" />
                         </div>
                       </div>
                     </div>
+                  )}
+
+                  {/* 0. DEFAULT LANDING (Immediately loads target destination with consistent Skeleton Loader) */}
+                  {targetScreen === "landing" && (
+                    isUserLoggedIn ? renderHubSkeleton() : renderLoginSkeleton()
                   )}
 
                   {/* 1. SCORING SCREEN */}
@@ -6574,7 +7643,7 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                       {/* App Header */}
                       <div className="px-5 pt-1 pb-3 flex items-center justify-between border-b border-emerald-950/40">
                         <button
-                          onClick={() => setActiveScreen("hub")}
+                          onClick={() => switchScreen("hub")}
                           className="h-8 w-8 rounded-full bg-slate-900/60 flex items-center justify-center text-slate-300 hover:text-white"
                         >
                           <ArrowLeft className="h-4 w-4" />
@@ -6853,7 +7922,7 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                       {/* Header */}
                       <div className="px-5 pt-1 pb-3 flex items-center justify-between border-b border-emerald-950/40">
                         <button
-                          onClick={() => setActiveScreen("scoring")}
+                          onClick={() => switchScreen("scoring")}
                           className="h-8 w-8 rounded-full bg-slate-900/60 flex items-center justify-center text-slate-300 hover:text-white"
                         >
                           <ArrowLeft className="h-4 w-4" />
@@ -7031,75 +8100,63 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
 
                         {/* Header Content */}
                         <div className="relative z-10 px-4 pt-3 pb-8 flex flex-col justify-between h-full w-full">
-                          {/* Top Action Bar: 4 WHITE ICONS (Properly spaced at the top right corner) */}
-                          <div className="flex items-center justify-end gap-3.5 shrink-0 pt-0.5">
-                            {/* Users (My Friends) - Opens New Screen */}
-                            <button
-                              type="button"
-                              onClick={() => switchScreen("my-friends")}
-                              className="w-8 h-8 rounded-full flex items-center justify-center text-white/95 hover:text-white hover:bg-white/20 transition-all cursor-pointer relative"
-                              title="My Friends"
-                              aria-label="My Friends"
-                            >
-                              <Users className="h-[20px] w-[20px] text-white stroke-[1.8]" />
-                              
-                            </button>
-
+                          {/* Top Action Bar: 4 ICONS WITH CIRCULAR FADED WHITE CARD BACKGROUNDS */}
+                          <div className="flex items-center justify-end gap-2 sm:gap-2.5 shrink-0 pt-0.5">
                             {/* User Plus (Add Friends) - Opens New Screen */}
                             <button
                               type="button"
                               onClick={() => switchScreen("add-friends")}
-                              className="w-8 h-8 rounded-full flex items-center justify-center text-white/95 hover:text-white hover:bg-white/20 transition-all cursor-pointer"
+                              className="w-9 h-9 sm:w-[38px] sm:h-[38px] rounded-full bg-white/20 hover:bg-white/30 active:scale-95 border border-white/25 shadow-xs backdrop-blur-xs flex items-center justify-center text-white transition-all cursor-pointer relative"
                               title="Add Friends"
                               aria-label="Add Friends"
                             >
-                              <UserPlus className="h-[20px] w-[20px] text-white stroke-[1.8]" />
+                              <UserPlus className="h-[19px] w-[19px] sm:h-5 sm:w-5 text-white stroke-[1.9]" />
                             </button>
 
-                              {/* Notification Bell with Badge */}
-                              <button
-                                type="button"
-                                onClick={() => switchScreen("notifications")}
-                                className="w-8 h-8 rounded-full flex items-center justify-center text-white/95 hover:text-white hover:bg-white/20 transition-all cursor-pointer relative"
-                                title="Notifications"
-                                aria-label="Notifications"
-                              >
-                                <Bell className="h-[20px] w-[20px] text-white stroke-[1.8]" />
-                                {incomingFriendRequests.length > 0 ? (
-                                  <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] rounded-full bg-[#EF4444] border-1.5 border-[#0A3D27] text-white text-[10px] font-bold flex items-center justify-center px-1 shadow-sm leading-none animate-pulse">
-                                    {incomingFriendRequests.length}
-                                  </span>
-                                ) : unreadNotificationsCount > 0 ? (
-                                  <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-[#EF4444] border-1.5 border-white animate-pulse" />
-                                ) : null}
-                              </button>
+                            {/* Notification Bell with Badge */}
+                            <button
+                              type="button"
+                              onClick={() => switchScreen("notifications")}
+                              className="w-9 h-9 sm:w-[38px] sm:h-[38px] rounded-full bg-white/20 hover:bg-white/30 active:scale-95 border border-white/25 shadow-xs backdrop-blur-xs flex items-center justify-center text-white transition-all cursor-pointer relative"
+                              title="Notifications"
+                              aria-label="Notifications"
+                            >
+                              <Bell className="h-[19px] w-[19px] sm:h-5 sm:w-5 text-white stroke-[1.9]" />
+                              {incomingFriendRequests.length > 0 ? (
+                                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full bg-[#EF4444] border-2 border-white text-white text-[10px] font-bold flex items-center justify-center px-1 shadow-xs leading-none animate-pulse">
+                                  {incomingFriendRequests.length}
+                                </span>
+                              ) : unreadNotificationsCount > 0 ? (
+                                <span className="absolute top-0.5 right-0.5 w-2.5 h-2.5 rounded-full bg-[#EF4444] border-2 border-white shadow-xs animate-pulse" />
+                              ) : null}
+                            </button>
 
-                              {/* My Bookings Icon (Displays bookings made with a Pro) */}
-                              <button
-                                type="button"
-                                onClick={() => setShowBookingsModal(true)}
-                                className="w-8 h-8 rounded-full flex items-center justify-center text-white/95 hover:text-white hover:bg-white/20 transition-all cursor-pointer relative"
-                                title="My Bookings (Pro Sessions)"
-                                aria-label="My Bookings"
-                              >
-                                <CalendarCheck className="h-[20px] w-[20px] text-white stroke-[1.8]" />
-                                {proBookings.length > 0 && (
-                                  <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-[16px] rounded-full bg-[#009A60] border-1.5 border-[#0A3D27] text-white text-[9.5px] font-bold flex items-center justify-center px-1 shadow-sm leading-none">
-                                    {proBookings.length}
-                                  </span>
-                                )}
-                              </button>
+                            {/* My Bookings Icon (Displays bookings made with a Pro) */}
+                            <button
+                              type="button"
+                              onClick={() => setShowBookingsModal(true)}
+                              className="w-9 h-9 sm:w-[38px] sm:h-[38px] rounded-full bg-white/20 hover:bg-white/30 active:scale-95 border border-white/25 shadow-xs backdrop-blur-xs flex items-center justify-center text-white transition-all cursor-pointer relative"
+                              title="My Bookings (Pro Sessions)"
+                              aria-label="My Bookings"
+                            >
+                              <CalendarCheck className="h-[19px] w-[19px] sm:h-5 sm:w-5 text-white stroke-[1.9]" />
+                              {proBookings.length > 0 && (
+                                <span className="absolute -top-1 -right-1 min-w-[17px] h-[17px] rounded-full bg-[#009A60] border-2 border-white text-white text-[9.5px] font-bold flex items-center justify-center px-1 shadow-xs leading-none">
+                                  {proBookings.length}
+                                </span>
+                              )}
+                            </button>
 
-                              {/* Hamburger Menu (Profile Drawer) */}
-                              <button
-                                type="button"
-                                onClick={() => setShowMenuDrawer(true)}
-                                className="w-8 h-8 rounded-full flex items-center justify-center text-white/95 hover:text-white hover:bg-white/20 transition-all cursor-pointer"
-                                title="Menu"
-                                aria-label="Menu"
-                              >
-                                <Menu className="h-[22px] w-[22px] text-white stroke-[1.8]" />
-                              </button>
+                            {/* Hamburger Menu (Profile Drawer) */}
+                            <button
+                              type="button"
+                              onClick={() => setShowMenuDrawer(true)}
+                              className="w-9 h-9 sm:w-[38px] sm:h-[38px] rounded-full bg-white/20 hover:bg-white/30 active:scale-95 border border-white/25 shadow-xs backdrop-blur-xs flex items-center justify-center text-white transition-all cursor-pointer relative"
+                              title="Menu"
+                              aria-label="Menu"
+                            >
+                              <Menu className="h-5 w-5 sm:h-[22px] sm:w-[22px] text-white stroke-[1.9]" />
+                            </button>
                           </div>
 
                           {/* Competitor Profile Block: Avatar positioned directly at the top of the welcome text */}
@@ -7141,10 +8198,10 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                               READY TO TEE OFF
                             </span>
 
-                            {/* Player First Name with 'PRO.' prefix and automatic horizontal adjustment across full width */}
+                            {/* Player First Name & Faded White QR Code Action Button */}
                             <div className="w-full max-w-full overflow-hidden min-w-0">
                               <div 
-                                className="flex items-center gap-2 whitespace-nowrap min-w-0"
+                                className="flex items-center gap-2.5 sm:gap-3 whitespace-nowrap min-w-0"
                                 title={`${currentIsPro ? "PRO. " : ""}${currentFirstName}`}
                               >
                                 {currentIsPro && (
@@ -7160,11 +8217,26 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                                 >
                                   {currentFirstName}
                                 </h2>
+
+                                {/* Compact Faded White QR Code Action Button: Player card radius (rounded-2xl), icon-only display */}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setQrModalTab("display");
+                                    setScannedFriendResult(null);
+                                    setShowQrCodeModal(true);
+                                  }}
+                                  className="w-9 h-9 sm:w-[38px] sm:h-[38px] rounded-2xl bg-white/20 hover:bg-white/30 active:scale-95 border border-white/25 shadow-xs backdrop-blur-xs flex items-center justify-center text-white transition-all cursor-pointer shrink-0 group"
+                                  title="My QR Code & Scanner"
+                                  aria-label="My QR Code & Scanner"
+                                >
+                                  <QrCode className="h-[18px] w-[18px] sm:h-5 sm:w-5 text-white group-hover:scale-105 transition-transform shrink-0 stroke-[2]" />
+                                </button>
                               </div>
                             </div>
 
-                            {/* Location Chip */}
-                            <div className="mt-2.5">
+                            {/* Location Badge */}
+                            <div className="mt-2 flex items-center gap-2 flex-wrap">
                               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/40 backdrop-blur-md border border-white/25 shadow-xs">
                                 <MapPin className="h-3 w-3 text-white/90 shrink-0 stroke-[1.8]" />
                                 <span className="text-[10px] font-semibold text-white uppercase tracking-wider">
@@ -7179,13 +8251,14 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                       {/* --- 2. DUAL FLOATING ACTION CARDS (BALANCED EQUAL WIDTH, HEIGHT 66PX, MORE ROUNDED [26PX]) --- */}
                       <div className="-mt-5 px-4 relative z-10 w-full">
                         <div className="flex items-center gap-2.5">
-                          {/* Left Card: Book a Pro (Equal flex-1) */}
+                          {/* Left Card: Friends - Opens My Friends Screen (Equal flex-1) */}
                           <button
                             type="button"
-                            onClick={() => setShowBookingsModal(true)}
+                            onClick={() => switchScreen("my-friends")}
                             className="flex-1 h-[68px] bg-white rounded-[26px] px-3 shadow-[0_4px_16px_rgba(0,0,0,0.06)] border border-slate-200/80 flex items-center justify-center gap-2.5 hover:shadow-md transition-all cursor-pointer group active:scale-98 min-w-0 relative overflow-hidden"
+                            title="My Friends"
                           >
-                            {/* Fitted Background Pattern: Pro Tee-Time Clinic Swing Velocity Trajectory Arc & Soft Radial Glow */}
+                            {/* Fitted Background Pattern: Golf Network Nodes & Soft Radial Glow */}
                             <svg
                               className="absolute inset-0 w-full h-full pointer-events-none opacity-40 transition-opacity duration-300 group-hover:opacity-60"
                               viewBox="0 0 170 68"
@@ -7193,30 +8266,30 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                               preserveAspectRatio="none"
                             >
                               <defs>
-                                <radialGradient id="bookAProGlow" cx="90%" cy="20%" r="70%">
+                                <radialGradient id="friendsCardGlow" cx="90%" cy="20%" r="70%">
                                   <stop offset="0%" stopColor="#009A60" stopOpacity="0.10" />
                                   <stop offset="100%" stopColor="#009A60" stopOpacity="0" />
                                 </radialGradient>
                               </defs>
-                              <rect width="100%" height="100%" fill="url(#bookAProGlow)" />
-                              {/* Parabolic swing velocity loft arc */}
+                              <rect width="100%" height="100%" fill="url(#friendsCardGlow)" />
+                              {/* Connection network arcs */}
                               <path d="M-10 62 Q 55 58, 95 38 T 165 12" stroke="#009A60" strokeWidth="1.1" fill="none" opacity="0.18" />
                               <path d="M-15 48 Q 50 44, 90 26 T 170 4" stroke="#009A60" strokeWidth="0.8" strokeDasharray="3 3" fill="none" opacity="0.14" />
-                              {/* Precision impact focal arcs */}
+                              {/* Connection node circles */}
                               <circle cx="152" cy="18" r="14" stroke="#009A60" strokeWidth="0.9" strokeDasharray="2 2" opacity="0.16" />
                               <circle cx="152" cy="18" r="26" stroke="#009A60" strokeWidth="0.7" opacity="0.10" />
                             </svg>
 
-                            <CalendarCheck className="h-5.5 w-5.5 text-[#009A60] stroke-[1.9] shrink-0 group-hover:scale-105 transition-transform relative z-10" />
+                            <Users className="h-5.5 w-5.5 text-[#009A60] stroke-[1.9] shrink-0 group-hover:scale-105 transition-transform relative z-10" />
                             <div className="flex flex-col text-left min-w-0 justify-center relative z-10">
                               <span className="text-[16px] font-bold text-[#009A60] whitespace-nowrap tracking-tight leading-tight">
-                                Book a Pro
+                                Friends
                               </span>
                               <span className="text-[9.5px] font-medium text-slate-500 whitespace-nowrap tracking-tight leading-tight mt-0.5">
-                                Book the club pro
+                                Connect & play with
                               </span>
                               <span className="text-[9.5px] font-medium text-slate-500 whitespace-nowrap tracking-tight leading-tight">
-                                for golfing sessions
+                                golf companions
                               </span>
                             </div>
                           </button>
@@ -7586,8 +8659,9 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                                     className="w-[54px] h-[54px] rounded-full border-2 border-white shadow-[0_4px_12px_rgba(0,0,0,0.08)] bg-gradient-to-b from-slate-300 to-slate-400 text-white flex items-center justify-center shrink-0 font-bold text-[14px] relative hover:scale-105 transition-all cursor-pointer active:scale-95"
                                     title={`${friend.name} (${friend.score}) - Tap to view scorecard`}
                                   >
-                                    {friend.initials}
-                                    <span className="absolute bottom-0.5 right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white" />
+                                    {isPlayerOnline(friend) && (
+                                      <span className="absolute bottom-0.5 right-0.5 w-2.5 h-2.5 rounded-full bg-[#009A60] border-2 border-white shadow-2xs pointer-events-none" />
+                                    )}
                                   </button>
                                   <span className="text-[11px] font-semibold text-slate-700 mt-1.5 max-w-[56px] truncate text-center leading-tight">
                                     {friendFirstName}
@@ -8282,6 +9356,9 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
 
                   {/* TOURNAMENTS SCREEN (Pixel-Perfect Reference Match) */}
                   {targetScreen === "tournaments" && (() => {
+                    if (isLoadingTournaments) {
+                      return renderTournamentsSkeleton();
+                    }
                     // Dynamic real tournaments directly wired to the database
                     const dynamicFromDb = (liveTournaments.length > 0 ? liveTournaments : []).map((t, idx) => {
                       const fmtStr = (t.format || "").toLowerCase();
@@ -8427,23 +9504,23 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                               <button
                                 type="button"
                                 onClick={() => switchScreen("hub")}
-                                className="h-8 w-8 rounded-full border border-slate-200 bg-white shadow-2xs flex items-center justify-center text-[#0F172A] hover:bg-slate-50 transition-all cursor-pointer shrink-0"
+                                className="h-10 w-10 rounded-full border border-slate-200 bg-white shadow-2xs flex items-center justify-center text-[#0F172A] hover:bg-slate-50 active:scale-95 transition-all cursor-pointer shrink-0"
                                 title="Back to Hub"
                                 aria-label="Back"
                               >
-                                <ChevronLeft className="h-[18px] w-[18px] text-[#0F172A]" />
+                                <ChevronLeft className="h-5 w-5 text-[#0F172A] stroke-[2.2]" />
                               </button>
                               <h2 className="text-base font-bold text-[#0F172A]">Tournaments</h2>
                               <button
                                 type="button"
                                 onClick={() => switchScreen("tournament-filter")}
-                                className="h-8 w-8 rounded-full bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center text-[#009A60] hover:bg-[#d8f3e3] shadow-2xs transition-all cursor-pointer relative shrink-0"
+                                className="h-10 w-10 rounded-full bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center text-[#009A60] hover:bg-[#d8f3e3] shadow-2xs transition-all cursor-pointer relative shrink-0"
                                 title="Tournament Filter"
                                 aria-label="Tournament Filter"
                               >
-                                <SlidersHorizontal className="h-4 w-4 text-[#009A60]" />
+                                <SlidersHorizontal className="h-5 w-5 text-[#009A60]" />
                                 {isCustomFilterActive && (
-                                  <span className="w-2 h-2 rounded-full bg-[#009A60] absolute -top-0.5 -right-0.5 ring-2 ring-white" />
+                                  <span className="w-2 h-2 rounded-full bg-[#009A60] absolute top-0.5 right-0.5 ring-2 ring-white" />
                                 )}
                               </button>
                             </div>
@@ -8730,16 +9807,6 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                                                 {/* Luxury Forest Green Base Background */}
                                                 <div className="absolute inset-0 bg-gradient-to-br from-[#062c1d] via-[#052417] to-[#02180f] pointer-events-none" />
 
-                                                {/* Topographic fairway elevation contours replicating reference design */}
-                                                <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none" viewBox="0 0 380 224">
-                                                  <path d="M-20 80 Q 95 30, 195 72 T 350 40 T 420 78" stroke="#10B981" strokeWidth="1.3" fill="none" opacity="0.65" />
-                                                  <path d="M-10 120 Q 110 50, 230 100 T 380 62 T 440 105" stroke="#10B981" strokeWidth="1.1" fill="none" opacity="0.45" />
-                                                  <path d="M-15 45 Q 120 95, 260 36 T 410 58" stroke="#10B981" strokeWidth="0.9" strokeDasharray="3 3" fill="none" opacity="0.4" />
-                                                  {/* Concentric elevation rings around action zone */}
-                                                  <circle cx="330" cy="55" r="38" stroke="#10B981" strokeWidth="1" strokeDasharray="2 3" opacity="0.55" fill="none" />
-                                                  <circle cx="330" cy="55" r="65" stroke="#10B981" strokeWidth="0.8" opacity="0.35" fill="none" />
-                                                  <circle cx="330" cy="55" r="92" stroke="#10B981" strokeWidth="0.6" opacity="0.2" fill="none" />
-                                                </svg>
 
                                                 {/* Subtle photo texture from tournament banner */}
                                                 <div
@@ -9697,11 +10764,11 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                             <button
                               type="button"
                               onClick={() => switchScreen("tournaments")}
-                              className="h-8 w-8 rounded-full flex items-center justify-center bg-white border border-slate-200 text-[#0F172A] hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer shrink-0"
+                              className="h-10 w-10 rounded-full flex items-center justify-center bg-white border border-slate-200 text-[#0F172A] hover:bg-slate-50 active:scale-95 transition-colors shadow-2xs cursor-pointer shrink-0"
                               title="Back to Tournaments"
                               aria-label="Back"
                             >
-                              <ChevronLeft className="h-[18px] w-[18px] text-[#0F172A]" />
+                              <ChevronLeft className="h-5 w-5 text-[#0F172A] stroke-[2.2]" />
                             </button>
                             <h2 className="text-base font-bold text-[#0F172A]">Tournament Filter</h2>
                             <button
@@ -10739,7 +11806,7 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                       {/* Header */}
                       <div className="px-5 pt-1 pb-3 flex items-center justify-between border-b border-emerald-950/40">
                         <button
-                          onClick={() => setActiveScreen("hub")}
+                          onClick={() => switchScreen("hub")}
                           className="h-8 w-8 rounded-full bg-slate-900/60 flex items-center justify-center text-slate-300 hover:text-white"
                         >
                           <ArrowLeft className="h-4 w-4" />
@@ -10834,20 +11901,11 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                   {targetScreen === "login" && (
                     <div className="flex-1 flex flex-col justify-between p-6 bg-white overflow-y-auto scrollbar-hide no-scrollbar" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
                       <div className="w-full max-w-sm mx-auto space-y-4">
-                        {/* Top Header Navigation (Unified Back Button to Landing) */}
-                        <div className="flex items-center justify-between pb-1 -mt-1">
-                          <button
-                            type="button"
-                            onClick={() => switchScreen("landing")}
-                            className="h-8 w-8 rounded-full flex items-center justify-center bg-white border border-slate-200 text-[#0F172A] hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer"
-                            title="Back to Landing"
-                          >
-                            <ChevronLeft className="h-4 w-4" />
-                          </button>
+                        {/* Top Header Navigation (No back button on login screen) */}
+                        <div className="flex items-center justify-center pb-1 -mt-1">
                           <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                             OpenclubOS
                           </span>
-                          <div className="w-8" />
                         </div>
 
                         {/* 1. Header with Brand Squircle Badge */}
@@ -11094,15 +12152,20 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                       {/* Top Header Navigation (Fixed pinned header) */}
                       <div className="px-6 pt-4 pb-3 border-b border-slate-100 bg-white shrink-0 z-10">
                         <div className="w-full max-w-sm mx-auto">
-                          <div className="h-8 flex items-center justify-between mb-3">
-                          <button
-                            type="button"
-                            onClick={handleRegPrev}
-                            className="h-8 w-8 rounded-full flex items-center justify-center bg-white border border-slate-200 text-[#0F172A] hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer"
-                            title="Back"
-                          >
-                            <ChevronLeft className="h-4 w-4" />
-                          </button>
+                          <div className="h-10 flex items-center justify-between mb-3">
+                          {regStep > 1 ? (
+                            <button
+                              type="button"
+                              onClick={handleRegPrev}
+                              className="h-10 w-10 rounded-full border border-slate-200 bg-white shadow-2xs flex items-center justify-center text-[#0F172A] hover:bg-slate-50 active:scale-95 transition-all cursor-pointer shrink-0"
+                              title="Back"
+                              aria-label="Back"
+                            >
+                              <ChevronLeft className="h-5 w-5 text-[#0F172A] stroke-[2.2]" />
+                            </button>
+                          ) : (
+                            <div className="w-10 h-10" />
+                          )}
 
                           <div className="flex items-center gap-2">
                             {incomingReferrer && (
@@ -13100,17 +14163,18 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                     <div className="h-full bg-white text-slate-900 flex flex-col overflow-hidden relative">
                       {/* Top Header Navigation (Fixed pinned header matching registration) */}
                       <div className="px-6 pt-4 pb-2 bg-white shrink-0 z-10">
-                        <div className="w-full max-w-sm mx-auto h-8 flex items-center justify-between">
+                        <div className="w-full max-w-sm mx-auto h-10 flex items-center justify-between">
                           <button
                             type="button"
                             onClick={() => {
                               setRegStep(1);
                               switchScreen("register");
                             }}
-                            className="h-8 w-8 rounded-full flex items-center justify-center bg-white border border-slate-200 text-[#0F172A] hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer"
+                            className="h-10 w-10 rounded-full border border-slate-200 bg-white shadow-2xs flex items-center justify-center text-[#0F172A] hover:bg-slate-50 active:scale-95 transition-all cursor-pointer shrink-0"
                             title="Back"
+                            aria-label="Back"
                           >
-                            <ChevronLeft className="h-4 w-4" />
+                            <ChevronLeft className="h-5 w-5 text-[#0F172A] stroke-[2.2]" />
                           </button>
                         </div>
                       </div>
@@ -13260,14 +14324,15 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                     <div className="h-full bg-white text-slate-900 flex flex-col overflow-hidden relative">
                       {/* Top Navigation Row: Circular Back Button (Exact match with signup screen) */}
                       <div className="px-6 pt-4 pb-2 bg-white shrink-0 z-10">
-                        <div className="w-full max-w-sm mx-auto h-8 flex items-center justify-between">
+                        <div className="w-full max-w-sm mx-auto h-10 flex items-center justify-between">
                           <button
                             type="button"
                             onClick={() => switchScreen("login")}
-                            className="h-8 w-8 rounded-full flex items-center justify-center bg-white border border-slate-200 text-[#0F172A] hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer"
+                            className="h-10 w-10 rounded-full border border-slate-200 bg-white shadow-2xs flex items-center justify-center text-[#0F172A] hover:bg-slate-50 active:scale-95 transition-all cursor-pointer shrink-0"
                             title="Back to login"
+                            aria-label="Back"
                           >
-                            <ChevronLeft className="h-4 w-4" />
+                            <ChevronLeft className="h-5 w-5 text-[#0F172A] stroke-[2.2]" />
                           </button>
                         </div>
                       </div>
@@ -13373,14 +14438,15 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                     <div className="h-full bg-white text-slate-900 flex flex-col overflow-hidden relative">
                       {/* Top Header Navigation (Exact match with signup screen) */}
                       <div className="px-6 pt-4 pb-2 bg-white shrink-0 z-10">
-                        <div className="w-full max-w-sm mx-auto h-8 flex items-center justify-between">
+                        <div className="w-full max-w-sm mx-auto h-10 flex items-center justify-between">
                           <button
                             type="button"
                             onClick={() => switchScreen("forgot-password")}
-                            className="h-8 w-8 rounded-full flex items-center justify-center bg-white border border-slate-200 text-[#0F172A] hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer"
+                            className="h-10 w-10 rounded-full border border-slate-200 bg-white shadow-2xs flex items-center justify-center text-[#0F172A] hover:bg-slate-50 active:scale-95 transition-all cursor-pointer shrink-0"
                             title="Back to forgot password"
+                            aria-label="Back"
                           >
-                            <ChevronLeft className="h-4 w-4" />
+                            <ChevronLeft className="h-5 w-5 text-[#0F172A] stroke-[2.2]" />
                           </button>
                         </div>
                       </div>
@@ -13458,14 +14524,15 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                     <div className="h-full bg-white text-slate-900 flex flex-col overflow-hidden relative">
                       {/* Top Navigation Row: Circular Back Button (Exact match with signup screen) */}
                       <div className="px-6 pt-4 pb-2 bg-white shrink-0 z-10">
-                        <div className="w-full max-w-sm mx-auto h-8 flex items-center justify-between">
+                        <div className="w-full max-w-sm mx-auto h-10 flex items-center justify-between">
                           <button
                             type="button"
                             onClick={() => switchScreen("login")}
-                            className="h-8 w-8 rounded-full flex items-center justify-center bg-white border border-slate-200 text-[#0F172A] hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer"
+                            className="h-10 w-10 rounded-full border border-slate-200 bg-white shadow-2xs flex items-center justify-center text-[#0F172A] hover:bg-slate-50 active:scale-95 transition-all cursor-pointer shrink-0"
                             title="Back"
+                            aria-label="Back"
                           >
-                            <ChevronLeft className="h-4 w-4" />
+                            <ChevronLeft className="h-5 w-5 text-[#0F172A] stroke-[2.2]" />
                           </button>
                         </div>
                       </div>
@@ -13731,14 +14798,14 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                       <div className="h-full bg-[#F4F6F3] text-slate-900 flex flex-col overflow-hidden relative">
                         {/* Top Navigation Header (Unified Mobile System: 16px top, 24px gutter, 48px height) */}
                         <div className="px-6 pt-4 pb-3 bg-white border-b border-slate-200/80 shrink-0 z-10">
-                          <div className="w-full h-8 flex items-center justify-between">
+                          <div className="w-full flex items-center justify-between">
                             <button
                               type="button"
                               onClick={() => switchScreen("hub")}
-                              className="h-8 w-8 rounded-full flex items-center justify-center bg-white border border-slate-200 text-[#0F172A] hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer"
+                              className="h-10 w-10 rounded-full flex items-center justify-center bg-white border border-slate-200 text-[#0F172A] hover:bg-slate-50 active:scale-95 transition-colors shadow-2xs cursor-pointer shrink-0"
                               title="Back to Tournament Hub"
                             >
-                              <ChevronLeft className="h-4 w-4" />
+                              <ChevronLeft className="h-5 w-5 text-[#0F172A] stroke-[2.2]" />
                             </button>
 
                             <div className="text-center">
@@ -14460,38 +15527,14 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                               <button
                                 type="button"
                                 onClick={() => switchScreen("hub")}
-                                className="h-8 w-8 rounded-full border border-slate-200 bg-white shadow-2xs flex items-center justify-center text-[#0F172A] hover:bg-slate-50 transition-all cursor-pointer"
+                                className="h-10 w-10 rounded-full border border-slate-200 bg-white shadow-2xs flex items-center justify-center text-[#0F172A] hover:bg-slate-50 active:scale-95 transition-all cursor-pointer shrink-0"
                                 title="Back to Hub"
                                 aria-label="Back"
                               >
-                                <ChevronLeft className="h-[18px] w-[18px] text-[#0F172A]" />
+                                <ChevronLeft className="h-5 w-5 text-[#0F172A] stroke-[2.2]" />
                               </button>
                               <h2 className="text-base font-bold text-[#0F172A]">Add Friends</h2>
-                              <div className="flex items-center gap-2">
-                                <button
-                                  type="button"
-                                  onClick={() => switchScreen("my-friends")}
-                                  className="h-8 w-8 rounded-full bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center text-[#009A60] hover:bg-[#d8f3e3] shadow-2xs transition-all cursor-pointer relative"
-                                  title="My Friends"
-                                  aria-label="My Friends"
-                                >
-                                  <Users className="h-4 w-4 text-[#009A60]" />
-                                  
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setQrModalTab("display");
-                                    setScannedFriendResult(null);
-                                    setShowQrCodeModal(true);
-                                  }}
-                                  className="h-8 w-8 rounded-full bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center text-[#009A60] hover:bg-[#d8f3e3] shadow-2xs transition-all cursor-pointer"
-                                  title="QR Code & Scanner"
-                                  aria-label="QR Code"
-                                >
-                                  <QrCode className="h-4 w-4 text-[#009A60]" />
-                                </button>
-                              </div>
+                              <div className="w-10 shrink-0 pointer-events-none" />
                             </div>
 
                             {/* Search Input Bar (Fixed at top with header) */}
@@ -14696,23 +15739,45 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                                     {/* Right Action Button: Authenticated Interactive States */}
                                     <div className="shrink-0">
                                       {isConnected ? (
-                                        /* Accepted Friend State: Single horizontal 3-dots action button */
-                                        <button
-                                          type="button"
-                                          onClick={() => setFriendActionUser({
-                                            id: player.id,
-                                            name: player.name,
-                                            club: player.club,
-                                            hcp: player.hcp,
-                                            avatar: player.avatar,
-                                            profilePhoto: player.profilePhoto,
-                                          })}
-                                          className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 border border-slate-200/80 flex items-center justify-center transition-all cursor-pointer active:scale-95 shadow-2xs shrink-0"
-                                          title={`Manage connection with ${player.name}`}
-                                          aria-label="Golfer Options"
-                                        >
-                                          <MoreHorizontal className="w-4 h-4 stroke-[2.2]" />
-                                        </button>
+                                        /* Accepted Friend State: Message button + circular 3-dots action button (Image 3) */
+                                        <div className="flex items-center gap-2 shrink-0">
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              setActiveChatFriend({
+                                                id: player.id,
+                                                name: player.name,
+                                                avatar: player.avatar || player.profilePhoto,
+                                                club: player.club || "Ikoyi Golf Club",
+                                                hcp: player.hcp || "12",
+                                                isOnline: isPlayerOnline(player),
+                                              });
+                                              switchScreen("chat");
+                                            }}
+                                            className="w-9 h-9 rounded-xl bg-[#f5faf6] hover:bg-[#EAF7EE] border border-[#e1efe5] flex items-center justify-center text-[#64748B] hover:text-[#009A60] transition-all cursor-pointer shadow-2xs active:scale-95 shrink-0"
+                                            title={`Message ${player.name}`}
+                                            aria-label="Message Friend"
+                                          >
+                                            <MessageSquare className="w-4 h-4 stroke-[2]" />
+                                          </button>
+
+                                          <button
+                                            type="button"
+                                            onClick={() => setFriendActionUser({
+                                              id: player.id,
+                                              name: player.name,
+                                              club: player.club,
+                                              hcp: player.hcp,
+                                              avatar: player.avatar,
+                                              profilePhoto: player.profilePhoto,
+                                            })}
+                                            className="w-9 h-9 rounded-full bg-[#f1f5f9]/80 hover:bg-[#e2e8f0] text-slate-600 hover:text-slate-900 border border-slate-200/90 flex items-center justify-center transition-all cursor-pointer active:scale-95 shadow-2xs shrink-0"
+                                            title={`Manage connection with ${player.name}`}
+                                            aria-label="Golfer Options"
+                                          >
+                                            <MoreHorizontal className="w-4 h-4 stroke-[2.2]" />
+                                          </button>
+                                        </div>
                                       ) : isBlocked ? (
                                         /* Blocked State: Displays Unblock pill button */
                                         <button
@@ -14906,351 +15971,6 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                           </div>
                         </div>
 
-
-                        {/* --- BOTTOM SHEET: MY QR CODE & SCANNER (MATCHING BOOKINGS DISPLAY GEOMETRY) --- */}
-                        {showQrCodeModal && (
-                          <div
-                            className="absolute inset-0 z-50 bg-black/60 backdrop-blur-xs flex flex-col justify-end animate-in fade-in duration-150"
-                            onClick={() => setShowQrCodeModal(false)}
-                          >
-                            <div
-                              className={`relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl p-5 pb-6 animate-in slide-in-from-bottom duration-200 max-h-[88%] flex flex-col w-full ${isTablet ? "" : "max-w-sm mx-auto"}`}
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              {/* Drag Handle */}
-                              <div className="w-10 h-1 bg-slate-200 rounded-full mx-auto mb-3.5 shrink-0" />
-
-                              {/* Sheet Header (Matching My Bookings Display) */}
-                              <div className="flex items-center justify-between pb-3.5 border-b border-slate-100 shrink-0">
-                                <div className="flex items-center gap-2.5 min-w-0">
-                                  <div className="w-10 h-10 rounded-xl bg-[#EAF7EE] flex items-center justify-center shrink-0 shadow-xs border border-[#C6F0DB]">
-                                    <QrCode className="h-5 w-5 text-[#009A60]" />
-                                  </div>
-                                  <div className="min-w-0">
-                                    <h4 className="text-base font-bold text-slate-900 leading-tight truncate">
-                                      {qrModalTab === "display" ? "My QR Code" : "Scan QR Code"}
-                                    </h4>
-                                    {qrModalTab === "display" && (
-                                      <p className="text-xs text-slate-500 font-medium leading-tight mt-0.5 truncate">
-                                        Connect with golfers on course instantly
-                                      </p>
-                                    )}
-                                  </div>
-                                </div>
-                                <button
-                                  type="button"
-                                  onClick={() => setShowQrCodeModal(false)}
-                                  className="h-8 w-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors cursor-pointer shrink-0"
-                                  title="Close"
-                                >
-                                  <X className="w-4 h-4" />
-                                </button>
-                              </div>
-
-                              {/* Segmented Mode Switcher: My QR Code vs Scan QR Code */}
-                              <div className="flex rounded-xl bg-[#f4f6f3] border border-slate-200/60 p-1 my-3.5 shrink-0">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setQrModalTab("display");
-                                    setScannedFriendResult(null);
-                                  }}
-                                  className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                                    qrModalTab === "display"
-                                      ? "bg-white text-[#0F172A] shadow-2xs"
-                                      : "text-slate-500 hover:text-slate-800"
-                                  }`}
-                                >
-                                  My QR Code
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setQrModalTab("scan");
-                                    setScannedFriendResult(null);
-                                  }}
-                                  className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                                    qrModalTab === "scan"
-                                      ? "bg-white text-[#0F172A] shadow-2xs"
-                                      : "text-slate-500 hover:text-slate-800"
-                                  }`}
-                                >
-                                  Scan QR Code
-                                </button>
-                              </div>
-
-                              {/* Sheet Body: Scrollable Content */}
-                              <div className="overflow-y-auto max-h-[440px] scrollbar-hide space-y-3.5 text-center">
-                                {qrModalTab === "display" ? (
-                                  /* TAB 1: DISPLAY USER QR CODE */
-                                  <div className="space-y-3.5">
-                                    <div className="flex flex-col items-center">
-                                      <div className="w-12 h-12 rounded-full border-2 border-[#009A60] p-0.5 mb-1.5 shrink-0">
-                                        {(authenticatedPlayer?.profilePhoto || authenticatedPlayer?.avatar || (authenticatedPlayer as any)?.photo) && !qrPhotoError ? (
-                                          <img
-                                            src={authenticatedPlayer?.profilePhoto || authenticatedPlayer?.avatar || (authenticatedPlayer as any)?.photo}
-                                            alt={authenticatedPlayer?.name || "Player"}
-                                            onError={() => setQrPhotoError(true)}
-                                            className="w-full h-full rounded-full object-cover"
-                                          />
-                                        ) : (
-                                          <div className="w-full h-full rounded-full bg-[#EAF7EE] text-[#009A60] font-bold text-sm flex items-center justify-center select-none uppercase">
-                                            {getTwoInitials(authenticatedPlayer?.name || "Player")}
-                                          </div>
-                                        )}
-                                      </div>
-                                      <p className="text-sm font-bold text-[#0F172A]">
-                                        {authenticatedPlayer?.name || "Player"}
-                                      </p>
-                                      <p className="text-xs font-medium text-[#64748B] mt-0.5">
-                                        <span>{authenticatedPlayer?.club || "OpenClub"}</span>
-                                        <span className="mx-1 text-slate-300">|</span>
-                                        <span>
-                                          {authenticatedPlayer?.handicap !== undefined && authenticatedPlayer?.handicap !== null
-                                            ? (typeof authenticatedPlayer.handicap === "number" ? authenticatedPlayer.handicap.toFixed(1) : authenticatedPlayer.handicap)
-                                            : ((authenticatedPlayer as any)?.handicapIndex || (authenticatedPlayer as any)?.hcp || "0.0")}{" "}
-                                          HCP
-                                        </span>
-                                      </p>
-                                    </div>
-
-                                    {/* High-contrast Dynamic Unique QR Graphic with 4-Module Quiet Zone */}
-                                    {(() => {
-                                      const activeInviteCode = getUserInviteCode(authenticatedPlayer);
-                                      const currentOrigin = typeof window !== "undefined" && window.location.origin
-                                        ? window.location.origin
-                                        : getAppOrigin();
-                                      const qrPayload = `${currentOrigin}/invite/${activeInviteCode}`;
-                                      const qrData = generateUniqueQrMatrix(qrPayload, 25);
-                                      const cellSize = 100 / qrData.size;
-
-                                      return (
-                                        <div className="w-44 h-44 mx-auto p-2 bg-[#EAF7EE] border-2 border-[#C6F0DB]/80 rounded-2xl shadow-xs flex items-center justify-center relative">
-                                          <svg viewBox="-16 -16 132 132" className="w-full h-full">
-                                            {/* Standard 4-Module Blank White Quiet Zone */}
-                                            <rect x="-16" y="-16" width="132" height="132" fill="#FFFFFF" rx="8" />
-
-                                            {/* Deterministic Data Cells */}
-                                            {qrData.grid.map((row, r) =>
-                                              row.map((cell, c) => {
-                                                const isCornerFinder =
-                                                  (r < 7 && c < 7) ||
-                                                  (r < 7 && c >= qrData.size - 7) ||
-                                                  (r >= qrData.size - 7 && c < 7);
-                                                const isCenterEmblem =
-                                                  r >= qrData.mid - 2 &&
-                                                  r <= qrData.mid + 2 &&
-                                                  c >= qrData.mid - 2 &&
-                                                  c <= qrData.mid + 2;
-
-                                                if (isCornerFinder || isCenterEmblem) return null;
-                                                if (cell === 0) return null;
-
-                                                return (
-                                                  <rect
-                                                    key={`qr-c-${r}-${c}`}
-                                                    x={c * cellSize + 0.3}
-                                                    y={r * cellSize + 0.3}
-                                                    width={cellSize - 0.6}
-                                                    height={cellSize - 0.6}
-                                                    rx="0.8"
-                                                    fill="#052417"
-                                                  />
-                                                );
-                                              })
-                                            )}
-
-                                            {/* Top-Left Finder */}
-                                            <rect x="0" y="0" width="28" height="28" rx="4" fill="#052417" />
-                                            <rect x="4" y="4" width="20" height="20" rx="2" fill="white" />
-                                            <rect x="8" y="8" width="12" height="12" rx="1.5" fill="#052417" />
-
-                                            {/* Top-Right Finder */}
-                                            <rect x="72" y="0" width="28" height="28" rx="4" fill="#052417" />
-                                            <rect x="76" y="4" width="20" height="20" rx="2" fill="white" />
-                                            <rect x="80" y="8" width="12" height="12" rx="1.5" fill="#052417" />
-
-                                            {/* Bottom-Left Finder */}
-                                            <rect x="0" y="72" width="28" height="28" rx="4" fill="#052417" />
-                                            <rect x="4" y="76" width="20" height="20" rx="2" fill="white" />
-                                            <rect x="8" y="80" width="12" height="12" rx="1.5" fill="#052417" />
-
-                                            {/* Center Brand / Profile Monogram Emblem */}
-                                            <rect x="38" y="38" width="24" height="24" rx="6" fill="white" stroke="#E2E8F0" strokeWidth="1" />
-                                            <circle cx="50" cy="50" r="8" fill="#009A60" />
-                                            <text
-                                              x="50"
-                                              y="53"
-                                              textAnchor="middle"
-                                              fill="white"
-                                              fontSize="6.5"
-                                              fontWeight="bold"
-                                              fontFamily="sans-serif"
-                                            >
-                                              {getTwoInitials(authenticatedPlayer?.name || "Player")}
-                                            </text>
-                                          </svg>
-                                        </div>
-                                      );
-                                    })()}
-
-                                    <p className="text-[11.5px] text-slate-500 leading-tight">
-                                      Let other golfers scan your code on the course to connect instantly.
-                                    </p>
-
-                                    <button
-                                      type="button"
-                                      onClick={async () => {
-                                        const activeCode = getUserInviteCode(authenticatedPlayer);
-                                        const origin = typeof window !== "undefined" && window.location.origin
-                                          ? window.location.origin
-                                          : getAppOrigin();
-                                        const shareUrl = `${origin}/invite/${activeCode}`;
-                                        const shareData = {
-                                          title: "Add me on OpenclubOS",
-                                          text: `Hey! Add me as a golf friend on OpenclubOS.`,
-                                          url: shareUrl,
-                                        };
-
-                                        if (typeof navigator !== "undefined" && navigator.share) {
-                                          try {
-                                            await navigator.share(shareData);
-                                            showToast("QR invite link shared!", "success", "QR CODE SHARED");
-                                          } catch (err: any) {
-                                            if (err?.name !== "AbortError") {
-                                              if (navigator.clipboard) {
-                                                await navigator.clipboard.writeText(shareUrl).catch(() => {});
-                                              }
-                                              showToast("Invite link copied to clipboard!", "success", "LINK COPIED");
-                                            }
-                                          }
-                                        } else if (typeof navigator !== "undefined" && navigator.clipboard) {
-                                          await navigator.clipboard.writeText(shareUrl).catch(() => {});
-                                          showToast("Invite link copied to clipboard!", "success", "LINK COPIED");
-                                        }
-                                      }}
-                                      className="w-full py-2.5 rounded-xl bg-[#009A60] hover:bg-[#008251] text-white text-xs font-bold shadow-xs cursor-pointer active:scale-98 transition-all"
-                                    >
-                                      Share QR Code
-                                    </button>
-                                  </div>
-                                ) : (
-                                  /* TAB 2: FUNCTIONAL QR SCANNER VIEW (WITH REAL-TIME FRIEND SYSTEM) */
-                                  <div className="space-y-3.5">
-                                    {/* Camera Viewfinder Box with Laser, Targeting Reticle & Corner Brackets */}
-                                    <div className="relative w-full h-[270px] bg-slate-950 rounded-2xl overflow-hidden border border-slate-800 flex flex-col items-center justify-center shadow-inner">
-                                      {/* Dark Camera Sensor Ambient Vignette */}
-                                      <div className="absolute inset-0 bg-radial from-slate-900/30 via-slate-950/70 to-black pointer-events-none" />
-
-                                      {/* Viewfinder Target Reticle Box (190x190px - significantly taller than the 176px QR code for seamless scanning framing) */}
-                                      <div className="relative w-[190px] h-[190px] flex items-center justify-center">
-                                        {/* 4 Brand Corner Brackets */}
-                                        <div className="absolute top-0 left-0 w-6 h-6 border-t-2 border-l-2 border-[#009A60] rounded-tl-md" />
-                                        <div className="absolute top-0 right-0 w-6 h-6 border-t-2 border-r-2 border-[#009A60] rounded-tr-md" />
-                                        <div className="absolute bottom-0 left-0 w-6 h-6 border-b-2 border-l-2 border-[#009A60] rounded-bl-md" />
-                                        <div className="absolute bottom-0 right-0 w-6 h-6 border-b-2 border-r-2 border-[#009A60] rounded-br-md" />
-
-                                        {/* Subtle Reticle Target Boundary */}
-                                        <div className="absolute inset-0 border border-[#009A60]/20 rounded-lg pointer-events-none" />
-
-                                        {/* Animated Scan Line */}
-                                        <div className="absolute inset-x-2 top-1/2 -translate-y-1/2 h-0.5 bg-[#009A60] shadow-[0_0_12px_#009A60] animate-pulse" />
-                                      </div>
-
-                                      {/* Scanner Guidance Floating Badge */}
-                                      <div className="absolute bottom-4 z-10 px-3.5 py-1.5 rounded-full bg-black/75 backdrop-blur-xs border border-white/10 text-[11px] font-medium text-slate-200 flex items-center gap-1.5 shadow-xs">
-                                        <Camera className="w-3.5 h-3.5 text-[#009A60]" />
-                                        <span>Align QR code within frame</span>
-                                      </div>
-                                    </div>
-
-                                    {/* Scanned Result Card with Real-Time Connection Indicator */}
-                                    {scannedFriendResult ? (
-                                      <div className="space-y-2.5 animate-in fade-in zoom-in-95 duration-200">
-                                        <div className="w-full bg-[#F0FDF4] border border-[#A7F3D0] rounded-2xl p-3.5 text-left flex items-center justify-between gap-2.5 shadow-2xs">
-                                          <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                                            {scannedFriendResult.avatar || scannedFriendResult.profilePhoto ? (
-                                              <div className="w-11 h-11 rounded-full border border-[#C6F0DB] overflow-hidden shrink-0">
-                                                <img
-                                                  src={scannedFriendResult.avatar || scannedFriendResult.profilePhoto}
-                                                  alt={scannedFriendResult.name}
-                                                  className="w-full h-full object-cover"
-                                                  onError={(e) => {
-                                                    (e.currentTarget.parentElement as HTMLElement).innerHTML = `<div class="w-full h-full bg-[#EAF7EE] text-[#009A60] font-bold text-xs flex items-center justify-center uppercase">${getTwoInitials(scannedFriendResult.name)}</div>`;
-                                                  }}
-                                                />
-                                              </div>
-                                            ) : (
-                                              <div className="w-11 h-11 rounded-full bg-[#EAF7EE] text-[#009A60] font-bold text-xs flex items-center justify-center border border-[#C6F0DB] shrink-0 select-none uppercase">
-                                                {getTwoInitials(scannedFriendResult.name)}
-                                              </div>
-                                            )}
-                                            <div className="min-w-0 flex-1">
-                                              <div className="flex items-center gap-1.5">
-                                                <p className="text-xs font-bold text-[#0F172A] truncate">
-                                                  {scannedFriendResult.name}
-                                                </p>
-                                                {acceptedFriendIds.includes(scannedFriendResult.id) ? (
-                                                  <span className="px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[9px] font-bold">
-                                                    MUTUAL FRIEND
-                                                  </span>
-                                                ) : (
-                                                  <span className="px-1.5 py-0.5 rounded-full bg-[#EAF7EE] text-[#009A60] text-[9px] font-bold">
-                                                    CONNECTED LIVE
-                                                  </span>
-                                                )}
-                                              </div>
-                                              <p className="text-[11px] text-[#009A60] font-medium truncate mt-0.5">
-                                                {scannedFriendResult.club || "OpenClub Golfer"} | {scannedFriendResult.hcp || "0.0"} HCP
-                                              </p>
-                                            </div>
-                                          </div>
-                                          <span className="shrink-0 w-8 h-8 rounded-full bg-[#009A60] text-white flex items-center justify-center shadow-2xs">
-                                            <Check className="w-4 h-4" />
-                                          </span>
-                                        </div>
-
-                                        <p className="text-[11px] text-[#009A60] font-medium">
-                                          ✓ Real-time friend request dispatched directly to {scannedFriendResult.name}
-                                        </p>
-
-                                        <div className="flex gap-2 pt-1">
-                                          <button
-                                            type="button"
-                                            onClick={() => setScannedFriendResult(null)}
-                                            className="flex-1 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all cursor-pointer"
-                                          >
-                                            Scan Another
-                                          </button>
-                                          <button
-                                            type="button"
-                                            onClick={() => setShowQrCodeModal(false)}
-                                            className="flex-1 py-2 rounded-xl bg-[#009A60] hover:bg-[#008251] text-white text-xs font-bold transition-all cursor-pointer"
-                                          >
-                                            Done
-                                          </button>
-                                        </div>
-                                      </div>
-                                    ) : (
-                                      /* Clean QR Scanner Guidance with naturally broken text */
-                                      <div className="text-center py-4 px-4 space-y-1.5">
-                                        <p className="text-xs font-bold text-[#0F172A] leading-relaxed">
-                                          Point camera at a golfer&apos;s QR code
-                                          <br />
-                                          to connect on the course
-                                        </p>
-                                        <p className="text-[11px] text-[#64748B] leading-tight">
-                                          Hold phone steady to detect and add player instantly
-                                        </p>
-                                      </div>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        )}
-
                         {/* Interactive Find from Contacts Modal Sheet */}
                         {showContactsModal && (
                           <div
@@ -15421,8 +16141,10 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                                                 {getTwoInitials(contact.name)}
                                               </div>
                                             )}
-                                            {/* Green Online / Active Status Dot */}
-                                            <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-[#009A60] border-2 border-white shadow-2xs" />
+                                            {/* Green Online / Active Status Dot (Only if online, zero color if offline) */}
+                                            {isPlayerOnline(contact) && (
+                                              <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-[#009A60] border-2 border-white shadow-2xs pointer-events-none" />
+                                            )}
                                           </div>
 
                                           <div className="min-w-0 flex-1">
@@ -15537,13 +16259,13 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                           <button
                             type="button"
                             onClick={() => switchScreen("add-friends")}
-                            className="h-8 w-8 rounded-full border border-slate-200 bg-white shadow-2xs flex items-center justify-center text-[#0F172A] hover:bg-slate-50 transition-all cursor-pointer"
+                            className="h-10 w-10 rounded-full border border-slate-200 bg-white shadow-2xs flex items-center justify-center text-[#0F172A] hover:bg-slate-50 active:scale-95 transition-all cursor-pointer shrink-0"
                             title="Back to Add Friends"
                             aria-label="Back"
                           >
-                            <ChevronLeft className="h-[18px] w-[18px] text-[#0F172A]" />
+                            <ChevronLeft className="h-5 w-5 text-[#0F172A] stroke-[2.2]" />
                           </button>
-                          <div className="w-8" />
+                          <div className="w-10" />
                         </div>
 
                         {/* Screen Content Body */}
@@ -16012,39 +16734,16 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                               <button
                                 type="button"
                                 onClick={() => switchScreen("hub")}
-                                className="h-8 w-8 rounded-full border border-slate-200 bg-white shadow-2xs flex items-center justify-center text-[#0F172A] hover:bg-slate-50 transition-all cursor-pointer shrink-0"
+                                className="h-10 w-10 rounded-full border border-slate-200 bg-white shadow-2xs flex items-center justify-center text-[#0F172A] hover:bg-slate-50 active:scale-95 transition-all cursor-pointer shrink-0"
                                 title="Back to Home"
                                 aria-label="Back"
                               >
-                                <ChevronLeft className="h-[18px] w-[18px] text-[#0F172A]" />
+                                <ChevronLeft className="h-5 w-5 text-[#0F172A] stroke-[2.2]" />
                               </button>
 
                               <h2 className="text-base font-bold text-[#0F172A]">My Friends</h2>
 
-                              <div className="flex items-center gap-2">
-                                <button
-                                  type="button"
-                                  onClick={() => switchScreen("add-friends")}
-                                  className="h-8 w-8 rounded-full bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center text-[#009A60] hover:bg-[#d8f3e3] shadow-2xs transition-all cursor-pointer relative"
-                                  title="Add Friends"
-                                  aria-label="Add Friends"
-                                >
-                                  <Users className="h-4 w-4 text-[#009A60]" />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setQrModalTab("display");
-                                    setScannedFriendResult(null);
-                                    setShowQrCodeModal(true);
-                                  }}
-                                  className="h-8 w-8 rounded-full bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center text-[#009A60] hover:bg-[#d8f3e3] shadow-2xs transition-all cursor-pointer"
-                                  title="QR Code & Scanner"
-                                  aria-label="QR Code"
-                                >
-                                  <QrCode className="h-4 w-4 text-[#009A60]" />
-                                </button>
-                              </div>
+                              <div className="w-10 shrink-0 pointer-events-none" />
                             </div>
 
                             {/* Search Bar Input */}
@@ -16144,10 +16843,7 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                                           key={friend.id}
                                           className="w-full bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-3.5 flex items-center justify-between gap-3 transition-all hover:border-slate-300"
                                         >
-                                          <div
-                                            className="flex items-center gap-3 min-w-0 flex-1 cursor-pointer"
-                                            onClick={() => setFriendActionUser(friend)}
-                                          >
+                                          <div className="flex items-center gap-3 min-w-0 flex-1">
                                             {/* Squircle Avatar with Bottom-Right Online Status */}
                                             <div className="relative shrink-0">
                                               <div className="w-12 h-12 rounded-2xl bg-[#EAF7EE] border border-[#C6F0DB] overflow-hidden flex items-center justify-center">
@@ -16173,8 +16869,10 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                                                   </span>
                                                 </div>
                                               </div>
-                                              {/* Online Indicator Green Dot */}
-                                              <div className="w-3.5 h-3.5 rounded-full bg-[#009A60] border-2 border-white absolute -bottom-0.5 -right-0.5 shadow-2xs" />
+                                              {/* Online Indicator Green Dot (Only when player is online, zero color when offline) */}
+                                              {isPlayerOnline(friend) && (
+                                                <div className="w-3.5 h-3.5 rounded-full bg-[#009A60] border-2 border-white absolute -bottom-0.5 -right-0.5 shadow-2xs pointer-events-none" />
+                                              )}
                                             </div>
 
                                             {/* Middle Golfer Info */}
@@ -16190,18 +16888,37 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                                             </div>
                                           </div>
 
-                                          {/* Right Chat/Message Action Button */}
-                                          <div className="shrink-0 flex items-center gap-1.5">
+                                          {/* Right Chat & More Options Action Buttons */}
+                                          <div className="shrink-0 flex items-center gap-2">
                                             <button
                                               type="button"
                                               onClick={() => {
-                                                showToast(`Opening chat with ${friend.name}`, "success", "MESSAGING");
+                                                setActiveChatFriend({
+                                                  id: friend.id,
+                                                  name: friend.name,
+                                                  avatar: friend.avatar || friend.profilePhoto,
+                                                  club: friend.club || "Ikoyi Golf Club",
+                                                  hcp: friend.hcp || "12.0",
+                                                  isOnline: isPlayerOnline(friend),
+                                                });
+                                                switchScreen("chat");
                                               }}
                                               className="w-9 h-9 rounded-xl bg-[#f5faf6] hover:bg-[#EAF7EE] border border-[#e1efe5] flex items-center justify-center text-[#64748B] hover:text-[#009A60] transition-all cursor-pointer shadow-2xs active:scale-95 shrink-0"
                                               title={`Message ${friend.name}`}
                                               aria-label="Message Friend"
                                             >
                                               <MessageSquare className="w-4 h-4 stroke-[2]" />
+                                            </button>
+
+                                            {/* Circular 3-Dots Action Button (Image 3) */}
+                                            <button
+                                              type="button"
+                                              onClick={() => setFriendActionUser(friend)}
+                                              className="w-9 h-9 rounded-full bg-[#f1f5f9]/80 hover:bg-[#e2e8f0] text-slate-600 hover:text-slate-900 border border-slate-200/90 flex items-center justify-center transition-all cursor-pointer active:scale-95 shadow-2xs shrink-0"
+                                              title={`More options for ${friend.name}`}
+                                              aria-label="Golfer Options"
+                                            >
+                                              <MoreHorizontal className="w-4 h-4 stroke-[2.2]" />
                                             </button>
                                           </div>
                                         </div>
@@ -16259,14 +16976,17 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                                           key={member.id}
                                           className="w-full bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-3.5 flex items-center justify-between gap-3 transition-all hover:border-slate-300"
                                         >
-                                          <div
-                                            className="flex items-center gap-3 min-w-0 flex-1 cursor-pointer"
-                                            onClick={() => setFriendActionUser(member)}
-                                          >
-                                            <div className="w-12 h-12 rounded-2xl bg-[#EAF7EE] border border-[#C6F0DB] overflow-hidden flex items-center justify-center shrink-0">
-                                              <span className="text-sm font-bold text-[#009A60]">
-                                                {member.initial || getTwoInitials(member.name)}
-                                              </span>
+                                          <div className="flex items-center gap-3 min-w-0 flex-1">
+                                            <div className="relative shrink-0">
+                                              <div className="w-12 h-12 rounded-2xl bg-[#EAF7EE] border border-[#C6F0DB] overflow-hidden flex items-center justify-center shrink-0">
+                                                <span className="text-sm font-bold text-[#009A60]">
+                                                  {member.initial || getTwoInitials(member.name)}
+                                                </span>
+                                              </div>
+                                              {/* Online Indicator Green Dot (Only when player is online, zero color when offline) */}
+                                              {isPlayerOnline(member) && (
+                                                <div className="w-3.5 h-3.5 rounded-full bg-[#009A60] border-2 border-white absolute -bottom-0.5 -right-0.5 shadow-2xs pointer-events-none" />
+                                              )}
                                             </div>
                                             <div className="min-w-0 flex-1">
                                               <h4 className="text-[14.5px] font-bold text-[#0F172A] leading-tight truncate">
@@ -16280,14 +17000,36 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                                             </div>
                                           </div>
 
-                                          <div className="shrink-0 flex items-center gap-1.5">
+                                          <div className="shrink-0 flex items-center gap-2">
                                             <button
                                               type="button"
-                                              onClick={() => showToast(`Opening chat with ${member.name}`, "success", "MESSAGING")}
+                                              onClick={() => {
+                                                setActiveChatFriend({
+                                                  id: member.id,
+                                                  name: member.name,
+                                                  avatar: member.avatar || member.profilePhoto,
+                                                  club: member.club || "Ikoyi Club 1938",
+                                                  hcp: member.hcp || "12.0",
+                                                  isOnline: isPlayerOnline(member),
+                                                });
+                                                switchScreen("chat");
+                                              }}
                                               className="w-9 h-9 rounded-xl bg-[#f5faf6] hover:bg-[#EAF7EE] border border-[#e1efe5] flex items-center justify-center text-[#64748B] hover:text-[#009A60] transition-all cursor-pointer shadow-2xs active:scale-95"
                                               title={`Message ${member.name}`}
+                                              aria-label="Message Member"
                                             >
                                               <MessageSquare className="w-4 h-4 stroke-[2]" />
+                                            </button>
+
+                                            {/* Circular 3-Dots Action Button (Image 3) */}
+                                            <button
+                                              type="button"
+                                              onClick={() => setFriendActionUser(member)}
+                                              className="w-9 h-9 rounded-full bg-[#f1f5f9]/80 hover:bg-[#e2e8f0] text-slate-600 hover:text-slate-900 border border-slate-200/90 flex items-center justify-center transition-all cursor-pointer active:scale-95 shadow-2xs shrink-0"
+                                              title={`More options for ${member.name}`}
+                                              aria-label="Golfer Options"
+                                            >
+                                              <MoreHorizontal className="w-4 h-4 stroke-[2.2]" />
                                             </button>
                                           </div>
                                         </div>
@@ -16309,6 +17051,256 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                                 )}
                               </div>
                             )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* 13B. DIRECT MESSAGE / CHAT SCREEN (Pixel-Perfect Match to Reference Design) */}
+                  {targetScreen === "chat" && (() => {
+                    const rawId = String(activeChatFriend.id || "").toLowerCase().trim();
+                    const rawName = String(activeChatFriend.name || "").toLowerCase().trim();
+                    const firstName = rawName.split(/\s+/)[0] || "";
+                    const slugName = rawName.replace(/\s+/g, "-");
+                    const currentChatMessages = (rawId && conversationsByFriendId[rawId])
+                      || (slugName && conversationsByFriendId[slugName])
+                      || (firstName && conversationsByFriendId[firstName])
+                      || (rawName && conversationsByFriendId[rawName])
+                      || [];
+
+                    return (
+                      <div className="flex-1 h-full flex flex-col bg-[#F4F6F3] relative overflow-hidden font-['Plus_Jakarta_Sans',sans-serif]">
+                        {/* 1. FIXED TOP NAVIGATION BAR */}
+                        <div className="w-full shrink-0 z-20 bg-white border-b border-slate-200/60 shadow-2xs">
+                          <div className="w-full px-4 sm:px-6 pt-4 pb-3 flex items-center justify-between gap-3">
+                            {/* Left: Replicated Circular Back Button + Avatar + Name */}
+                            <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                              <button
+                                type="button"
+                                onClick={() => switchScreen("my-friends")}
+                                className="h-10 w-10 rounded-full border border-slate-200 bg-white shadow-2xs flex items-center justify-center text-[#0F172A] hover:bg-slate-50 active:scale-95 transition-all cursor-pointer shrink-0"
+                                title="Back to Friends"
+                                aria-label="Back"
+                              >
+                                <ChevronLeft className="h-5 w-5 text-[#0F172A] stroke-[2.2]" />
+                              </button>
+
+                              {/* Recipient Avatar with Online Indicator Dot */}
+                              <div className="relative shrink-0">
+                                <div className="w-10 h-10 rounded-full overflow-hidden bg-[#EAF7EE] border border-slate-200 shadow-2xs flex items-center justify-center">
+                                  {activeChatFriend.avatar ? (
+                                    <img
+                                      src={activeChatFriend.avatar}
+                                      alt={activeChatFriend.name}
+                                      className="w-full h-full object-cover"
+                                      onError={(e) => {
+                                        (e.currentTarget as HTMLElement).style.display = "none";
+                                        const fallback = (e.currentTarget.parentElement?.querySelector(".chat-fallback") as HTMLElement);
+                                        if (fallback) fallback.style.display = "flex";
+                                      }}
+                                    />
+                                  ) : null}
+                                  <div className={`chat-fallback w-full h-full items-center justify-center ${activeChatFriend.avatar ? "hidden" : "flex"}`}>
+                                    <span className="text-xs font-bold text-[#009A60]">
+                                      {getTwoInitials(activeChatFriend.name)}
+                                    </span>
+                                  </div>
+                                </div>
+                                {/* Online Indicator Green Dot (Only when online, zero color when offline) */}
+                                {activeChatFriend.isOnline && (
+                                  <span className="w-3 h-3 rounded-full bg-[#009A60] border-2 border-white absolute -bottom-0.5 -right-0.5 shadow-2xs pointer-events-none" />
+                                )}
+                              </div>
+
+                              {/* Recipient Name & Status (Full Name Display, No E2EE Call Subtitle) */}
+                              <div className="min-w-0 flex-1">
+                                <h3 className="text-[15.5px] font-bold text-[#0F172A] leading-tight break-words">
+                                  {activeChatFriend.name}
+                                </h3>
+                                <div className="flex items-center gap-1.5 mt-0.5">
+                                  {activeChatFriend.isOnline ? (
+                                    <span className="text-[10px] font-bold text-[#009A60] tracking-wider uppercase">
+                                      ONLINE
+                                    </span>
+                                  ) : (
+                                    <span className="text-[10px] font-medium text-slate-400 tracking-wider uppercase">
+                                      OFFLINE
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Right: More Options Button (Call Button Removed) */}
+                            <div className="flex items-center gap-2 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => showToast(`Options for conversation with ${activeChatFriend.name}`, "alert", "CONVERSATION")}
+                                className="h-10 w-10 rounded-full bg-slate-50 hover:bg-slate-100 border border-slate-200/80 flex items-center justify-center text-[#0F172A] active:scale-95 transition-all cursor-pointer shadow-2xs shrink-0"
+                                title="More Options"
+                                aria-label="More Options"
+                              >
+                                <MoreVertical className="w-4 h-4 text-[#0F172A] stroke-[2]" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* 2. SCROLLABLE MESSAGE STREAM */}
+                        <div ref={chatScrollRef} className="flex-1 overflow-y-auto px-4 py-3 space-y-3.5 scrollbar-hide no-scrollbar">
+                          {/* Centered Date Badge */}
+                          <div className="flex justify-center my-1.5">
+                            <span className="px-3.5 py-1 rounded-full bg-[#E8EEE9] text-[10px] font-bold tracking-widest text-[#5B6B7F] uppercase shadow-2xs">
+                              TODAY
+                            </span>
+                          </div>
+
+                          {/* Message List or Initial State */}
+                          {currentChatMessages.length === 0 ? (
+                            <div className="py-2 space-y-3.5 animate-in fade-in duration-200">
+                              {/* Clean Image 2 End-to-End Encrypted Card (Compact, Non-Bulky Sizing) */}
+                              <div className="w-full max-w-sm mx-auto bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-4 sm:p-4.5 text-center">
+                                {/* Compact Squircle Shield Badge */}
+                                <div className="w-10 h-10 rounded-xl bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center mx-auto mb-2.5 shadow-2xs text-[#009A60]">
+                                  <ShieldCheck className="w-5 h-5 stroke-[2.2]" />
+                                </div>
+
+                                <span className="text-[10px] font-bold tracking-[0.14em] text-[#009A60] uppercase block mb-1.5">
+                                  END-TO-END ENCRYPTED
+                                </span>
+
+                                <p className="text-[10.5px] font-medium text-[#64748B] leading-relaxed capitalize max-w-[260px] mx-auto mb-2.5">
+                                  Messages and calls stay between you and {activeChatFriend.name.split(" ")[0]}. Not even OpenclubOS can access them.
+                                </p>
+
+                                <button
+                                  type="button"
+                                  onClick={() => setShowE2eeModal(true)}
+                                  className="text-[9.5px] font-bold text-[#009A60] tracking-wider capitalize underline underline-offset-2 hover:text-[#008251] transition-colors cursor-pointer inline-block"
+                                >
+                                  Tap to verify identity
+                                </button>
+                              </div>
+
+                              {/* Quick Reply Templates (Image 4): Clean white bg, compact matching styling */}
+                              <div className="w-full max-w-sm mx-auto space-y-1.5 pt-0.5">
+                                {[
+                                  "Ready For 18 Holes Tomorrow? ⛳",
+                                  "What Are The Pin Positions? 📍",
+                                  "Great Playing With You! 👋",
+                                ].map((promptText) => (
+                                  <button
+                                    key={promptText}
+                                    type="button"
+                                    onClick={() => handleSendPreset(promptText)}
+                                    className="w-full bg-white hover:bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-2.5 shadow-2xs text-[11px] font-medium text-[#64748B] hover:text-[#0F172A] flex items-center justify-start text-left capitalize transition-all active:scale-[0.98] cursor-pointer"
+                                  >
+                                    <span>{promptText}</span>
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          ) : (
+                            /* Once a text has started: NO E2EE CARD AT ALL, only the message bubbles! */
+                            currentChatMessages.map((msg) => {
+                              const isIncoming = msg.sender === "them";
+
+                              if (isIncoming) {
+                                return (
+                                  <div key={msg.id} className="flex items-end gap-2.5 max-w-[85%]">
+                                    {/* Sender Avatar */}
+                                    <div className="w-7 h-7 rounded-full overflow-hidden bg-slate-200 shrink-0 mb-1 border border-slate-200/80 shadow-2xs">
+                                      {activeChatFriend.avatar ? (
+                                        <img
+                                          src={activeChatFriend.avatar}
+                                          alt={activeChatFriend.name}
+                                          className="w-full h-full object-cover"
+                                        />
+                                      ) : (
+                                        <div className="w-full h-full flex items-center justify-center text-[9px] font-bold text-[#009A60]">
+                                          {getTwoInitials(activeChatFriend.name)}
+                                        </div>
+                                      )}
+                                    </div>
+
+                                    {/* Incoming Bubble */}
+                                    <div className="flex flex-col items-start min-w-0">
+                                      <div className="bg-white text-[#0F172A] px-4 py-3 rounded-2xl rounded-bl-xs shadow-2xs border border-slate-200/70 text-[13.5px] leading-relaxed">
+                                        <p className="whitespace-pre-wrap">{msg.text}</p>
+                                        {msg.attachmentImage && (
+                                          <div className="mt-2.5 rounded-xl overflow-hidden border border-slate-200/90 shadow-2xs bg-slate-50">
+                                            <img
+                                              src={msg.attachmentImage}
+                                              alt="Pin Placement"
+                                              className="w-full max-h-60 object-cover"
+                                            />
+                                          </div>
+                                        )}
+                                      </div>
+                                      <span className="text-[10px] text-slate-400 font-medium mt-1 ml-1">
+                                        {msg.time}
+                                      </span>
+                                    </div>
+                                  </div>
+                                );
+                              }
+
+                              // Outgoing Bubble (Current Player)
+                              return (
+                                <div key={msg.id} className="flex flex-col items-end max-w-[82%] ml-auto">
+                                  <div className="bg-[#009A60] text-white px-4 py-3 rounded-2xl rounded-br-xs shadow-2xs text-[13.5px] leading-relaxed font-normal">
+                                    <p className="whitespace-pre-wrap">{msg.text}</p>
+                                  </div>
+                                  <div className="flex items-center gap-1 text-[10px] text-slate-400 font-medium mt-1 mr-1">
+                                    <span>{msg.time}</span>
+                                    <CheckCheck className="w-3.5 h-3.5 text-[#009A60] stroke-[2.2]" />
+                                  </div>
+                                </div>
+                              );
+                            })
+                          )}
+                        </div>
+
+                        {/* 3. PINNED BOTTOM COMPOSER BAR */}
+                        <div className="w-full shrink-0 bg-white border-t border-slate-200/80 px-4 py-3 shadow-sm">
+                          <div className="flex items-center gap-2">
+                            {/* Attachment Plus Button */}
+                            <button
+                              type="button"
+                              onClick={() => showToast("Attachment sheet: photos, golf rounds & scorecard", "alert", "ATTACH")}
+                              className="h-10 w-10 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center active:scale-95 transition-all cursor-pointer shrink-0"
+                              title="Attach Image or Hole Info"
+                              aria-label="Attach"
+                            >
+                              <Plus className="w-5 h-5 text-slate-600 stroke-[2.2]" />
+                            </button>
+
+                            {/* Text Input Field */}
+                            <input
+                              type="text"
+                              value={chatInputText}
+                              onChange={(e) => setChatInputText(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  handleSendMessage();
+                                }
+                              }}
+                              placeholder="Type a message..."
+                              className="flex-1 h-11 px-4 rounded-full bg-[#f5faf6] border border-[#e1efe5] text-[13.5px] text-[#0F172A] placeholder:text-[#8CA0BA] focus:outline-hidden focus:border-[#009A60] focus:ring-2 focus:ring-[#009A60]/20 transition-all font-medium"
+                            />
+
+                            {/* Send Button */}
+                            <button
+                              type="button"
+                              onClick={handleSendMessage}
+                              className="h-10 w-10 rounded-full bg-[#009A60] hover:bg-[#008754] text-white flex items-center justify-center active:scale-95 shadow-xs transition-all cursor-pointer shrink-0"
+                              title="Send Message"
+                              aria-label="Send"
+                            >
+                              <Send className="w-4 h-4 text-white stroke-[2.2]" />
+                            </button>
                           </div>
                         </div>
                       </div>
@@ -16807,11 +17799,11 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                             <button
                               type="button"
                               onClick={() => switchScreen("hub")}
-                              className="h-8 w-8 rounded-full border border-slate-200 bg-white shadow-2xs flex items-center justify-center text-[#0F172A] hover:bg-slate-50 transition-all cursor-pointer shrink-0"
+                              className="h-10 w-10 rounded-full border border-slate-200 bg-white shadow-2xs flex items-center justify-center text-[#0F172A] hover:bg-slate-50 active:scale-95 transition-all cursor-pointer shrink-0"
                               title="Back to Hub"
                               aria-label="Back"
                             >
-                              <ChevronLeft className="h-[18px] w-[18px] text-[#0F172A]" />
+                              <ChevronLeft className="h-5 w-5 text-[#0F172A] stroke-[2.2]" />
                             </button>
                             <h2 className="text-base font-bold text-[#0F172A]">Notifications</h2>
                             {/* Right action button: Mark All Read */}
@@ -16819,11 +17811,11 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                               <button
                                 type="button"
                                 onClick={handleMarkAllRead}
-                                className="h-8 w-8 rounded-full border border-slate-200 bg-white shadow-2xs flex items-center justify-center text-[#009A60] hover:bg-slate-50 transition-all cursor-pointer shrink-0"
+                                className="h-10 w-10 rounded-full border border-slate-200 bg-white shadow-2xs flex items-center justify-center text-[#009A60] hover:bg-slate-50 active:scale-95 transition-all cursor-pointer shrink-0"
                                 title="Mark all as read"
                                 aria-label="Mark all as read"
                               >
-                                <CheckCheck className="h-[18px] w-[18px] text-[#009A60]" />
+                                <CheckCheck className="h-5 w-5 text-[#009A60]" />
                               </button>
                             </div>
                           </div>
@@ -17787,9 +18779,67 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                   <button
                     type="button"
                     onClick={() => setFriendActionUser(null)}
-                    className="w-full h-12 rounded-[14px] bg-white hover:bg-slate-50 border border-slate-200/90 active:scale-98 text-[#0F172A] text-sm font-bold tracking-wide shadow-2xs flex items-center justify-center cursor-pointer transition-all capitalize"
+                    className="w-full h-12 rounded-[14px] bg-red-50 hover:bg-red-100 border border-red-200/70 active:scale-[0.98] text-red-600 text-sm font-bold tracking-wide shadow-2xs flex items-center justify-center cursor-pointer transition-all capitalize"
                   >
                     Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* --- BOTTOM SHEET: END-TO-END ENCRYPTION VERIFICATION MODAL --- */}
+            {showE2eeModal && (
+              <div
+                className="absolute inset-0 z-50 bg-black/60 backdrop-blur-xs flex flex-col justify-end animate-in fade-in duration-150"
+                onClick={() => setShowE2eeModal(false)}
+              >
+                <div
+                  className={`relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl px-6 pt-3 pb-8 animate-in slide-in-from-bottom duration-200 flex flex-col w-full ${isTablet ? "" : "max-w-sm mx-auto"}`}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-6" />
+
+                  {/* Centered Lock Icon Badge */}
+                  <div className="w-16 h-16 rounded-[22px] bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center mx-auto mb-4 shadow-xs text-[#009A60]">
+                    <ShieldCheck className="w-8 h-8 stroke-[2.2]" />
+                  </div>
+
+                  <h3 className="text-[20px] font-bold text-[#0F172A] tracking-tight text-center mb-1">
+                    End-to-End Encryption
+                  </h3>
+
+                  <p className="text-[12.5px] text-[#64748B] text-center leading-relaxed max-w-[300px] mx-auto mb-5 font-normal">
+                    Messages, attachments, and calls with <span className="font-semibold text-[#0F172A]">{activeChatFriend?.name || "this friend"}</span> are encrypted device-to-device.
+                  </p>
+
+                  <div className="w-full bg-[#f5faf6] rounded-2xl border border-[#e1efe5] p-3.5 space-y-2.5 mb-5 text-left">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-medium text-[#64748B]">Cryptographic Protocol</span>
+                      <span className="font-bold text-[#0F172A]">AES-256-GCM + X25519</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-medium text-[#64748B]">Encryption State</span>
+                      <span className="font-bold text-[#009A60] flex items-center gap-1">
+                        <Lock className="w-3 h-3 stroke-[2.5]" />
+                        Active & Verified
+                      </span>
+                    </div>
+                    <div className="pt-2 border-t border-[#e1efe5]">
+                      <span className="text-[10px] font-bold tracking-wider text-[#64748B] uppercase block mb-1">
+                        Session Safety Fingerprint
+                      </span>
+                      <p className="font-mono text-[11px] font-semibold text-[#0F172A] tracking-wider select-all">
+                        4821 9034 1182 7490 2841 0563
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowE2eeModal(false)}
+                    className="w-full h-12 rounded-[14px] bg-[#009A60] hover:bg-[#008251] active:scale-98 text-white text-sm font-bold tracking-wide shadow-2xs flex items-center justify-center cursor-pointer transition-all capitalize"
+                  >
+                    Done
                   </button>
                 </div>
               </div>
@@ -18383,7 +19433,9 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                                 <div className="w-9 h-9 rounded-full bg-gradient-to-b from-slate-200 to-slate-300 text-slate-700 font-bold text-xs flex items-center justify-center border border-white">
                                   {player.initials}
                                 </div>
-                                <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white" />
+                                {isPlayerOnline(player) && (
+                                  <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-[#009A60] border-2 border-white shadow-2xs pointer-events-none" />
+                                )}
                               </div>
                               <div className="min-w-0 flex-1">
                                 <div className="flex items-center gap-1.5">
@@ -18451,6 +19503,400 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                     <span>View Full Live Leaderboard</span>
                     <ChevronRight className="w-3.5 h-3.5" />
                   </button>
+                </div>
+              </div>
+            )}
+
+            {/* --- BOTTOM SHEET: MY QR CODE & SCANNER (GLOBAL PHONE OVERLAY) --- */}
+            {showQrCodeModal && (
+              <div
+                className="absolute inset-0 z-50 bg-black/60 backdrop-blur-xs flex flex-col justify-end animate-in fade-in duration-150"
+                onClick={() => setShowQrCodeModal(false)}
+              >
+                <div
+                  className={`relative z-10 bg-white rounded-t-[28px] border-t border-[#e1efe5] shadow-2xl p-5 pb-6 animate-in slide-in-from-bottom duration-200 max-h-[88%] flex flex-col w-full ${isTablet ? "" : "max-w-sm mx-auto"}`}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {/* Drag Handle */}
+                  <div className="w-10 h-1 bg-slate-200 rounded-full mx-auto mb-3.5 shrink-0" />
+
+                  {/* Sheet Header (Matching My Bookings Display) */}
+                  <div className="flex items-center justify-between pb-3.5 border-b border-slate-100 shrink-0">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-10 h-10 rounded-xl bg-[#EAF7EE] flex items-center justify-center shrink-0 shadow-xs border border-[#C6F0DB]">
+                        <QrCode className="h-5 w-5 text-[#009A60]" />
+                      </div>
+                      <div className="min-w-0">
+                        <h4 className="text-base font-bold text-slate-900 leading-tight truncate">
+                          {qrModalTab === "display" ? "My QR Code" : "Scan QR Code"}
+                        </h4>
+                        {qrModalTab === "display" && (
+                          <p className="text-xs text-slate-500 font-medium leading-tight mt-0.5 truncate">
+                            Connect with golfers on course instantly
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowQrCodeModal(false)}
+                      className="h-8 w-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors cursor-pointer shrink-0"
+                      title="Close"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {/* Segmented Mode Switcher: My QR Code vs Scan QR Code */}
+                  <div className="flex rounded-xl bg-[#f4f6f3] border border-slate-200/60 p-1 my-3.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setQrModalTab("display");
+                        setScannedFriendResult(null);
+                      }}
+                      className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        qrModalTab === "display"
+                          ? "bg-white text-[#0F172A] shadow-2xs"
+                          : "text-slate-500 hover:text-slate-800"
+                      }`}
+                    >
+                      My QR Code
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setQrModalTab("scan");
+                        setScannedFriendResult(null);
+                      }}
+                      className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        qrModalTab === "scan"
+                          ? "bg-white text-[#0F172A] shadow-2xs"
+                          : "text-slate-500 hover:text-slate-800"
+                      }`}
+                    >
+                      Scan QR Code
+                    </button>
+                  </div>
+
+                  {/* Sheet Body: Scrollable Content */}
+                  <div className="overflow-y-auto max-h-[440px] scrollbar-hide space-y-3.5 text-center">
+                    {qrModalTab === "display" ? (
+                      /* TAB 1: DISPLAY USER QR CODE */
+                      <div className="space-y-3.5">
+                        <div className="flex flex-col items-center">
+                          <div className="w-12 h-12 rounded-full border-2 border-[#009A60] p-0.5 mb-1.5 shrink-0">
+                            {(authenticatedPlayer?.profilePhoto || authenticatedPlayer?.avatar || (authenticatedPlayer as any)?.photo) && !qrPhotoError ? (
+                              <img
+                                src={authenticatedPlayer?.profilePhoto || authenticatedPlayer?.avatar || (authenticatedPlayer as any)?.photo}
+                                alt={authenticatedPlayer?.name || "Player"}
+                                onError={() => setQrPhotoError(true)}
+                                className="w-full h-full rounded-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full rounded-full bg-[#EAF7EE] text-[#009A60] font-bold text-sm flex items-center justify-center select-none uppercase">
+                                {getTwoInitials(authenticatedPlayer?.name || "Player")}
+                              </div>
+                            )}
+                          </div>
+                          <p className="text-sm font-bold text-[#0F172A]">
+                            {authenticatedPlayer?.name || "Player"}
+                          </p>
+                          <p className="text-xs font-medium text-[#64748B] mt-0.5">
+                            <span>{authenticatedPlayer?.club || "OpenClub"}</span>
+                            <span className="mx-1 text-slate-300">|</span>
+                            <span>
+                              {authenticatedPlayer?.handicap !== undefined && authenticatedPlayer?.handicap !== null
+                                ? (typeof authenticatedPlayer.handicap === "number" ? authenticatedPlayer.handicap.toFixed(1) : authenticatedPlayer.handicap)
+                                : ((authenticatedPlayer as any)?.handicapIndex || (authenticatedPlayer as any)?.hcp || "0.0")}{" "}
+                              HCP
+                            </span>
+                          </p>
+                        </div>
+
+                        {/* High-contrast Dynamic Unique QR Graphic with 4-Module Quiet Zone */}
+                        {(() => {
+                          const activeInviteCode = getUserInviteCode(authenticatedPlayer);
+                          const currentOrigin = typeof window !== "undefined" && window.location.origin
+                            ? window.location.origin
+                            : getAppOrigin();
+                          const qrPayload = `${currentOrigin}/invite/${activeInviteCode}`;
+                          const qrData = generateUniqueQrMatrix(qrPayload, 25);
+                          const cellSize = 100 / qrData.size;
+
+                          return (
+                            <div className="w-44 h-44 mx-auto p-2 bg-[#EAF7EE] border-2 border-[#C6F0DB]/80 rounded-2xl shadow-xs flex items-center justify-center relative">
+                              <svg viewBox="-16 -16 132 132" className="w-full h-full">
+                                {/* Standard 4-Module Blank White Quiet Zone */}
+                                <rect x="-16" y="-16" width="132" height="132" fill="#FFFFFF" rx="8" />
+
+                                {/* Deterministic Data Cells */}
+                                {qrData.grid.map((row, r) =>
+                                  row.map((cell, c) => {
+                                    const isCornerFinder =
+                                      (r < 7 && c < 7) ||
+                                      (r < 7 && c >= qrData.size - 7) ||
+                                      (r >= qrData.size - 7 && c < 7);
+                                    const isCenterEmblem =
+                                      r >= qrData.mid - 2 &&
+                                      r <= qrData.mid + 2 &&
+                                      c >= qrData.mid - 2 &&
+                                      c <= qrData.mid + 2;
+
+                                    if (isCornerFinder || isCenterEmblem) return null;
+                                    if (cell === 0) return null;
+
+                                    return (
+                                      <rect
+                                        key={`qr-c-${r}-${c}`}
+                                        x={c * cellSize + 0.3}
+                                        y={r * cellSize + 0.3}
+                                        width={cellSize - 0.6}
+                                        height={cellSize - 0.6}
+                                        rx="0.8"
+                                        fill="#052417"
+                                      />
+                                    );
+                                  })
+                                )}
+
+                                {/* Top-Left Finder */}
+                                <rect x="0" y="0" width="28" height="28" rx="4" fill="#052417" />
+                                <rect x="4" y="4" width="20" height="20" rx="2" fill="white" />
+                                <rect x="8" y="8" width="12" height="12" rx="1.5" fill="#052417" />
+
+                                {/* Top-Right Finder */}
+                                <rect x="72" y="0" width="28" height="28" rx="4" fill="#052417" />
+                                <rect x="76" y="4" width="20" height="20" rx="2" fill="white" />
+                                <rect x="80" y="8" width="12" height="12" rx="1.5" fill="#052417" />
+
+                                {/* Bottom-Left Finder */}
+                                <rect x="0" y="72" width="28" height="28" rx="4" fill="#052417" />
+                                <rect x="4" y="76" width="20" height="20" rx="2" fill="white" />
+                                <rect x="8" y="80" width="12" height="12" rx="1.5" fill="#052417" />
+
+                                {/* Center Brand / Profile Monogram Emblem */}
+                                <rect x="38" y="38" width="24" height="24" rx="6" fill="white" stroke="#E2E8F0" strokeWidth="1" />
+                                <circle cx="50" cy="50" r="8" fill="#009A60" />
+                                <text
+                                  x="50"
+                                  y="53"
+                                  textAnchor="middle"
+                                  fill="white"
+                                  fontSize="6.5"
+                                  fontWeight="bold"
+                                  fontFamily="sans-serif"
+                                >
+                                  {getTwoInitials(authenticatedPlayer?.name || "Player")}
+                                </text>
+                              </svg>
+                            </div>
+                          );
+                        })()}
+
+                        <p className="text-[11.5px] text-slate-500 leading-tight">
+                          Let other golfers scan your code on the course to connect instantly.
+                        </p>
+
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            const activeCode = getUserInviteCode(authenticatedPlayer);
+                            const origin = typeof window !== "undefined" && window.location.origin
+                              ? window.location.origin
+                              : getAppOrigin();
+                            const shareUrl = `${origin}/invite/${activeCode}`;
+                            const shareData = {
+                              title: "Add me on OpenclubOS",
+                              text: `Hey! Add me as a golf friend on OpenclubOS.`,
+                              url: shareUrl,
+                            };
+
+                            if (typeof navigator !== "undefined" && navigator.share) {
+                              try {
+                                await navigator.share(shareData);
+                                showToast("QR invite link shared!", "success", "QR CODE SHARED");
+                              } catch (err: any) {
+                                if (err?.name !== "AbortError") {
+                                  if (navigator.clipboard) {
+                                    await navigator.clipboard.writeText(shareUrl).catch(() => {});
+                                  }
+                                  showToast("Invite link copied to clipboard!", "success", "LINK COPIED");
+                                }
+                              }
+                            } else if (typeof navigator !== "undefined" && navigator.clipboard) {
+                              await navigator.clipboard.writeText(shareUrl).catch(() => {});
+                              showToast("Invite link copied to clipboard!", "success", "LINK COPIED");
+                            }
+                          }}
+                          className="w-full py-2.5 rounded-xl bg-[#009A60] hover:bg-[#008251] text-white text-xs font-bold shadow-xs cursor-pointer active:scale-98 transition-all"
+                        >
+                          Share QR Code
+                        </button>
+                      </div>
+                    ) : (
+                      /* TAB 2: FUNCTIONAL QR SCANNER VIEW (WITH REAL-TIME FRIEND SYSTEM) */
+                      <div className="space-y-3.5">
+                        {/* Camera Viewfinder Box with Laser, Targeting Reticle & Corner Brackets */}
+                        <div
+                          onClick={() => {
+                            if (isScanningQr) return;
+                            setIsScanningQr(true);
+                            setTimeout(() => {
+                              setIsScanningQr(false);
+                              const candidate = golfCompetitors.find((c) => !acceptedFriendIds.includes(c.id)) || {
+                                id: "comp_qr_sim",
+                                name: "Marcus Sterling",
+                                club: "Ikoyi Club 1938",
+                                hcp: "6.4",
+                                initial: "MS",
+                                avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80",
+                              };
+                              setScannedFriendResult(candidate);
+                              if (!acceptedFriendIds.includes(candidate.id)) {
+                                setAcceptedFriendIds((prev) => [...prev, candidate.id]);
+                              }
+                              showToast(`Connected with ${candidate.name} via QR scan!`, "success", "QR CODE DETECTED");
+                            }, 600);
+                          }}
+                          className="relative w-full h-[270px] bg-slate-950 rounded-2xl overflow-hidden border border-slate-800 flex flex-col items-center justify-center shadow-inner cursor-pointer group active:scale-[0.99] transition-all"
+                          title="Click to simulate QR scan detection"
+                        >
+                          {/* Dark Camera Sensor Ambient Vignette */}
+                          <div className="absolute inset-0 bg-radial from-slate-900/30 via-slate-950/70 to-black pointer-events-none" />
+
+                          {/* Viewfinder Target Reticle Box (190x190px) */}
+                          <div className="relative w-[190px] h-[190px] flex items-center justify-center">
+                            {/* 4 Brand Corner Brackets */}
+                            <div className="absolute top-0 left-0 w-6 h-6 border-t-2 border-l-2 border-[#009A60] rounded-tl-md" />
+                            <div className="absolute top-0 right-0 w-6 h-6 border-t-2 border-r-2 border-[#009A60] rounded-tr-md" />
+                            <div className="absolute bottom-0 left-0 w-6 h-6 border-b-2 border-l-2 border-[#009A60] rounded-bl-md" />
+                            <div className="absolute bottom-0 right-0 w-6 h-6 border-b-2 border-r-2 border-[#009A60] rounded-br-md" />
+
+                            {/* Subtle Reticle Target Boundary */}
+                            <div className="absolute inset-0 border border-[#009A60]/20 rounded-lg pointer-events-none" />
+
+                            {/* Animated Scan Line */}
+                            <div className="absolute inset-x-2 top-1/2 -translate-y-1/2 h-0.5 bg-[#009A60] shadow-[0_0_12px_#009A60] animate-pulse" />
+                          </div>
+
+                          {/* Scanner Guidance Floating Badge */}
+                          <div className="absolute bottom-4 z-10 px-3.5 py-1.5 rounded-full bg-black/75 backdrop-blur-xs border border-white/10 text-[11px] font-medium text-slate-200 flex items-center gap-1.5 shadow-xs group-hover:border-[#009A60]/50 transition-colors">
+                            <Camera className="w-3.5 h-3.5 text-[#009A60]" />
+                            <span>{isScanningQr ? "Scanning QR code..." : "Align QR or tap to simulate scan"}</span>
+                          </div>
+                        </div>
+
+                        {/* Scanned Result Card with Real-Time Connection Indicator */}
+                        {scannedFriendResult ? (
+                          <div className="space-y-2.5 animate-in fade-in zoom-in-95 duration-200">
+                            <div className="w-full bg-[#F0FDF4] border border-[#A7F3D0] rounded-2xl p-3.5 text-left flex items-center justify-between gap-2.5 shadow-2xs">
+                              <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                {scannedFriendResult.avatar || scannedFriendResult.profilePhoto ? (
+                                  <div className="w-11 h-11 rounded-full border border-[#C6F0DB] overflow-hidden shrink-0">
+                                    <img
+                                      src={scannedFriendResult.avatar || scannedFriendResult.profilePhoto}
+                                      alt={scannedFriendResult.name}
+                                      className="w-full h-full object-cover"
+                                      onError={(e) => {
+                                        (e.currentTarget.parentElement as HTMLElement).innerHTML = `<div class="w-full h-full bg-[#EAF7EE] text-[#009A60] font-bold text-xs flex items-center justify-center uppercase">${getTwoInitials(scannedFriendResult.name)}</div>`;
+                                      }}
+                                    />
+                                  </div>
+                                ) : (
+                                  <div className="w-11 h-11 rounded-full bg-[#EAF7EE] text-[#009A60] font-bold text-xs flex items-center justify-center border border-[#C6F0DB] shrink-0 select-none uppercase">
+                                    {getTwoInitials(scannedFriendResult.name)}
+                                  </div>
+                                )}
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center gap-1.5">
+                                    <p className="text-xs font-bold text-[#0F172A] truncate">
+                                      {scannedFriendResult.name}
+                                    </p>
+                                    {acceptedFriendIds.includes(scannedFriendResult.id) ? (
+                                      <span className="px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[9px] font-bold">
+                                        MUTUAL FRIEND
+                                      </span>
+                                    ) : (
+                                      <span className="px-1.5 py-0.5 rounded-full bg-[#EAF7EE] text-[#009A60] text-[9px] font-bold">
+                                        CONNECTED LIVE
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-[11px] text-[#009A60] font-medium truncate mt-0.5">
+                                    {scannedFriendResult.club || "OpenClub Golfer"} | {scannedFriendResult.hcp || "0.0"} HCP
+                                  </p>
+                                </div>
+                              </div>
+                              <span className="shrink-0 w-8 h-8 rounded-full bg-[#009A60] text-white flex items-center justify-center shadow-2xs">
+                                <Check className="w-4 h-4" />
+                              </span>
+                            </div>
+
+                            <p className="text-[11px] text-[#009A60] font-medium">
+                              ✓ Real-time friend request dispatched directly to {scannedFriendResult.name}
+                            </p>
+
+                            <div className="flex gap-2 pt-1">
+                              <button
+                                type="button"
+                                onClick={() => setScannedFriendResult(null)}
+                                className="flex-1 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all cursor-pointer"
+                              >
+                                Scan Another
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setShowQrCodeModal(false)}
+                                className="flex-1 py-2 rounded-xl bg-[#009A60] hover:bg-[#008251] text-white text-xs font-bold transition-all cursor-pointer"
+                              >
+                                Done
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          /* Clean QR Scanner Guidance with interactive trigger button */
+                          <div className="text-center py-4 px-4 space-y-2">
+                            <p className="text-xs font-bold text-[#0F172A] leading-relaxed">
+                              Point camera at a golfer&apos;s QR code
+                              <br />
+                              to connect on the course
+                            </p>
+                            <p className="text-[11px] text-[#64748B] leading-tight">
+                              Hold phone steady or tap viewfinder to simulate detection
+                            </p>
+                            <button
+                              type="button"
+                              disabled={isScanningQr}
+                              onClick={() => {
+                                setIsScanningQr(true);
+                                setTimeout(() => {
+                                  setIsScanningQr(false);
+                                  const candidate = golfCompetitors.find((c) => !acceptedFriendIds.includes(c.id)) || {
+                                    id: "comp_qr_sim",
+                                    name: "Marcus Sterling",
+                                    club: "Ikoyi Club 1938",
+                                    hcp: "6.4",
+                                    initial: "MS",
+                                    avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80",
+                                  };
+                                  setScannedFriendResult(candidate);
+                                  if (!acceptedFriendIds.includes(candidate.id)) {
+                                    setAcceptedFriendIds((prev) => [...prev, candidate.id]);
+                                  }
+                                  showToast(`Connected with ${candidate.name} via QR scan!`, "success", "QR CODE DETECTED");
+                                }, 600);
+                              }}
+                              className="mt-1 px-4 py-1.5 rounded-xl bg-[#EAF7EE] hover:bg-[#d8f2e2] text-[#009A60] border border-[#C6F0DB] text-xs font-bold transition-all cursor-pointer shadow-2xs active:scale-95 inline-flex items-center gap-1.5"
+                            >
+                              <Camera className="w-3.5 h-3.5" />
+                              <span>{isScanningQr ? "Scanning QR Code..." : "Simulate QR Detection"}</span>
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
@@ -18942,16 +20388,16 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                   onClick={(e) => e.stopPropagation()}
                 >
                   <div className="w-10 h-1 bg-slate-200 rounded-full mx-auto mb-4" />
-                  <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#009A60] to-[#0A5536] text-white font-bold text-sm flex items-center justify-center shadow-md select-none border border-emerald-600/20 shrink-0">
+                  <div className="flex items-center justify-between pb-3.5 border-b border-slate-100">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#009A60] to-[#0A5536] text-white font-bold text-base flex items-center justify-center shadow-md select-none border border-emerald-600/20 shrink-0">
                         {currentInitials}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <h4 className="text-sm font-bold text-slate-900 truncate">
+                        <h4 className="text-[16px] font-bold text-slate-900 truncate leading-snug">
                           {currentDisplayName}
                         </h4>
-                        <p className="text-[11px] text-slate-500 truncate">
+                        <p className="text-[12.5px] text-slate-500 truncate mt-0.5">
                           {authenticatedPlayer?.email || (regEmail ? regEmail.trim().toLowerCase() : "samuel.obadina@gmail.com")}
                         </p>
                       </div>
@@ -18966,16 +20412,16 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                     </button>
                   </div>
 
-                  <div className="py-3 space-y-1.5 text-xs">
+                  <div className="py-3.5 space-y-1">
                     <button
                       type="button"
                       onClick={() => {
                         setShowMenuDrawer(false);
                         showToast("Competitor profile certified active.", "success", "PROFILE STATUS");
                       }}
-                      className="w-full text-left p-2.5 rounded-xl hover:bg-slate-50 text-slate-700 hover:text-slate-900 flex items-center gap-2.5 cursor-pointer font-medium transition-colors"
+                      className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-slate-50 text-[#0F172A] hover:text-black flex items-center gap-3.5 cursor-pointer font-semibold text-[15px] transition-colors"
                     >
-                      <UserCheck className="h-4 w-4 text-[#009A60]" />
+                      <UserCheck className="h-5 w-5 text-[#009A60] shrink-0" />
                       <span>My Competitor Profile</span>
                     </button>
 
@@ -18985,9 +20431,9 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                         setShowMenuDrawer(false);
                         showToast("Handicap Index Verified Active.", "success", "HANDICAP INDEX");
                       }}
-                      className="w-full text-left p-2.5 rounded-xl hover:bg-slate-50 text-slate-700 hover:text-slate-900 flex items-center gap-2.5 cursor-pointer font-medium transition-colors"
+                      className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-slate-50 text-[#0F172A] hover:text-black flex items-center gap-3.5 cursor-pointer font-semibold text-[15px] transition-colors"
                     >
-                      <ShieldCheck className="h-4 w-4 text-[#009A60]" />
+                      <ShieldCheck className="h-5 w-5 text-[#009A60] shrink-0" />
                       <span>Verified Handicap Index</span>
                     </button>
 
@@ -18997,9 +20443,9 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                         setShowMenuDrawer(false);
                         setShowBookingsModal(true);
                       }}
-                      className="w-full text-left p-2.5 rounded-xl hover:bg-slate-50 text-slate-700 hover:text-slate-900 flex items-center gap-2.5 cursor-pointer font-medium transition-colors"
+                      className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-slate-50 text-[#0F172A] hover:text-black flex items-center gap-3.5 cursor-pointer font-semibold text-[15px] transition-colors"
                     >
-                      <CalendarCheck className="h-4 w-4 text-[#009A60]" />
+                      <CalendarCheck className="h-5 w-5 text-[#009A60] shrink-0" />
                       <span>My Pro Bookings</span>
                     </button>
 
@@ -19009,9 +20455,9 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                         setShowMenuDrawer(false);
                         showToast(`Home Club: ${authenticatedPlayer?.club || "None selected"}`, "success", "HOME CLUB");
                       }}
-                      className="w-full text-left p-2.5 rounded-xl hover:bg-slate-50 text-slate-700 hover:text-slate-900 flex items-center gap-2.5 cursor-pointer font-medium transition-colors"
+                      className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-slate-50 text-[#0F172A] hover:text-black flex items-center gap-3.5 cursor-pointer font-semibold text-[15px] transition-colors"
                     >
-                      <Building2 className="h-4 w-4 text-[#009A60]" />
+                      <Building2 className="h-5 w-5 text-[#009A60] shrink-0" />
                       <span>Home Club Directory</span>
                     </button>
 
@@ -19021,9 +20467,9 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                         setShowMenuDrawer(false);
                         setShowUserSettingsModal(true);
                       }}
-                      className="w-full text-left p-2.5 rounded-xl hover:bg-slate-50 text-slate-700 hover:text-slate-900 flex items-center gap-2.5 cursor-pointer font-medium transition-colors"
+                      className="w-full text-left px-3.5 py-3 rounded-xl hover:bg-slate-50 text-[#0F172A] hover:text-black flex items-center gap-3.5 cursor-pointer font-semibold text-[15px] transition-colors"
                     >
-                      <Sliders className="h-4 w-4 text-[#009A60]" />
+                      <Sliders className="h-5 w-5 text-[#009A60] shrink-0" />
                       <span>Settings & Preferences</span>
                     </button>
                   </div>
@@ -19052,7 +20498,7 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                         }
                         switchScreen("login");
                       }}
-                      className="w-full py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold transition-colors flex items-center justify-center gap-2 cursor-pointer border border-rose-200/60"
+                      className="w-full py-3 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 text-[13.5px] font-bold transition-colors flex items-center justify-center gap-2 cursor-pointer border border-rose-200/60"
                     >
                       <LogOut className="h-4 w-4 text-rose-600" />
                       <span>Sign Out</span>
@@ -19481,6 +20927,22 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
       <div className="flex-1 min-h-0 min-w-0 flex overflow-hidden">
         {/* Left Studio Sidebar: Vertically Arranged Navigation & Controls */}
         <aside className="w-72 border-r border-slate-800/80 bg-[#090E17]/95 flex flex-col shrink-0 overflow-y-auto z-20 select-none">
+          {/* Dynamic 3 Approaches Simulation Switcher */}
+          {/* Splash Re-run Action */}
+          <div className="p-3 border-b border-slate-800/70 bg-[#0C121D]/80">
+            <button
+              type="button"
+              onClick={() => {
+                switchScreen("splash");
+              }}
+              className="w-full py-2 px-3 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer"
+              title="Re-run 3-second splash screen with auto-login routing"
+            >
+              <Play className="w-3.5 h-3.5 fill-current text-emerald-400" />
+              <span>Run Splash Screen (3s)</span>
+            </button>
+          </div>
+
           {/* Section 1: Mobile App Screens */}
           <div className="p-3 border-b border-slate-800/60">
             <div className="flex items-center justify-between px-1 pb-2">
@@ -19494,10 +20956,10 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
 
             <div className="space-y-1">
               {[
-                { id: "landing", label: "Get Started (Landing)", icon: Sparkles },
+                { id: "splash", label: "Splash Screen", icon: Sparkles },
+                { id: "login", label: "Login (Landing Page)", icon: LogOut, iconClass: "rotate-180" },
                 { id: "register", label: "Register", icon: UserPlus },
                 { id: "verify", label: "Verify Email (OTP)", icon: Mail },
-                { id: "login", label: "Login", icon: LogOut, iconClass: "rotate-180" },
                 { id: "forgot-password", label: "Forgot Password", icon: KeyRound },
                 { id: "check-inbox", label: "Check Your Inbox", icon: Mail },
                 { id: "reset-password", label: "Set New Password", icon: Lock },
@@ -19508,6 +20970,7 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                 { id: "tournament-filter", label: "Tournament Filter", icon: SlidersHorizontal },
                 { id: "tournament-details", label: "Tournament Details", icon: Trophy },
                 { id: "my-friends", label: "My Friends", icon: Users },
+                { id: "chat", label: "Direct Message", icon: MessageSquare },
                 { id: "add-friends", label: "Add Golf Friends", icon: UserPlus },
                 { id: "sync-contacts", label: "Sync Your Contacts", icon: BookUser },
                 { id: "notifications", label: "Notifications", icon: Bell },
@@ -19997,6 +21460,29 @@ class _TournamentDetailsScreenState extends State<TournamentDetailsScreen> with 
                   : "bg-slate-800 text-slate-400 border-slate-700"
               }`}>
                 {showInspector ? "Visible" : "Hidden"}
+              </span>
+            </button>
+
+            {/* Screen Skeleton Loader Preview Toggle */}
+            <button
+              type="button"
+              onClick={() => setForceSkeletonLoading(!forceSkeletonLoading)}
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-medium border transition-all cursor-pointer ${
+                forceSkeletonLoading
+                  ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-300"
+                  : "bg-[#0D1522] border-slate-800 text-slate-300 hover:border-slate-700 hover:text-white"
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Layers className="h-4 w-4 text-emerald-400" />
+                <span>Skeleton Preview</span>
+              </div>
+              <span className={`text-[10px] px-2 py-0.5 rounded-full border ${
+                forceSkeletonLoading
+                  ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"
+                  : "bg-slate-800 text-slate-400 border-slate-700"
+              }`}>
+                {forceSkeletonLoading ? "Active" : "Standard"}
               </span>
             </button>
           </div>

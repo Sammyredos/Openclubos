@@ -136,28 +136,28 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                       GestureDetector(
                         onTap: () => Navigator.of(context).pop(),
                         child: Container(
-                          width: 36,
-                          height: 36,
+                          width: 40,
+                          height: 40,
                           decoration: BoxDecoration(
                             color: Colors.white,
                             shape: BoxShape.circle,
-                            border: Border.all(color: const Color(0xFFE5E7EB), width: 1.2),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
                             boxShadow: [
                               BoxShadow(
                                 color: Colors.black.withOpacity(0.04),
-                                blurRadius: 4,
-                                offset: const Offset(0, 2),
+                                blurRadius: 2,
+                                offset: const Offset(0, 1),
                               ),
                             ],
                           ),
                           child: const Icon(
                             Icons.arrow_back_rounded,
-                            size: 18,
-                            color: Color(0xFF374151),
+                            size: 20,
+                            color: Color(0xFF0F172A),
                           ),
                         ),
                       ),
-                      const SizedBox(width: 36),
+                      const SizedBox(width: 40),
                     ],
                   ),
                 ),

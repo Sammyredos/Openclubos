@@ -68,9 +68,16 @@ Always ensure that every page has a distinct title shown in the browser tab.
 - **No Toaster on Routine Login**: Never dispatch generic floating success toasts upon routine login (e.g., "Welcome back, admin" or "Successfully Logged into your Account"). Routine sign-in must seamlessly navigate the user directly into the Dashboard or Tournament Hub without intrusive, unpolished toast notifications. Reserve toasters exclusively for critical errors, security alerts, and explicit asynchronous actions.
 
 ## Mobile Back Button & Navigation Bar Rules
-- All mobile screens (in both the Web Admin Mobile Preview Simulator and the Flutter native app) that contain a back button must strictly adhere to the unified navigation header system established by the registration/signup screen:
-  - **Button Design**: Circular white pill button (`h-8 w-8 rounded-full` / `36x36`), thin subtle border (`border-slate-200` / `#E5E7EB`), soft drop shadow (`shadow-2xs`), and dark icon (`ChevronLeft` in React / `Icons.arrow_back_rounded` in Flutter, color `#0F172A` / `#374151`, size 16-18px).
-  - **Horizontal Gutter Alignment**: Must always be placed at exactly `24px` (`px-6` / `EdgeInsets.symmetric(horizontal: 24)`) from the screen edges so the button aligns flush with form fields, headers, and body content beneath it. Never use default unpadded or 8px `AppBar` leading insets that break alignment.
+- **Back Button Removal on Entry Screens**:
+  - **Login Screen**: Must never display a back button. As the primary authentication entrypoint, there is no prior authenticated screen to return to. Header displays the centered brand identifier without leading navigation controls.
+  - **Registration Screen (Step 1)**: Must never display a back button. Step 1 initiates the flow; back navigation is strictly reserved for Steps 2, 3, and 4 to step back to the preceding wizard stage.
+- **Replicated Tournament Screen Back Button**:
+  - All screens that feature a back button (Tournaments, Tournament Details, Registration Steps 2–4, Forgot Password, Verify Email OTP, Check Your Inbox, Set New Password) must strictly replicate the unified **Tournament Screen Back Button**:
+    - **Container Geometry**: Circular white pill button of **40×40px** (`h-10 w-10 rounded-full` in React / `width: 40, height: 40, shape: BoxShape.circle` in Flutter).
+    - **Border & Elevation**: Thin slate border (`border border-slate-200` / `Border.all(color: Color(0xFFE2E8F0))`) and delicate shadow (`shadow-2xs` / `blurRadius: 2, offset: Offset(0, 1)`).
+    - **Icon & Weight**: Centered dark chevron (`ChevronLeft className="h-5 w-5 text-[#0F172A] stroke-[2.2]"` in React / `Icons.arrow_back_rounded, size: 20, color: Color(0xFF0F172A)` in Flutter).
+    - **Interactive States**: Hover background `hover:bg-slate-50`, active press scaling `active:scale-95`.
+  - **Horizontal Gutter Alignment**: Must always be placed at exactly `24px` (`px-6` / `EdgeInsets.symmetric(horizontal: 24)`) from the screen edges so the button aligns flush with form fields, headers, and body content beneath it.
   - **Uniform Vertical Rhythm**: Navigation bars must use a consistent `16px` (`pt-4` / `16dp`) top offset from the safe area and a standardized `44px`-`48px` navigation row height, completely preventing vertical displacement or jumping during screen transitions.
   - **Content Separation**: Maintain a standard `16px` to `24px` vertical spacing between the navigation header and the first content element (title, banner, or brand badge).
 
@@ -210,3 +217,28 @@ Always ensure that every page has a distinct title shown in the browser tab.
 ## Universal Mobile Text Capitalization Standard
 - **Comprehensive Mobile Capitalization**: All text across the mobile application (in both the Web Admin Mobile Preview Simulator and the Flutter native app)—including action buttons, CTAs, headings, card titles, subtitles, category tabs, filter pills, and navigation links—must strictly apply `text-transform: capitalize;` / Title Case styling.
 - **Protected Elements**: Input fields (`<input>`, `<textarea>`), authentication forms, code blocks, monospaced text, and section eyebrow headers (`.uppercase`) must remain exempt from auto-capitalization to preserve exact credential inputs, emails, and design-standard eyebrow typography.
+
+## Screen Skeleton Loader Standardization Rule
+- **Zero Generic Spinner Policy**:
+  - Never display full-screen spinning circles (`CircularProgressIndicator`, `animate-spin`), blank white screens, or text redirection notices (e.g., "Opening Player Hub...", "Redirecting to Dashboard...") when navigating between screens or waiting for page content to load.
+  - When a target screen is resolving, routing, or waiting for data hydration, immediately render the structural **Skeleton Loader** matching that destination screen's exact geometry and layout.
+- **Unified Visual Tokens & Hierarchy**:
+  - **Screen Background**: Must strictly use daylight `#F4F6F3` (`bg-[#f4f6f3]` in Tailwind CSS / `Color(0xFFF4F6F3)` in Flutter).
+  - **Cards & Enclosures**: Replicate production container geometry: `rounded-2xl`, `shadow-2xs`, delicate border `border border-slate-200/80` (or `border-[#e1efe5]`), padding `p-3.5` or `p-4`, and clean white (`bg-white`) or faint mint (`bg-[#f5faf6]`) backgrounds.
+  - **Bone Element Styling**: Soft slate/mint shimmer tones (`bg-slate-200/80` or `bg-[#e2ede5]`) with fluid `animate-pulse` or gradient shimmer.
+  - **Border Radii Hierarchy**:
+    - Avatars, status pills, and circular action buttons: `rounded-full`.
+    - Typography placeholders (titles, subtitles, metrics): `rounded-md` or `rounded-lg`.
+    - Interactive inputs and primary buttons (48px): `rounded-xl`.
+    - Content cards and modal sheets: `rounded-2xl`.
+    - Hero brand badges: `rounded-[24px]` (76×76px squircle geometry).
+  - **Horizontal Gutter Alignment**: `px-4` (16px) for scrollable feed cards and tournament listings; `px-6` (24px) for authentication credential layouts flush with back buttons.
+- **Screen-Specific Anatomy Matching**:
+  - **Player Hub (`hub`) Skeleton**: Scenic hero header placeholder with circular avatar (56×56), greeting text bones, top-right circular action icons (36×36), dual floating action cards (`Friends` and `HCP`, height 68px, `rounded-2xl`), live "Playing Now" banner placeholder (`rounded-2xl`), circular "Friends Playing Now" avatar row, and recent rounds card skeletons (`rounded-2xl`).
+  - **Tournaments (`tournaments`) Skeleton**: Pinned navigation bar with circular back button and filter icon, 48px search input placeholder (`bg-[#f5faf6] border border-[#e1efe5] rounded-xl`), horizontal category filter pill skeletons (`rounded-full`), featured event hero card skeleton (`h-[180px] rounded-2xl`), and tournament card skeletons (`rounded-2xl` with banner, adaptive title bones, and entry fee pill).
+  - **Tournament Details (`tournament-details`) Skeleton**: Top navigation bar with circular back button, hero cover banner (`h-[190px] rounded-2xl`), tournament title and host club bones, 3-column faint green spec card (`bg-[#f5faf6] border border-[#e1efe5] divide-[#e1efe5]` with Par, Holes, HCP limit), description lines, and pinned bottom CTA button skeleton (`h-12 rounded-xl`).
+  - **Notifications (`notifications`) Skeleton**: Navigation bar with back button, segmented filter pills, and notification card skeletons (`rounded-2xl`, circular avatar, multi-line message bones, timestamp).
+  - **Add Friends (`add-friends`) Skeleton**: Navigation bar with back button, contact sync banner card skeleton (`rounded-2xl`), search input bar (`rounded-xl`), and player cards (`rounded-2xl`, avatar, name/handicap bones, pill action button).
+  - **Authentication Screens (`login`, `register`, `forgot-password`, `reset-password`, `verify`)**: Circular back button (24px gutter), squircle badge (76×76 `rounded-[24px]`), title/subtitle bones, credential input fields (48px `rounded-xl bg-[#f5faf6] border-[#e1efe5]`), and primary submit button skeleton (`h-12 rounded-xl`).
+- **Synchronous Platform Enforcement**: Both the Web Admin Mobile Preview Simulator (`apps/web-admin/app/mobile-preview/page.tsx`) and the Flutter native app (`apps/mobile-app`) must implement matching skeleton loaders synchronously.
+

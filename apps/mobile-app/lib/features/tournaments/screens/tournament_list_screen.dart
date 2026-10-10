@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/api/api_client.dart';
+import '../../../widgets/skeleton_loader.dart';
 
 class TournamentListScreen extends StatefulWidget {
   const TournamentListScreen({super.key});
@@ -45,6 +46,9 @@ class _TournamentListScreenState extends State<TournamentListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const TournamentsSkeleton();
+    }
     return Scaffold(
       backgroundColor: const Color(0xFF06090E),
       appBar: AppBar(
@@ -77,9 +81,7 @@ class _TournamentListScreenState extends State<TournamentListScreen> {
             ],
           ),
         ),
-        child: _isLoading
-            ? const Center(child: CircularProgressIndicator(color: Color(0xFF10B981)))
-            : _tournaments.isEmpty
+        child: _tournaments.isEmpty
                 ? const Center(
                     child: Text(
                       'No active tournaments found.',

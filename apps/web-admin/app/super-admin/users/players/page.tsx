@@ -869,12 +869,19 @@ function SuperAdminUsersContent() {
                           ) : (
                             <span className="text-[13px] text-gray-400 font-normal">—</span>
                           )}
-                          {u.state ? (
-                            <span className="text-[11px] text-gray-600 font-normal truncate leading-tight flex items-center gap-1 mt-0.5">
-                              <MapPin className="w-3 h-3 text-gray-300 flex-shrink-0" />
-                              <span>{u.state.toLowerCase()}</span>
-                            </span>
-                          ) : null}
+                          <div className="flex items-center gap-2 flex-wrap mt-0.5">
+                            {u.club?.name ? (
+                              <span className="text-[11px] text-emerald-700 font-medium truncate leading-tight">
+                                {u.club.name}
+                              </span>
+                            ) : null}
+                            {u.state || u.city ? (
+                              <span className="text-[11px] text-gray-600 font-normal truncate leading-tight flex items-center gap-1">
+                                <MapPin className="w-3 h-3 text-gray-300 flex-shrink-0" />
+                                <span>{[u.city, u.state].filter(Boolean).join(", ")}</span>
+                              </span>
+                            ) : null}
+                          </div>
                         </div>
                       </td>
                       <td className="px-6 py-5">
@@ -1563,6 +1570,20 @@ function SuperAdminUsersContent() {
                           <div className="flex flex-col gap-1">
                             <span className="text-[11px] text-gray-400 font-normal uppercase tracking-wider">Phone Number</span>
                             <span className="text-[14px] text-gray-900 font-normal">{selectedUser?.phone || "—"}</span>
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <span className="text-[11px] text-gray-400 font-normal uppercase tracking-wider">Home Golf Club</span>
+                            <span className="text-[14px] text-gray-900 font-normal">{selectedUser?.club?.name || "—"}</span>
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <span className="text-[11px] text-gray-400 font-normal uppercase tracking-wider">Location</span>
+                            <span className="text-[14px] text-gray-900 font-normal">{[selectedUser?.city, selectedUser?.state].filter(Boolean).join(", ") || "—"}</span>
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <span className="text-[11px] text-gray-400 font-normal uppercase tracking-wider">Gender & Date of Birth</span>
+                            <span className="text-[14px] text-gray-900 font-normal">
+                              {[selectedUser?.gender ? selectedUser.gender.charAt(0) + selectedUser.gender.slice(1).toLowerCase() : null, selectedUser?.dob].filter(Boolean).join(" • ") || "—"}
+                            </span>
                           </div>
                         </div>
                       </div>

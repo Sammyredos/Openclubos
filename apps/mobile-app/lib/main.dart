@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/landing_screen.dart';
 import 'screens/registration_screen.dart';
@@ -71,7 +72,7 @@ class OpenclubApp extends StatelessWidget {
           ),
         ),
       ),
-      initialRoute: '/login',
+      initialRoute: '/splash',
       onGenerateRoute: (settings) {
         if (settings.name == '/tournaments/leaderboard') {
           final tournamentId = settings.arguments as String?;
@@ -82,6 +83,7 @@ class OpenclubApp extends StatelessWidget {
         return null;
       },
       routes: {
+        '/splash': (context) => const SplashScreen(),
         '/landing': (context) => const LandingScreen(),
         '/get-started': (context) => const LandingScreen(),
         '/login': (context) => const LoginScreen(),
@@ -91,6 +93,7 @@ class OpenclubApp extends StatelessWidget {
         '/admin/dashboard': (context) => const DashboardScreen(title: 'Club Admin Dashboard'),
         '/staff/dashboard': (context) => const DashboardScreen(title: 'Staff Dashboard'),
         '/app/home': (context) => const CompetitorHomeScreen(),
+        '/tournaments': (context) => const TournamentListScreen(),
         '/app/scoring': (context) => const DashboardScreen(title: 'Scoring Panel'),
         '/dashboard': (context) => const DashboardScreen(title: 'Dashboard'),
       },

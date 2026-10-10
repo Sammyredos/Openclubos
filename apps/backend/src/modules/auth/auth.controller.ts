@@ -220,7 +220,10 @@ export class AuthController {
   @Post('verify-email')
   @HttpCode(HttpStatus.OK)
   async verifyEmail(@Body() verifyEmailDto: VerifyEmailDto) {
-    const result = await this.authService.verifyEmail(verifyEmailDto.token);
+    const result = await this.authService.verifyEmail(
+      verifyEmailDto.token,
+      verifyEmailDto.email,
+    );
     return { success: true, message: 'Email verified successfully', ...(result || {}) };
   }
 

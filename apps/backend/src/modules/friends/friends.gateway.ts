@@ -203,4 +203,26 @@ export class FriendsGateway
       this.emitToUser(id, 'friend:playing_update', payload);
     }
   }
+
+  /**
+   * Real-time: Direct message sent between friends
+   */
+  emitDirectMessage(
+    targetUserId: string | string[],
+    payload: any,
+  ) {
+    const list = Array.isArray(targetUserId) ? targetUserId : [targetUserId];
+    const unique = new Set<string>();
+    for (const item of list) {
+      if (item && typeof item === 'string' && item.trim()) {
+        const clean = item.trim();
+        unique.add(clean);
+        unique.add(clean.toLowerCase());
+      }
+    }
+    for (const id of unique) {
+      this.emitToUser(id, 'chat:message_received', payload);
+      this.emitToUser(id, 'chat:message', payload);
+    }
+  }
 }

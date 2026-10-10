@@ -509,6 +509,28 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
         });
       });
 
+      s.on('chat:message_received', (data) {
+        if (!mounted || data == null) return;
+        final map = (data is Map) ? Map<String, dynamic>.from(data) : null;
+        if (map == null) return;
+        final senderName = map['senderName']?.toString() ?? 'Golfer';
+        final text = map['text']?.toString() ?? '';
+        if (text.isNotEmpty) {
+          debugPrint('Real-time chat message received: $senderName: $text');
+        }
+      });
+
+      s.on('chat:message', (data) {
+        if (!mounted || data == null) return;
+        final map = (data is Map) ? Map<String, dynamic>.from(data) : null;
+        if (map == null) return;
+        final senderName = map['senderName']?.toString() ?? 'Golfer';
+        final text = map['text']?.toString() ?? '';
+        if (text.isNotEmpty) {
+          debugPrint('Real-time chat message received: $senderName: $text');
+        }
+      });
+
       _socket = s;
     } catch (_) {}
   }
@@ -3351,6 +3373,44 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                             ),
                                             maxLines: 1,
                                           ),
+                                          const SizedBox(width: 10),
+                                          // Compact Faded White QR Code Action Button: 16px player card radius, icon-only display
+                                          GestureDetector(
+                                            onTap: () {
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                const SnackBar(
+                                                  content: Text('My QR Code & Scanner'),
+                                                  backgroundColor: Color(0xFF009A60),
+                                                  behavior: SnackBarBehavior.floating,
+                                                ),
+                                              );
+                                            },
+                                            child: Container(
+                                              width: 36,
+                                              height: 36,
+                                              decoration: BoxDecoration(
+                                                color: Colors.white.withOpacity(0.20),
+                                                borderRadius: BorderRadius.circular(16),
+                                                border: Border.all(
+                                                  color: Colors.white.withOpacity(0.25),
+                                                ),
+                                                boxShadow: const [
+                                                  BoxShadow(
+                                                    color: Color(0x1A000000),
+                                                    blurRadius: 4,
+                                                    offset: Offset(0, 1),
+                                                  ),
+                                                ],
+                                              ),
+                                              child: const Center(
+                                                child: Icon(
+                                                  Icons.qr_code_rounded,
+                                                  size: 18,
+                                                  color: Colors.white,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
                                         ],
                                       ),
                                     ),
@@ -5628,14 +5688,14 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                         Text(
                           '$firstName $lastName'.trim(),
                           style: GoogleFonts.plusJakartaSans(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
+                            fontSize: 16.5,
+                            fontWeight: FontWeight.w700,
                             color: const Color(0xFF0F172A),
                           ),
                         ),
                         Text(
                           email,
-                          style: GoogleFonts.plusJakartaSans(fontSize: 11.5, color: const Color(0xFF64748B)),
+                          style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF64748B)),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -5649,23 +5709,23 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
 
             // Navigation Items
             ListTile(
-              leading: const Icon(Icons.person_outline_rounded, color: Color(0xFF009A60), size: 20),
-              title: Text('My Competitor Profile', style: GoogleFonts.plusJakartaSans(fontSize: 13.5, color: const Color(0xFF0F172A), fontWeight: FontWeight.w500)),
+              leading: const Icon(Icons.person_outline_rounded, color: Color(0xFF009A60), size: 22),
+              title: Text('My Competitor Profile', style: GoogleFonts.plusJakartaSans(fontSize: 15, color: const Color(0xFF0F172A), fontWeight: FontWeight.w600)),
               onTap: () => Navigator.pop(context),
             ),
             ListTile(
-              leading: const Icon(Icons.shield_outlined, color: Color(0xFF009A60), size: 20),
-              title: Text('Verified Handicap Index', style: GoogleFonts.plusJakartaSans(fontSize: 13.5, color: const Color(0xFF0F172A), fontWeight: FontWeight.w500)),
+              leading: const Icon(Icons.shield_outlined, color: Color(0xFF009A60), size: 22),
+              title: Text('Verified Handicap Index', style: GoogleFonts.plusJakartaSans(fontSize: 15, color: const Color(0xFF0F172A), fontWeight: FontWeight.w600)),
               onTap: () => Navigator.pop(context),
             ),
             ListTile(
-              leading: const Icon(Icons.golf_course_rounded, color: Color(0xFF009A60), size: 20),
-              title: Text('Home Club Directory', style: GoogleFonts.plusJakartaSans(fontSize: 13.5, color: const Color(0xFF0F172A), fontWeight: FontWeight.w500)),
+              leading: const Icon(Icons.golf_course_rounded, color: Color(0xFF009A60), size: 22),
+              title: Text('Home Club Directory', style: GoogleFonts.plusJakartaSans(fontSize: 15, color: const Color(0xFF0F172A), fontWeight: FontWeight.w600)),
               onTap: () => Navigator.pop(context),
             ),
             ListTile(
-              leading: const Icon(Icons.calendar_month_outlined, color: Color(0xFF009A60), size: 20),
-              title: Text('My Pro Bookings', style: GoogleFonts.plusJakartaSans(fontSize: 13.5, color: const Color(0xFF0F172A), fontWeight: FontWeight.w500)),
+              leading: const Icon(Icons.calendar_month_outlined, color: Color(0xFF009A60), size: 22),
+              title: Text('My Pro Bookings', style: GoogleFonts.plusJakartaSans(fontSize: 15, color: const Color(0xFF0F172A), fontWeight: FontWeight.w600)),
               trailing: _proBookings.isNotEmpty
                   ? Container(
                       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
@@ -5685,8 +5745,8 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.settings_outlined, color: Color(0xFF009A60), size: 20),
-              title: Text('Settings & Preferences', style: GoogleFonts.plusJakartaSans(fontSize: 13.5, color: const Color(0xFF0F172A), fontWeight: FontWeight.w500)),
+              leading: const Icon(Icons.settings_outlined, color: Color(0xFF009A60), size: 22),
+              title: Text('Settings & Preferences', style: GoogleFonts.plusJakartaSans(fontSize: 15, color: const Color(0xFF0F172A), fontWeight: FontWeight.w600)),
               onTap: () {
                 Navigator.pop(context);
                 _showSettingsModal();
@@ -5698,8 +5758,8 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
 
             // Sign Out
             ListTile(
-              leading: const Icon(Icons.logout_rounded, color: Colors.roseAccent, size: 20),
-              title: Text('Sign Out', style: GoogleFonts.plusJakartaSans(color: Colors.roseAccent, fontSize: 13.5, fontWeight: FontWeight.w600)),
+              leading: const Icon(Icons.logout_rounded, color: Colors.roseAccent, size: 22),
+              title: Text('Sign Out', style: GoogleFonts.plusJakartaSans(color: Colors.roseAccent, fontSize: 14.5, fontWeight: FontWeight.w700)),
               onTap: () {
                 Navigator.pop(context);
                 _handleLogout();

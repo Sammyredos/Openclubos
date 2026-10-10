@@ -39,7 +39,7 @@ import { Pagination } from "@/components/ui/pagination";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FloatingMenu } from "@/components/ui/floating-menu";
 import { exportToCsv, exportToPdf } from "@/lib/export";
-import { cn, formatNumber } from "@/lib/utils";
+import { cn, formatNumber, subscribeAdminEvents } from "@/lib/utils";
 import { useDebounce } from "@/hooks/use-debounce";
 import { toast } from "sonner";
 
@@ -153,6 +153,16 @@ export default function OrganizerNotificationsPage() {
 
   useEffect(() => {
     fetchList();
+    const interval = setInterval(() => {
+      fetchList();
+    }, 8000);
+    const unsubscribe = subscribeAdminEvents(() => {
+      fetchList();
+    });
+    return () => {
+      clearInterval(interval);
+      unsubscribe();
+    };
   }, []);
 
   const handleMarkAllRead = async () => {

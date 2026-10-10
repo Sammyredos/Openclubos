@@ -65,11 +65,15 @@ class AuthService {
     return box.get('user');
   }
 
-  Future<Map<String, dynamic>> verifyEmail(String token) async {
+  Future<Map<String, dynamic>> verifyEmail(String token, {String? email}) async {
     try {
-      final response = await _dio.post('/auth/verify-email', data: {
+      final payload = <String, dynamic>{
         'token': token.trim(),
-      });
+      };
+      if (email != null && email.trim().isNotEmpty) {
+        payload['email'] = email.trim().toLowerCase();
+      }
+      final response = await _dio.post('/auth/verify-email', data: payload);
       if (response.statusCode != 200 && response.statusCode != 201) {
         throw Exception(response.data?['message'] ?? 'Failed to verify email');
       }

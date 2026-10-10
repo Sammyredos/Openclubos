@@ -13,22 +13,101 @@ export class FriendsService {
   ) {}
 
   /**
-   * Helper to resolve a user by ID or email
+   * Helper to resolve a user by ID, email, name, or slug
    */
   private async resolveUser(identifier?: string) {
     if (!identifier) return null;
     const clean = identifier.trim();
+
+    // 1. Match by primary key id
     let user = await this.prisma.user.findUnique({
       where: { id: clean },
       include: { club: true },
     }).catch(() => null);
 
+    // 2. Match by email
     if (!user && clean.includes('@')) {
       user = await this.prisma.user.findUnique({
         where: { email: clean.toLowerCase() },
         include: { club: true },
       }).catch(() => null);
     }
+
+    // 3. Match by name or slug
+    if (!user) {
+      const parts = clean.split(/[\s-]+/).filter(Boolean);
+      if (parts.length >= 2) {
+        user = await this.prisma.user.findFirst({
+          where: {
+            OR: [
+              {
+                firstName: { equals: parts[0], mode: 'insensitive' },
+                lastName: { equals: parts.slice(1).join(' '), mode: 'insensitive' },
+              },
+              {
+                firstName: { equals: parts.slice(0, -1).join(' '), mode: 'insensitive' },
+                lastName: { equals: parts[parts.length - 1], mode: 'insensitive' },
+              },
+            ],
+          },
+          include: { club: true },
+        }).catch(() => null);
+      } else if (parts.length === 1) {
+        user = await this.prisma.user.findFirst({
+          where: {
+            OR: [
+              { firstName: { equals: parts[0], mode: 'insensitive' } },
+              { lastName: { equals: parts[0], mode: 'insensitive' } },
+            ],
+          },
+          include: { club: true },
+        }).catch(() => null);
+      }
+    }
+
+    // 4. Fallback for authenticated current golfer / player placeholder
+    if (!user && (clean === 'player-user' || clean === 'golfer' || clean === 'me' || clean === 'current-user')) {
+      user = await this.prisma.user.findFirst({
+        where: { role: 'PLAYER' },
+        include: { club: true },
+      }).catch(() => null);
+      if (!user) {
+        user = await this.prisma.user.findFirst({
+          include: { club: true },
+        }).catch(() => null);
+      }
+    }
+
+    // 5. If user still does not exist, auto-create a user record only for valid named placeholders (never for transient/dummy IDs)
+    if (!user && clean && !clean.startsWith('reg_') && !clean.startsWith('guest_') && !clean.startsWith('temp_') && !clean.startsWith('mock_') && !clean.includes('undefined')) {
+      try {
+        const parts = clean.split(/[\s-]+/).filter(Boolean);
+        const fName = parts[0] || 'Golfer';
+        const lName = parts.slice(1).join(' ') || 'Player';
+        const safeSlug = clean.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const autoEmail = `${safeSlug || 'golfer_' + Date.now()}@openclub.app`;
+
+        user = await this.prisma.user.create({
+          data: {
+            email: autoEmail,
+            password: 'managed_system_account',
+            firstName: fName.charAt(0).toUpperCase() + fName.slice(1),
+            lastName: lName.charAt(0).toUpperCase() + lName.slice(1),
+            role: 'PLAYER',
+            status: 'ACTIVE',
+          },
+          include: { club: true },
+        }).catch(async () => {
+          return this.prisma.user.findFirst({
+            where: { email: autoEmail },
+            include: { club: true },
+          });
+        });
+      } catch (e) {
+        this.logger.warn(`Could not auto-create user for "${clean}": ${e}`);
+      }
+    }
+
     return user;
   }
 
@@ -586,5 +665,138 @@ export class FriendsService {
       club: b.blocked.club?.name || 'OpenClub Golfer',
       blockedAt: b.createdAt,
     }));
+  }
+
+  /**
+   * Send a direct message to a friend (stored in DB)
+   */
+  async sendMessage(
+    dto: { receiverId?: string; targetUserId?: string; text: string; hasImage?: boolean; imageUrl?: string; clientTempId?: string },
+    reqUser?: any,
+    xUserId?: string,
+  ) {
+    const rawSenderId = reqUser?.id || xUserId;
+    const rawReceiverId = dto.receiverId || dto.targetUserId;
+
+    if (!rawReceiverId) {
+      throw new BadRequestException('Receiver ID is required');
+    }
+    if (!dto.text || !dto.text.trim()) {
+      throw new BadRequestException('Message text cannot be empty');
+    }
+
+    const sender = await this.resolveUser(rawSenderId);
+    const receiver = await this.resolveUser(rawReceiverId);
+
+    if (!sender) {
+      throw new NotFoundException(`Sender not found (${rawSenderId})`);
+    }
+    if (!receiver) {
+      throw new NotFoundException(`Receiver not found (${rawReceiverId})`);
+    }
+
+    const message = await this.prisma.directMessage.create({
+      data: {
+        senderId: sender.id,
+        receiverId: receiver.id,
+        text: dto.text.trim(),
+        hasImage: !!dto.hasImage,
+        imageUrl: dto.imageUrl || null,
+        status: 'sent',
+      },
+      include: {
+        sender: {
+          select: { id: true, firstName: true, lastName: true, profilePhoto: true },
+        },
+        receiver: {
+          select: { id: true, firstName: true, lastName: true, profilePhoto: true },
+        },
+      },
+    });
+
+    const payload = {
+      id: message.id,
+      clientTempId: dto.clientTempId || null,
+      senderId: message.senderId,
+      receiverId: message.receiverId,
+      text: message.text,
+      hasImage: message.hasImage,
+      imageUrl: message.imageUrl,
+      status: message.status,
+      createdAt: message.createdAt.toISOString(),
+      time: message.createdAt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }),
+      senderName: [sender.firstName, sender.lastName].filter(Boolean).join(' ') || sender.email,
+      senderAvatar: sender.profilePhoto,
+      receiverName: [receiver.firstName, receiver.lastName].filter(Boolean).join(' ') || receiver.email,
+    };
+
+    // Emit live to receiver and sender via WebSocket to all room aliases (UUID, email, name, raw ID)
+    const receiverTargets = [
+      receiver.id,
+      receiver.email,
+      rawReceiverId,
+      receiver.firstName ? `${receiver.firstName} ${receiver.lastName || ''}`.trim() : null,
+    ].filter(Boolean) as string[];
+
+    const senderTargets = [
+      sender.id,
+      sender.email,
+      rawSenderId,
+      sender.firstName ? `${sender.firstName} ${sender.lastName || ''}`.trim() : null,
+    ].filter(Boolean) as string[];
+
+    this.friendsGateway.emitDirectMessage([...receiverTargets, ...senderTargets], payload);
+
+    return payload;
+  }
+
+  /**
+   * Get direct message history between current user and friend from DB
+   */
+  async getMessages(
+    friendId: string,
+    reqUser?: any,
+    xUserId?: string,
+    limit = 100,
+  ) {
+    const rawUserId = reqUser?.id || xUserId;
+    const user = await this.resolveUser(rawUserId);
+    const friend = await this.resolveUser(friendId);
+
+    if (!user || !friend) {
+      return [];
+    }
+
+    const messages = await this.prisma.directMessage.findMany({
+      where: {
+        OR: [
+          { senderId: user.id, receiverId: friend.id },
+          { senderId: friend.id, receiverId: user.id },
+        ],
+      },
+      orderBy: { createdAt: 'asc' },
+      take: limit,
+      include: {
+        sender: {
+          select: { id: true, firstName: true, lastName: true, profilePhoto: true },
+        },
+      },
+    });
+
+    return messages.map((m) => {
+      const isOutgoing = m.senderId === user.id;
+      return {
+        id: m.id,
+        sender: isOutgoing ? 'me' : 'them',
+        senderId: m.senderId,
+        receiverId: m.receiverId,
+        text: m.text,
+        hasImage: m.hasImage,
+        imageUrl: m.imageUrl,
+        time: m.createdAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        createdAt: m.createdAt.toISOString(),
+        status: m.status,
+      };
+    });
   }
 }

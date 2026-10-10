@@ -480,31 +480,34 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // Circular Back Arrow
-              GestureDetector(
-                onTap: _prevStep,
-                child: Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: const Color(0xFFE5E7EB), width: 1.2),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.04),
-                        blurRadius: 4,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
+              // Circular Back Arrow (Hidden on Step 1, matches Tournament Screen 40x40 on Steps 2-4)
+              if (_currentStep > 1)
+                GestureDetector(
+                  onTap: _prevStep,
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.04),
+                          blurRadius: 2,
+                          offset: const Offset(0, 1),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.arrow_back_rounded,
+                      size: 20,
+                      color: Color(0xFF0F172A),
+                    ),
                   ),
-                  child: const Icon(
-                    Icons.arrow_back_rounded,
-                    size: 18,
-                    color: Color(0xFF374151),
-                  ),
-                ),
-              ),
+                )
+              else
+                const SizedBox(width: 40, height: 40),
 
               // Pill Badge: "STEP X OF 4"
               Container(

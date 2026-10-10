@@ -18,6 +18,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool _rememberMe = true;
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (args is Map && args['email'] is String && _emailController.text.isEmpty) {
+      _emailController.text = (args['email'] as String).trim();
+    }
+  }
+
+  @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();

@@ -23,6 +23,14 @@ export class RegisterDto {
   name: string;
 
   @IsOptional()
+  @IsString()
+  firstName?: string;
+
+  @IsOptional()
+  @IsString()
+  lastName?: string;
+
+  @IsOptional()
   @IsUUID()
   clubId?: string;
 

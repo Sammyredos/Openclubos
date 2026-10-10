@@ -1749,6 +1749,20 @@ export default function OrganizerAdminMembersPage() {
                             <span className="text-[11px] text-gray-400 font-normal uppercase tracking-wider">Phone Number</span>
                             <span className="text-[14px] text-gray-900 font-normal">{selectedUser?.phone || "—"}</span>
                           </div>
+                          <div className="flex flex-col gap-1">
+                            <span className="text-[11px] text-gray-400 font-normal uppercase tracking-wider">Home Golf Club</span>
+                            <span className="text-[14px] text-gray-900 font-normal">{selectedUser?.club?.name || "—"}</span>
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <span className="text-[11px] text-gray-400 font-normal uppercase tracking-wider">Location</span>
+                            <span className="text-[14px] text-gray-900 font-normal">{[selectedUser?.city, selectedUser?.state].filter(Boolean).join(", ") || "—"}</span>
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <span className="text-[11px] text-gray-400 font-normal uppercase tracking-wider">Gender & Date of Birth</span>
+                            <span className="text-[14px] text-gray-900 font-normal">
+                              {[selectedUser?.gender ? selectedUser.gender.charAt(0) + selectedUser.gender.slice(1).toLowerCase() : null, selectedUser?.dob].filter(Boolean).join(" • ") || "—"}
+                            </span>
+                          </div>
                         </div>
                       </div>
 
