@@ -1406,7 +1406,6 @@ export default function MobilePreviewPage() {
   const [incomingFriendRequests, setIncomingFriendRequests] = useState<any[]>([]);
   const [myFriendsTab, setMyFriendsTab] = useState<"all" | "pending" | "requests">("all");
   const [myFriendsSearchQuery, setMyFriendsSearchQuery] = useState("");
-  const [networkTab, setNetworkTab] = useState<"friends" | "club">("friends");
   const [myFriendsDisplayLimit, setMyFriendsDisplayLimit] = useState(5);
   const [networkSortMode, setNetworkSortMode] = useState<"default" | "hcp_asc" | "hcp_desc" | "name_asc">("default");
 
@@ -8093,15 +8092,16 @@ class AddFriendsScreen extends StatelessWidget {
     "my-friends": {
       path: "apps/mobile-app/lib/screens/my_friends_screen.dart",
       summary:
-        "Dedicated golfer network screen displaying connected friends, pending sent requests, and incoming invitations with unified navigation header and segmented controls.",
+        "Dedicated golfer network screen displaying connected friends with total count in title, real-time search, sorting controls, and direct messaging actions.",
       snippet: `// Dart & Flutter: my_friends_screen.dart
 class MyFriendsScreen extends StatelessWidget {
-  const MyFriendsScreen({super.key});
+  final int totalFriends;
+  const MyFriendsScreen({super.key, this.totalFriends = 0});
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('My Friends')),
-      body: const Center(child: Text('Connected Golfers & Network')),
+      appBar: AppBar(title: Text('Friends ($totalFriends)')),
+      body: const Center(child: Text('Your Connected Golfers')),
     );
   }
 }`,
@@ -17203,9 +17203,16 @@ class ChatScreen extends StatelessWidget {
                           const fullInviteUrl = `${getAppOrigin()}/invite/${myInviteCode}`;
                           return (
                             <div className="w-full bg-white rounded-2xl border-2 border-dashed border-[#009A60] hover:border-[#008251] shadow-2xs p-5 text-center transition-all">
-                              {/* Centered Link Squircle Badge */}
-                              <div className="w-12 h-12 rounded-2xl bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center mx-auto mb-3 text-[#009A60] shadow-xs">
-                                <Link2 className="w-5 h-5 text-[#009A60]" />
+                              {/* Centered Link Squircle Badge with QR Code Trigger */}
+                              <div
+                                onClick={() => {
+                                  setQrModalTab("display");
+                                  setShowQrCodeModal(true);
+                                }}
+                                className="w-12 h-12 rounded-2xl bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center mx-auto mb-3 text-[#009A60] shadow-xs cursor-pointer hover:scale-105 active:scale-95 transition-all group"
+                                title="View QR Code"
+                              >
+                                <Link2 className="w-5 h-5 text-[#009A60] group-hover:rotate-12 transition-transform" />
                               </div>
 
                               {/* Centered Heading */}
@@ -17225,7 +17232,7 @@ class ChatScreen extends StatelessWidget {
                                   readOnly
                                   value={fullInviteUrl}
                                   onClick={(e) => (e.target as HTMLInputElement).select()}
-                                  className="font-sans font-medium text-xs text-[#0F172A] bg-transparent outline-none border-none flex-1 truncate select-all cursor-text"
+                                  className="font-sans font-medium text-xs text-[#0F172A] bg-transparent outline-none border-none flex-1 min-w-0 truncate select-all cursor-text"
                                   style={{ fontFamily: "var(--font-plus-jakarta-sans), 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif" }}
                                 />
                                 <button
@@ -17236,13 +17243,36 @@ class ChatScreen extends StatelessWidget {
                                     }
                                     showToast("Invite link copied to clipboard!", "success", "LINK COPIED");
                                   }}
-                                  className="px-4 py-2 rounded-lg bg-white hover:bg-slate-50 border border-slate-200/80 text-[#0F172A] text-xs font-bold transition-all shadow-2xs active:scale-95 shrink-0 flex items-center gap-1.5 cursor-pointer"
+                                  className="px-4 py-2 rounded-lg bg-white hover:bg-slate-50 border border-slate-200/80 text-[#0F172A] text-xs font-bold transition-all shadow-2xs active:scale-95 shrink-0 flex items-center gap-1.5 cursor-pointer capitalize"
                                   title="Copy invite link"
                                 >
                                   <Copy className="w-3.5 h-3.5 text-[#64748B]" />
                                   <span>Copy</span>
                                 </button>
                               </div>
+
+                              {/* Subtle "— or —" Divider */}
+                              <div className="flex items-center my-3.5 gap-3">
+                                <div className="flex-1 h-px bg-slate-200/80" />
+                                <span className="text-[11px] font-bold text-[#8CA0BA] uppercase tracking-wider">
+                                  or
+                                </span>
+                                <div className="flex-1 h-px bg-slate-200/80" />
+                              </div>
+
+                              {/* Dedicated QR Code Button on New Line */}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setQrModalTab("display");
+                                  setShowQrCodeModal(true);
+                                }}
+                                className="w-full py-2.5 px-4 rounded-xl bg-[#EAF7EE] hover:bg-[#daf3e4] border border-[#C6F0DB] text-[#009A60] text-xs font-bold transition-all shadow-2xs active:scale-98 flex items-center justify-center gap-2 cursor-pointer capitalize"
+                                title="Share via QR Code"
+                              >
+                                <QrCode className="w-4 h-4 text-[#009A60]" />
+                                <span>Share via QR Code</span>
+                              </button>
                             </div>
                           );
                         })()}
@@ -17963,14 +17993,6 @@ class ChatScreen extends StatelessWidget {
               return true;
             });
 
-          // Club Friends: accepted friends who belong to the player's home club.
-          const userClub = (authenticatedPlayer?.club || "").toLowerCase().trim();
-          const clubGolfers = connectedGolfers.filter((p) => {
-            const cLower = (p.club || "").toLowerCase().trim();
-            if (!userClub || !cLower || cLower === "openclub golfer") return false;
-            return cLower === userClub || cLower.includes(userClub) || userClub.includes(cLower);
-          });
-
           const mq = myFriendsSearchQuery.trim().toLowerCase();
 
           const filteredConnected = mq
@@ -17981,14 +18003,6 @@ class ChatScreen extends StatelessWidget {
                 (p.id && String(p.id).toLowerCase().includes(mq))
             )
             : connectedGolfers;
-
-          const filteredClub = mq
-            ? clubGolfers.filter(
-              (p) =>
-                p.name.toLowerCase().includes(mq) ||
-                (p.club && p.club.toLowerCase().includes(mq))
-            )
-            : clubGolfers;
 
           // Sort filtered friends (WhatsApp-style: friends who sent unread messages bubble to top)
           const sortedConnected = [...filteredConnected].sort((a, b) => {
@@ -18017,8 +18031,8 @@ class ChatScreen extends StatelessWidget {
             <div className="flex-1 h-full flex flex-col bg-[#f4f6f3] relative overflow-hidden">
               {/* 1. FIXED TOP NAVIGATION & CONTROLS (NETWORK HEADER) */}
               <div className="w-full shrink-0 z-20 bg-white border-b border-slate-200/60 shadow-2xs">
-                <div className="w-full px-6 pt-4 pb-0">
-                  {/* Navigation Bar Row: Back Button, Title, and Right Pill Action Buttons */}
+                <div className="w-full px-6 pt-4 pb-3.5">
+                  {/* Navigation Bar Row: Back Button, Title with Friends Count, and Spacer */}
                   <div className="flex items-center justify-between">
                     <button
                       type="button"
@@ -18030,13 +18044,13 @@ class ChatScreen extends StatelessWidget {
                       <ChevronLeft className="h-5 w-5 text-[#0F172A] stroke-[2.2]" />
                     </button>
 
-                    <h2 className="text-base font-bold text-[#0F172A]">My Friends</h2>
+                    <h2 className="text-base font-bold text-[#0F172A]">Friends ({connectedGolfers.length})</h2>
 
                     <div className="w-10 shrink-0 pointer-events-none" />
                   </div>
 
                   {/* Search Bar Input */}
-                  <div className="relative mt-2.5 mb-3.5">
+                  <div className="relative mt-2.5">
                     <Search className="absolute left-3.5 top-3.5 h-4 w-4 text-[#8CA0BA]" />
                     <input
                       type="text"
@@ -18059,296 +18073,167 @@ class ChatScreen extends StatelessWidget {
                       </button>
                     )}
                   </div>
-
-                  {/* Underline Tab Navigation: MY FRIENDS | CLUB */}
-                  <div className="flex items-center justify-around border-b border-slate-200/60 pt-1 px-1">
-                    <button
-                      type="button"
-                      onClick={() => setNetworkTab("friends")}
-                      className={`pb-2.5 text-[12px] sm:text-[12.5px] font-bold tracking-wider relative transition-colors cursor-pointer ${networkTab === "friends" ? "text-[#009A60]" : "text-[#64748B] hover:text-[#0F172A]"
-                        }`}
-                    >
-                      MY FRIENDS
-                      {networkTab === "friends" && (
-                        <span className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-[#009A60] rounded-full" />
-                      )}
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setNetworkTab("club")}
-                      className={`pb-2.5 text-[12px] sm:text-[12.5px] font-bold tracking-wider relative transition-colors cursor-pointer ${networkTab === "club" ? "text-[#009A60]" : "text-[#64748B] hover:text-[#0F172A]"
-                        }`}
-                    >
-                      CLUB
-                      {networkTab === "club" && (
-                        <span className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-[#009A60] rounded-full" />
-                      )}
-                    </button>
-                  </div>
                 </div>
               </div>
 
-              {/* 2. SCROLLABLE TAB BODY */}
+              {/* 2. SCROLLABLE BODY (YOUR FRIENDS) */}
               <div className="flex-1 overflow-y-auto">
                 <div className="w-full px-4 py-4 space-y-6 pb-12">
-                  {/* TAB 1: MY FRIENDS */}
-                  {networkTab === "friends" && (
-                    <>
-                      {/* ALL FRIENDS LIST SECTION */}
+                  {/* ALL FRIENDS LIST SECTION */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between px-0.5">
+                      <span className="text-[11px] font-bold tracking-[0.14em] text-[#64748B] uppercase block">
+                        YOUR FRIENDS ({sortedConnected.length})
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setNetworkSortMode((curr) =>
+                            curr === "default" ? "name_asc" : curr === "name_asc" ? "hcp_asc" : curr === "hcp_asc" ? "hcp_desc" : "default"
+                          );
+                        }}
+                        className="text-[11px] font-bold tracking-wider text-[#009A60] hover:text-[#008251] uppercase flex items-center gap-1 cursor-pointer transition-colors"
+                      >
+                        <span>
+                          {networkSortMode === "default"
+                            ? "SORT BY DATE"
+                            : networkSortMode === "name_asc"
+                              ? "SORT BY NAME"
+                              : networkSortMode === "hcp_asc"
+                                ? "HCP: LOW TO HIGH"
+                                : "HCP: HIGH TO LOW"}
+                        </span>
+                        <ChevronDown className="w-3.5 h-3.5 text-[#009A60]" />
+                      </button>
+                    </div>
+
+                    {sortedConnected.length > 0 ? (
                       <div className="space-y-3">
-                        <div className="flex items-center justify-between px-0.5">
-                          <span className="text-[11px] font-bold tracking-[0.14em] text-[#64748B] uppercase block">
-                            ALL FRIENDS ({sortedConnected.length})
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setNetworkSortMode((curr) =>
-                                curr === "default" ? "name_asc" : curr === "name_asc" ? "hcp_asc" : curr === "hcp_asc" ? "hcp_desc" : "default"
-                              );
-                            }}
-                            className="text-[11px] font-bold tracking-wider text-[#009A60] hover:text-[#008251] uppercase flex items-center gap-1 cursor-pointer transition-colors"
+                        {displayedConnected.map((friend) => (
+                          <div
+                            key={friend.id}
+                            className="w-full bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-3.5 flex items-center justify-between gap-3 transition-all hover:border-slate-300"
                           >
-                            <span>
-                              {networkSortMode === "default"
-                                ? "SORT BY DATE"
-                                : networkSortMode === "name_asc"
-                                  ? "SORT BY NAME"
-                                  : networkSortMode === "hcp_asc"
-                                    ? "HCP: LOW TO HIGH"
-                                    : "HCP: HIGH TO LOW"}
-                            </span>
-                            <ChevronDown className="w-3.5 h-3.5 text-[#009A60]" />
-                          </button>
-                        </div>
-
-                        {sortedConnected.length > 0 ? (
-                          <div className="space-y-3">
-                            {displayedConnected.map((friend) => (
-                              <div
-                                key={friend.id}
-                                className="w-full bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-3.5 flex items-center justify-between gap-3 transition-all hover:border-slate-300"
-                              >
-                                <div className="flex items-center gap-3 min-w-0 flex-1">
-                                  {/* Squircle Avatar with Bottom-Right Online Status */}
-                                  <div className="relative shrink-0">
-                                    <div className="w-12 h-12 rounded-2xl bg-[#EAF7EE] border border-[#C6F0DB] overflow-hidden flex items-center justify-center">
-                                      {friend.avatar || friend.profilePhoto ? (
-                                        <img
-                                          src={friend.avatar || friend.profilePhoto}
-                                          alt={friend.name}
-                                          className="w-full h-full object-cover"
-                                          onError={(e) => {
-                                            (e.currentTarget as HTMLElement).style.display = "none";
-                                            const fallback = (e.currentTarget.parentElement?.querySelector(".avatar-initials-fallback") as HTMLElement);
-                                            if (fallback) fallback.style.display = "flex";
-                                          }}
-                                        />
-                                      ) : null}
-                                      <div
-                                        className={`w-full h-full items-center justify-center avatar-initials-fallback ${friend.avatar || friend.profilePhoto ? "hidden" : "flex"
-                                          }`}
-                                      >
-                                        <span className="text-sm font-bold text-[#009A60]">
-                                          {friend.initial || getTwoInitials(friend.name)}
-                                        </span>
-                                      </div>
-                                    </div>
-                                    {/* Online Indicator Green Dot (Only when player is online, zero color when offline) */}
-                                    {isPlayerOnline(friend) && (
-                                      <div className="w-3.5 h-3.5 rounded-full bg-[#009A60] border-2 border-white absolute -bottom-0.5 -right-0.5 shadow-2xs pointer-events-none" />
-                                    )}
-                                  </div>
-
-                                  {/* Middle Golfer Info */}
-                                  <div className="min-w-0 flex-1">
-                                    <h4 className="text-[14.5px] font-bold text-[#0F172A] leading-tight truncate">
-                                      {friend.name}
-                                    </h4>
-                                    <p className="text-[12px] font-medium text-[#64748B] truncate leading-tight mt-0.5 flex items-center">
-                                      <span className="truncate">{friend.club || "OpenClub Golfer"}</span>
-                                      <span className="mx-1.5 text-slate-300 font-normal shrink-0">|</span>
-                                      <span className="shrink-0">{friend.hcp || "12.0"} HCP</span>
-                                    </p>
+                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                              {/* Squircle Avatar with Bottom-Right Online Status */}
+                              <div className="relative shrink-0">
+                                <div className="w-12 h-12 rounded-2xl bg-[#EAF7EE] border border-[#C6F0DB] overflow-hidden flex items-center justify-center">
+                                  {friend.avatar || friend.profilePhoto ? (
+                                    <img
+                                      src={friend.avatar || friend.profilePhoto}
+                                      alt={friend.name}
+                                      className="w-full h-full object-cover"
+                                      onError={(e) => {
+                                        (e.currentTarget as HTMLElement).style.display = "none";
+                                        const fallback = (e.currentTarget.parentElement?.querySelector(".avatar-initials-fallback") as HTMLElement);
+                                        if (fallback) fallback.style.display = "flex";
+                                      }}
+                                    />
+                                  ) : null}
+                                  <div
+                                    className={`w-full h-full items-center justify-center avatar-initials-fallback ${friend.avatar || friend.profilePhoto ? "hidden" : "flex"
+                                      }`}
+                                  >
+                                    <span className="text-sm font-bold text-[#009A60]">
+                                      {friend.initial || getTwoInitials(friend.name)}
+                                    </span>
                                   </div>
                                 </div>
-
-                                {/* Right Chat & More Options Action Buttons */}
-                                <div className="shrink-0 flex items-center gap-2">
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      clearFriendUnread(friend);
-                                      setActiveChatFriend({
-                                        id: friend.id,
-                                        name: friend.name,
-                                        avatar: friend.avatar || friend.profilePhoto,
-                                        club: friend.club || "Ikoyi Golf Club",
-                                        hcp: friend.hcp || "12.0",
-                                        isOnline: isPlayerOnline(friend),
-                                      });
-                                      switchScreen("chat");
-                                    }}
-                                    className="relative w-9 h-9 rounded-xl bg-[#f5faf6] hover:bg-[#EAF7EE] border border-[#e1efe5] flex items-center justify-center text-[#64748B] hover:text-[#009A60] transition-all cursor-pointer shadow-2xs active:scale-95 shrink-0"
-                                    title={`Message ${friend.name}`}
-                                    aria-label="Message Friend"
-                                  >
-                                    <MessageSquare className="w-4 h-4 stroke-[2]" />
-                                    {getFriendUnreadCount(friend) > 0 && (
-                                      <span className="absolute -top-1.5 -right-1.5 min-w-[17px] h-[17px] rounded-full bg-[#009A60] border-2 border-white text-white text-[9.5px] font-bold flex items-center justify-center px-1 shadow-xs leading-none">
-                                        {getFriendUnreadCount(friend)}
-                                      </span>
-                                    )}
-                                  </button>
-
-                                  {/* Circular 3-Dots Action Button (Image 3) */}
-                                  <button
-                                    type="button"
-                                    onClick={() => setFriendActionUser(friend)}
-                                    className="w-9 h-9 rounded-full bg-[#f1f5f9]/80 hover:bg-[#e2e8f0] text-slate-600 hover:text-slate-900 border border-slate-200/90 flex items-center justify-center transition-all cursor-pointer active:scale-95 shadow-2xs shrink-0"
-                                    title={`More options for ${friend.name}`}
-                                    aria-label="Golfer Options"
-                                  >
-                                    <MoreHorizontal className="w-4 h-4 stroke-[2.2]" />
-                                  </button>
-                                </div>
+                                {/* Online Indicator Green Dot (Only when player is online, zero color when offline) */}
+                                {isPlayerOnline(friend) && (
+                                  <div className="w-3.5 h-3.5 rounded-full bg-[#009A60] border-2 border-white absolute -bottom-0.5 -right-0.5 shadow-2xs pointer-events-none" />
+                                )}
                               </div>
-                            ))}
-                            {remainingFriendsCount > 0 && (
+
+                              {/* Middle Golfer Info */}
+                              <div className="min-w-0 flex-1">
+                                <h4 className="text-[14.5px] font-bold text-[#0F172A] leading-tight truncate">
+                                  {friend.name}
+                                </h4>
+                                <p className="text-[12px] font-medium text-[#64748B] truncate leading-tight mt-0.5 flex items-center">
+                                  <span className="truncate">{friend.club || "OpenClub Golfer"}</span>
+                                  <span className="mx-1.5 text-slate-300 font-normal shrink-0">|</span>
+                                  <span className="shrink-0">{friend.hcp || "12.0"} HCP</span>
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* Right Chat & More Options Action Buttons */}
+                            <div className="shrink-0 flex items-center gap-2">
                               <button
                                 type="button"
-                                onClick={() => setMyFriendsDisplayLimit((prev) => prev + 5)}
-                                className="w-full py-3 rounded-2xl bg-white border border-slate-200/90 shadow-2xs text-[13px] font-bold text-[#009A60] hover:bg-[#EAF7EE] hover:border-[#C6F0DB] transition-all cursor-pointer active:scale-[0.98] flex items-center justify-center gap-2"
+                                onClick={() => {
+                                  clearFriendUnread(friend);
+                                  setActiveChatFriend({
+                                    id: friend.id,
+                                    name: friend.name,
+                                    avatar: friend.avatar || friend.profilePhoto,
+                                    club: friend.club || "Ikoyi Golf Club",
+                                    hcp: friend.hcp || "12.0",
+                                    isOnline: isPlayerOnline(friend),
+                                  });
+                                  switchScreen("chat");
+                                }}
+                                className="relative w-9 h-9 rounded-xl bg-[#f5faf6] hover:bg-[#EAF7EE] border border-[#e1efe5] flex items-center justify-center text-[#64748B] hover:text-[#009A60] transition-all cursor-pointer shadow-2xs active:scale-95 shrink-0"
+                                title={`Message ${friend.name}`}
+                                aria-label="Message Friend"
                               >
-                                <ChevronDown className="w-4 h-4 stroke-[2.5]" />
-                                Show More ({remainingFriendsCount} remaining)
+                                <MessageSquare className="w-4 h-4 stroke-[2]" />
+                                {getFriendUnreadCount(friend) > 0 && (
+                                  <span className="absolute -top-1.5 -right-1.5 min-w-[17px] h-[17px] rounded-full bg-[#009A60] border-2 border-white text-white text-[9.5px] font-bold flex items-center justify-center px-1 shadow-xs leading-none">
+                                    {getFriendUnreadCount(friend)}
+                                  </span>
+                                )}
                               </button>
-                            )}
-                          </div>
-                        ) : (
-                          <div className="py-12 px-6 text-center">
-                            <div className="w-[76px] h-[76px] rounded-[24px] bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center mx-auto mb-4 text-[#009A60] shadow-xs">
-                              <Users className="w-8 h-8" />
+
+                              {/* Circular 3-Dots Action Button (Image 3) */}
+                              <button
+                                type="button"
+                                onClick={() => setFriendActionUser(friend)}
+                                className="w-9 h-9 rounded-full bg-[#f1f5f9]/80 hover:bg-[#e2e8f0] text-slate-600 hover:text-slate-900 border border-slate-200/90 flex items-center justify-center transition-all cursor-pointer active:scale-95 shadow-2xs shrink-0"
+                                title={`More options for ${friend.name}`}
+                                aria-label="Golfer Options"
+                              >
+                                <MoreHorizontal className="w-4 h-4 stroke-[2.2]" />
+                              </button>
                             </div>
-                            <h3 className="text-base font-bold text-[#0F172A] mb-1">
-                              {mq ? "No Matching Friends" : "No Friends Added Yet"}
-                            </h3>
-                            <p className="text-xs text-[#64748B] max-w-[270px] mx-auto mb-5 leading-relaxed">
-                              {mq
-                                ? "Try searching with a different name or ID."
-                                : "Connect with golfers on OpenclubOS to track rounds, view leaderboards, and schedule matches."}
-                            </p>
-                            <button
-                              type="button"
-                              onClick={() => switchScreen("add-friends")}
-                              className="px-5 py-2.5 rounded-xl bg-[#009A60] hover:bg-[#008251] text-white font-bold text-xs capitalize transition-all shadow-2xs active:scale-95 cursor-pointer inline-flex items-center gap-1.5"
-                            >
-                              <UserPlus className="w-4 h-4" />
-                              <span>Add Golf Friends</span>
-                            </button>
                           </div>
+                        ))}
+                        {remainingFriendsCount > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setMyFriendsDisplayLimit((prev) => prev + 5)}
+                            className="w-full py-3 rounded-2xl bg-white border border-slate-200/90 shadow-2xs text-[13px] font-bold text-[#009A60] hover:bg-[#EAF7EE] hover:border-[#C6F0DB] transition-all cursor-pointer active:scale-[0.98] flex items-center justify-center gap-2"
+                          >
+                            <ChevronDown className="w-4 h-4 stroke-[2.5]" />
+                            Show More ({remainingFriendsCount} remaining)
+                          </button>
                         )}
                       </div>
-                    </>
-                  )}
-
-                  {/* TAB 3: CLUB */}
-                  {networkTab === "club" && (
-                    <div className="space-y-3">
-                      <span className="text-[11px] font-bold tracking-[0.14em] text-[#64748B] uppercase block">
-                        CLUB FRIENDS ({filteredClub.length})
-                      </span>
-
-                      {filteredClub.length > 0 ? (
-                        <div className="space-y-3">
-                          {filteredClub.map((member) => {
-                            return (
-                              <div
-                                key={member.id}
-                                className="w-full bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-3.5 flex items-center justify-between gap-3 transition-all hover:border-slate-300"
-                              >
-                                <div className="flex items-center gap-3 min-w-0 flex-1">
-                                  <div className="relative shrink-0">
-                                    <div className="w-12 h-12 rounded-2xl bg-[#EAF7EE] border border-[#C6F0DB] overflow-hidden flex items-center justify-center shrink-0">
-                                      <span className="text-sm font-bold text-[#009A60]">
-                                        {member.initial || getTwoInitials(member.name)}
-                                      </span>
-                                    </div>
-                                    {/* Online Indicator Green Dot (Only when player is online, zero color when offline) */}
-                                    {isPlayerOnline(member) && (
-                                      <div className="w-3.5 h-3.5 rounded-full bg-[#009A60] border-2 border-white absolute -bottom-0.5 -right-0.5 shadow-2xs pointer-events-none" />
-                                    )}
-                                  </div>
-                                  <div className="min-w-0 flex-1">
-                                    <h4 className="text-[14.5px] font-bold text-[#0F172A] leading-tight truncate">
-                                      {member.name}
-                                    </h4>
-                                    <p className="text-[12px] font-medium text-[#64748B] truncate leading-tight mt-0.5 flex items-center">
-                                      <span className="truncate">{member.club || "OpenClub Golfer"}</span>
-                                      <span className="mx-1.5 text-slate-300 font-normal shrink-0">|</span>
-                                      <span className="shrink-0">{member.hcp || "12.0"} HCP</span>
-                                    </p>
-                                  </div>
-                                </div>
-
-                                <div className="shrink-0 flex items-center gap-2">
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      clearFriendUnread(member);
-                                      setActiveChatFriend({
-                                        id: member.id,
-                                        name: member.name,
-                                        avatar: member.avatar || member.profilePhoto,
-                                        club: member.club || "Ikoyi Club 1938",
-                                        hcp: member.hcp || "12.0",
-                                        isOnline: isPlayerOnline(member),
-                                      });
-                                      switchScreen("chat");
-                                    }}
-                                    className="relative w-9 h-9 rounded-xl bg-[#f5faf6] hover:bg-[#EAF7EE] border border-[#e1efe5] flex items-center justify-center text-[#64748B] hover:text-[#009A60] transition-all cursor-pointer shadow-2xs active:scale-95"
-                                    title={`Message ${member.name}`}
-                                    aria-label="Message Member"
-                                  >
-                                    <MessageSquare className="w-4 h-4 stroke-[2]" />
-                                    {getFriendUnreadCount(member) > 0 && (
-                                      <span className="absolute -top-1.5 -right-1.5 min-w-[17px] h-[17px] rounded-full bg-[#009A60] border-2 border-white text-white text-[9.5px] font-bold flex items-center justify-center px-1 shadow-xs leading-none">
-                                        {getFriendUnreadCount(member)}
-                                      </span>
-                                    )}
-                                  </button>
-
-                                  {/* Circular 3-Dots Action Button (Image 3) */}
-                                  <button
-                                    type="button"
-                                    onClick={() => setFriendActionUser(member)}
-                                    className="w-9 h-9 rounded-full bg-[#f1f5f9]/80 hover:bg-[#e2e8f0] text-slate-600 hover:text-slate-900 border border-slate-200/90 flex items-center justify-center transition-all cursor-pointer active:scale-95 shadow-2xs shrink-0"
-                                    title={`More options for ${member.name}`}
-                                    aria-label="Golfer Options"
-                                  >
-                                    <MoreHorizontal className="w-4 h-4 stroke-[2.2]" />
-                                  </button>
-                                </div>
-                              </div>
-                            );
-                          })}
+                    ) : (
+                      <div className="py-12 px-6 text-center">
+                        <div className="w-[76px] h-[76px] rounded-[24px] bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center mx-auto mb-4 text-[#009A60] shadow-xs">
+                          <Users className="w-8 h-8" />
                         </div>
-                      ) : (
-                        <div className="py-12 px-6 text-center">
-                          <div className="w-[76px] h-[76px] rounded-[24px] bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center mx-auto mb-4 text-[#009A60] shadow-xs">
-                            <Building2 className="w-8 h-8" />
-                          </div>
-                          <h3 className="text-base font-bold text-[#0F172A] mb-1">
-                            No Club Friends Yet
-                          </h3>
-                          <p className="text-xs text-[#64748B] max-w-[270px] mx-auto leading-relaxed">
-                            Friends who play at your home club will appear here.
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  )}
+                        <h3 className="text-base font-bold text-[#0F172A] mb-1">
+                          {mq ? "No Matching Friends" : "No Friends Added Yet"}
+                        </h3>
+                        <p className="text-xs text-[#64748B] max-w-[270px] mx-auto mb-5 leading-relaxed">
+                          {mq
+                            ? "Try searching with a different name or ID."
+                            : "Connect with golfers on OpenclubOS to track rounds, view leaderboards, and schedule matches."}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => switchScreen("add-friends")}
+                          className="px-5 py-2.5 rounded-xl bg-[#009A60] hover:bg-[#008251] text-white font-bold text-xs capitalize transition-all shadow-2xs active:scale-95 cursor-pointer inline-flex items-center gap-1.5"
+                        >
+                          <UserPlus className="w-4 h-4" />
+                          <span>Add Golf Friends</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

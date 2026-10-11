@@ -1399,7 +1399,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
     }
   }
 
-  Widget _buildShareInviteLinkCard(BuildContext context) {
+  Widget _buildShareInviteLinkCard(BuildContext context, [List<Map<String, dynamic>>? allRealCompetitors]) {
     final inviteUrl = '${UniqueQrCodePainter.appBaseUrl}/invite/$_userInviteCode';
 
     return Container(
@@ -1427,17 +1427,20 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
           child: Column(
         children: [
-          // Centered Squircle Badge
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: const Color(0xFFEAF7EE),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFC6F0DB)),
-            ),
-            child: const Center(
-              child: Icon(Icons.link_rounded, size: 24, color: Color(0xFF009A60)),
+          // Centered Squircle Badge with tap to open QR Code
+          GestureDetector(
+            onTap: () => _showMyQrCodeDialog(context, allRealCompetitors ?? widget.competitors ?? []),
+            child: Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: const Color(0xFFEAF7EE),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFC6F0DB)),
+              ),
+              child: const Center(
+                child: Icon(Icons.link_rounded, size: 24, color: Color(0xFF009A60)),
+              ),
             ),
           ),
           const SizedBox(height: 12),
@@ -1524,6 +1527,56 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                   ),
                 ),
               ],
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Subtle "— or —" Divider
+          Row(
+            children: [
+              Expanded(child: Container(height: 1, color: const Color(0xFFE2E8F0))),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                child: Text(
+                  'or',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF8CA0BA),
+                  ),
+                ),
+              ),
+              Expanded(child: Container(height: 1, color: const Color(0xFFE2E8F0))),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // Dedicated QR Code Button on New Line
+          GestureDetector(
+            onTap: () => _showMyQrCodeDialog(context, allRealCompetitors ?? widget.competitors ?? []),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEAF7EE),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFC6F0DB)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.qr_code_rounded, size: 16, color: Color(0xFF009A60)),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Share via QR Code',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF009A60),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -3421,7 +3474,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                       const SizedBox(height: 12),
 
                       // Share Invitation Link Card (Displayed After Player Suggestions)
-                      _buildShareInviteLinkCard(context),
+                      _buildShareInviteLinkCard(context, allRealCompetitors),
 
                       const SizedBox(height: 16),
                     ],
