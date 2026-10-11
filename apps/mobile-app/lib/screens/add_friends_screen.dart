@@ -55,6 +55,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
   bool _contactsSynced = false;
   bool _copiedLink = false;
   int _displayLimit = 4;
+  Map<String, int> _unreadBySender = {};
 
   String get _userInviteCode {
     final name = widget.user?['fullName'] ?? widget.user?['name'] ?? 'Golfer';
@@ -163,6 +164,37 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
     _localIncomingRequests = List<Map<String, dynamic>>.from(widget.incomingRequests);
     _syncIncomingSets();
     _loadIncomingRequestsFromHive();
+    _fetchUnreadCounts();
+  }
+
+  Future<void> _fetchUnreadCounts() async {
+    try {
+      final userId = widget.user?['id']?.toString() ?? widget.user?['email']?.toString() ?? '';
+      final res = await _apiClient.dio.get(
+        '/friends/messages/unread',
+        options: Options(headers: {'x-user-id': userId}),
+      );
+      if (res.statusCode == 200 && res.data != null && res.data is Map) {
+        final breakdown = res.data['unreadBySender'];
+        if (breakdown is Map && mounted) {
+          final Map<String, int> counts = {};
+          breakdown.forEach((k, v) {
+            if (v is int) counts[k.toString().toLowerCase().trim()] = v;
+          });
+          setState(() => _unreadBySender = counts);
+        }
+      }
+    } catch (_) {}
+  }
+
+  int _getFriendUnreadCount(Map<String, dynamic> player) {
+    final id = player['id']?.toString().toLowerCase().trim() ?? '';
+    final name = (player['name'] ?? player['fullName'])?.toString().toLowerCase().trim() ?? '';
+    final email = player['email']?.toString().toLowerCase().trim() ?? '';
+    if (id.isNotEmpty && _unreadBySender.containsKey(id)) return _unreadBySender[id]!;
+    if (name.isNotEmpty && _unreadBySender.containsKey(name)) return _unreadBySender[name]!;
+    if (email.isNotEmpty && _unreadBySender.containsKey(email)) return _unreadBySender[email]!;
+    return 0;
   }
 
   void _syncIncomingSets() {
@@ -205,7 +237,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                   'id': nData['requestId'] ?? nMap['id'],
                   'senderId': sId,
                   'senderName': nData['senderName'] ?? nMap['title'] ?? 'Golfer',
-                  'senderClub': nData['senderClub'] ?? 'OpenClub Golfer',
+                  'senderClub': nData['senderClub'] ?? '',
                   'senderHcp': nData['senderHcp'] ?? '0.0',
                   'senderInitial': (nData['senderName']?.toString().isNotEmpty == true)
                       ? nData['senderName'][0].toUpperCase()
@@ -269,7 +301,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
       'id': 'req_${compId}_${DateTime.now().millisecondsSinceEpoch}',
       'senderId': compId,
       'senderName': compName,
-      'senderClub': player['club']?.toString() ?? 'OpenClub Golfer',
+      'senderClub': player['club']?.toString() ?? '',
       'senderHcp': player['hcp']?.toString() ?? '0.0',
     };
 
@@ -305,7 +337,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
       'id': 'req_${compId}_${DateTime.now().millisecondsSinceEpoch}',
       'senderId': compId,
       'senderName': compName,
-      'senderClub': player['club']?.toString() ?? 'OpenClub Golfer',
+      'senderClub': player['club']?.toString() ?? '',
       'senderHcp': player['hcp']?.toString() ?? '0.0',
     };
 
@@ -649,7 +681,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
   void _showReportGolferDialog(Map<String, dynamic> player) {
     final compName = player['name']?.toString() ?? 'Golfer';
     final compId = player['id']?.toString() ?? '';
-    final compClub = player['club']?.toString() ?? 'OpenClub Golfer';
+    final compClub = player['club']?.toString() ?? '';
     final compHcp = player['hcp']?.toString() ?? '0.0';
 
     String selectedReason = 'Unsportsmanlike Conduct / Cheating';
@@ -1965,7 +1997,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                                     ],
                                                   ),
                                                   Text(
-                                                    '${scannedResult!['club'] ?? 'OpenClub Golfer'} | ${scannedResult!['hcp'] ?? '0.0'} HCP',
+                                                    '${scannedResult!['club'] != null && scannedResult!['club'].toString().isNotEmpty ? "${scannedResult!['club']} | " : ""}${scannedResult!['hcp'] ?? '0.0'} HCP',
                                                     style: GoogleFonts.plusJakartaSans(
                                                       fontSize: 11,
                                                       fontWeight: FontWeight.w500,
@@ -2740,7 +2772,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
         sourceList.add({
           'id': sId,
           'name': req['senderName'] ?? req['name'] ?? 'Golfer',
-          'club': req['senderClub'] ?? req['club'] ?? 'OpenClub Golfer',
+          'club': req['senderClub'] ?? req['club'] ?? '',
           'hcp': req['senderHcp'] ?? req['hcp'] ?? '0.0',
           'initial': (req['senderName']?.toString().isNotEmpty == true) ? req['senderName'][0].toUpperCase() : 'G',
         });
@@ -3089,7 +3121,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                         final isSent = _localSentIds.contains(compId);
                         final isConnected = _localAcceptedIds.contains(compId) || _localAcceptedIds.contains(name.toLowerCase());
                         final isIncoming = _isIncomingPlayer(player);
-                        final club = player['club']?.toString() ?? 'OpenClub Golfer';
+                        final club = player['club']?.toString() ?? '';
                         final hcp = player['hcp']?.toString() ?? '12';
                         final initial = (player['initial'] ?? (name.isNotEmpty ? name[0] : 'G')).toString().toUpperCase();
 
@@ -3173,7 +3205,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                     ),
                                     const SizedBox(height: 2),
                                     Text(
-                                      '$club | $hcp HCP',
+                                      club.isNotEmpty ? '$club | $hcp HCP' : '$hcp HCP',
                                       style: GoogleFonts.plusJakartaSans(
                                         fontSize: 12,
                                         color: const Color(0xFF64748B),
@@ -3187,53 +3219,20 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                               const SizedBox(width: 8),
                               // Right Action Button: Four Authentic Interactive States
                               if (isConnected)
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    GestureDetector(
-                                      onTap: () {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (_) => ChatScreen(
-                                              friendId: player['id']?.toString() ?? '',
-                                              friendName: name,
-                                              friendAvatar: player['avatar']?.toString() ?? player['profilePhoto']?.toString(),
-                                              isOnline: player['isOnline'] == true || player['online'] == true,
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                      child: Container(
-                                        width: 32,
-                                        height: 32,
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFFF5FAF6),
-                                          shape: BoxShape.circle,
-                                          border: Border.all(color: const Color(0xFFE1EFE5)),
-                                        ),
-                                        child: const Center(
-                                          child: Icon(Icons.chat_bubble_outline_rounded, size: 16, color: Color(0xFF009A60)),
-                                        ),
-                                      ),
+                                GestureDetector(
+                                  onTap: () => _showFriendActionSheet(player),
+                                  child: Container(
+                                    width: 32,
+                                    height: 32,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFF1F5F9),
+                                      shape: BoxShape.circle,
+                                      border: Border.all(color: const Color(0xFFE2E8F0)),
                                     ),
-                                    const SizedBox(width: 6),
-                                    GestureDetector(
-                                      onTap: () => _showFriendActionSheet(player),
-                                      child: Container(
-                                        width: 32,
-                                        height: 32,
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFFF1F5F9),
-                                          shape: BoxShape.circle,
-                                          border: Border.all(color: const Color(0xFFE2E8F0)),
-                                        ),
-                                        child: const Center(
-                                          child: Icon(Icons.more_horiz_rounded, size: 18, color: Color(0xFF64748B)),
-                                        ),
-                                      ),
+                                    child: const Center(
+                                      child: Icon(Icons.more_horiz_rounded, size: 18, color: Color(0xFF64748B)),
                                     ),
-                                  ],
+                                  ),
                                 )
                               else if (isIncoming)
                                 // Incoming state: displays mark icon button (accept) + cancel icon button (decline)

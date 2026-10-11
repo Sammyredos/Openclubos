@@ -117,6 +117,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
   bool _isLoadingNotifications = false;
 
   String _activeNavTab = 'home'; // Default to Home tab
+  int _unreadMessagesCount = 0;
   List<Map<String, dynamic>> _recentRounds = [];
   List<Map<String, dynamic>> _proBookings = [
     {
@@ -329,7 +330,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
           'senderId': senderId,
           'senderName': map['senderName']?.toString() ?? 'Golfer',
           'senderEmail': map['senderEmail']?.toString() ?? '',
-          'senderClub': map['senderClub']?.toString() ?? 'OpenClub Golfer',
+          'senderClub': map['senderClub']?.toString() ?? '',
           'senderHcp': map['senderHcp']?.toString() ?? '0.0',
           'senderInitial': (map['senderName']?.toString().isNotEmpty == true) ? map['senderName'][0].toUpperCase() : 'G',
           'senderAvatar': map['senderAvatar']?.toString() ?? map['profilePhoto']?.toString(),
@@ -419,6 +420,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
         if (map == null) return;
         final id1 = map['friendId']?.toString();
         final id2 = map['removedByUserId']?.toString();
+        final id3 = (map['targetUserId'] ?? map['targetId'])?.toString();
 
         setState(() {
           if (id1 != null) {
@@ -428,6 +430,10 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
           if (id2 != null) {
             _acceptedFriendIds.remove(id2);
             _friendsOnCourse.removeWhere((f) => f['id'] == id2);
+          }
+          if (id3 != null) {
+            _acceptedFriendIds.remove(id3);
+            _friendsOnCourse.removeWhere((f) => f['id'] == id3);
           }
         });
 
@@ -580,7 +586,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
             'senderId': item['senderId']?.toString(),
             'senderName': item['senderName']?.toString() ?? 'Golfer',
             'senderEmail': item['senderEmail']?.toString() ?? '',
-            'senderClub': item['senderClub']?.toString() ?? 'OpenClub Golfer',
+            'senderClub': item['senderClub']?.toString() ?? '',
             'senderHcp': item['senderHcp']?.toString() ?? '0.0',
             'senderInitial': (item['senderName']?.toString().isNotEmpty == true)
                 ? item['senderName'][0].toUpperCase()
@@ -631,6 +637,20 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
         }
         final box = await Hive.openBox('auth');
         await box.put('blocked_users_$userId', _blockedUserIds.toList());
+      }
+
+      // 4. Fetch live unread direct messages count from database
+      final unreadRes = await _apiClient.dio.get(
+        '/friends/messages/unread',
+        options: Options(headers: {'x-user-id': userId}),
+      );
+      if (unreadRes.statusCode == 200 && unreadRes.data is Map) {
+        final count = unreadRes.data['unreadCount'];
+        if (count is int && mounted) {
+          setState(() {
+            _unreadMessagesCount = count;
+          });
+        }
       }
     } catch (_) {}
   }
@@ -1082,7 +1102,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                   'id': nData['requestId'] ?? n['id'],
                   'senderId': senderId,
                   'senderName': nData['senderName'] ?? n['title'] ?? 'Golfer',
-                  'senderClub': nData['senderClub'] ?? 'OpenClub Golfer',
+                  'senderClub': nData['senderClub'] ?? '',
                   'senderHcp': nData['senderHcp'] ?? '0.0',
                   'senderInitial': (nData['senderName']?.toString().isNotEmpty == true)
                       ? nData['senderName'][0].toUpperCase()
@@ -1613,7 +1633,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
           'id': 'freq_' + DateTime.now().millisecondsSinceEpoch.toString(),
           'senderId': userId,
           'senderName': userName,
-          'senderClub': _user?['club']?['name'] ?? _user?['homeClub'] ?? 'OpenClub Golfer',
+          'senderClub': _user?['club']?['name'] ?? _user?['homeClub'] ?? '',
           'senderHcp': _user?['handicap']?.toString() ?? '0.0',
           'senderInitial': userName.isNotEmpty ? userName[0].toUpperCase() : 'G',
           'createdAt': DateTime.now().toIso8601String(),
@@ -3108,7 +3128,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                   ),
                                   const SizedBox(width: 14),
 
-                                  // My Bookings Icon (Displays bookings made with a Pro)
+                                  // Direct Messages Icon (Displays incoming messages notification)
                                   SizedBox(
                                     width: 32,
                                     height: 32,
@@ -3119,14 +3139,25 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                           padding: EdgeInsets.zero,
                                           constraints: const BoxConstraints(),
                                           icon: const Icon(
-                                            Icons.calendar_month_outlined,
+                                            Icons.chat_bubble_outline_rounded,
                                             color: Colors.white,
                                             size: 21,
                                           ),
-                                          onPressed: _showMyBookingsModal,
-                                          tooltip: 'My Bookings (Pro Sessions)',
+                                          onPressed: () {
+                                            if (mounted) {
+                                              setState(() {
+                                                _unreadMessagesCount = 0;
+                                              });
+                                            }
+                                            Navigator.of(context).push(
+                                              MaterialPageRoute(
+                                                builder: (ctx) => const AddFriendsScreen(initialTabIndex: 1),
+                                              ),
+                                            );
+                                          },
+                                          tooltip: 'Direct Messages',
                                         ),
-                                        if (_proBookings.isNotEmpty)
+                                        if (_unreadMessagesCount > 0)
                                           Positioned(
                                             top: -3,
                                             right: -5,
@@ -3143,7 +3174,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                               ),
                                               child: Center(
                                                 child: Text(
-                                                  '${_proBookings.length}',
+                                                  '$_unreadMessagesCount',
                                                   style: GoogleFonts.plusJakartaSans(
                                                     color: Colors.white,
                                                     fontSize: 9.5,

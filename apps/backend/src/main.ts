@@ -62,6 +62,7 @@ async function bootstrap() {
       'Authorization',
       'X-XSRF-TOKEN',
       'x-user-id',
+      'x-player-id',
       'x-client-platform',
       'x-requested-with',
       'Accept',

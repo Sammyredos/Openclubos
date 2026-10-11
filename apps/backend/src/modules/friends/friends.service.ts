@@ -10,7 +10,7 @@ export class FriendsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly friendsGateway: FriendsGateway,
-  ) {}
+  ) { }
 
   /**
    * Helper to resolve a user by ID, email, name, or slug
@@ -36,87 +36,126 @@ export class FriendsService {
     // 3. Match by name or slug
     if (!user) {
       const parts = clean.split(/[\s-]+/).filter(Boolean);
+      const orConditions: any[] = [];
+
       if (parts.length >= 2) {
-        user = await this.prisma.user.findFirst({
-          where: {
-            OR: [
-              {
-                firstName: { equals: parts[0], mode: 'insensitive' },
-                lastName: { equals: parts.slice(1).join(' '), mode: 'insensitive' },
-              },
-              {
-                firstName: { equals: parts.slice(0, -1).join(' '), mode: 'insensitive' },
-                lastName: { equals: parts[parts.length - 1], mode: 'insensitive' },
-              },
-            ],
+        orConditions.push(
+          {
+            firstName: { equals: parts[0], mode: 'insensitive' },
+            lastName: { equals: parts.slice(1).join(' '), mode: 'insensitive' },
           },
-          include: { club: true },
-        }).catch(() => null);
+          {
+            firstName: { equals: parts[0], mode: 'insensitive' },
+            lastName: { equals: parts.slice(1).join('-'), mode: 'insensitive' },
+          },
+          {
+            firstName: { equals: parts[0], mode: 'insensitive' },
+            lastName: { startsWith: parts[1], mode: 'insensitive' },
+          },
+          {
+            firstName: { equals: parts[0], mode: 'insensitive' },
+            lastName: { contains: parts[1], mode: 'insensitive' },
+          },
+          {
+            firstName: { equals: parts.slice(0, -1).join(' '), mode: 'insensitive' },
+            lastName: { equals: parts[parts.length - 1], mode: 'insensitive' },
+          },
+          {
+            firstName: { equals: parts.slice(0, -1).join('-'), mode: 'insensitive' },
+            lastName: { equals: parts[parts.length - 1], mode: 'insensitive' },
+          },
+          {
+            firstName: { equals: parts[0], mode: 'insensitive' },
+            id: { endsWith: parts[parts.length - 1], mode: 'insensitive' },
+          },
+        );
       } else if (parts.length === 1) {
+        orConditions.push(
+          { firstName: { equals: parts[0], mode: 'insensitive' } },
+          { lastName: { equals: parts[0], mode: 'insensitive' } },
+          { email: { startsWith: parts[0].toLowerCase(), mode: 'insensitive' } },
+          { id: { equals: parts[0], mode: 'insensitive' } },
+          { id: { startsWith: parts[0], mode: 'insensitive' } },
+          { id: { endsWith: parts[0], mode: 'insensitive' } },
+        );
+      }
+
+      if (orConditions.length > 0) {
+        // Prioritize active PLAYER with real club first
         user = await this.prisma.user.findFirst({
           where: {
-            OR: [
-              { firstName: { equals: parts[0], mode: 'insensitive' } },
-              { lastName: { equals: parts[0], mode: 'insensitive' } },
-            ],
-          },
-          include: { club: true },
-        }).catch(() => null);
-      }
-    }
-
-    // 4. Fallback for authenticated current golfer / player placeholder
-    if (!user && (clean === 'player-user' || clean === 'golfer' || clean === 'me' || clean === 'current-user')) {
-      user = await this.prisma.user.findFirst({
-        where: { role: 'PLAYER' },
-        include: { club: true },
-      }).catch(() => null);
-      if (!user) {
-        user = await this.prisma.user.findFirst({
-          include: { club: true },
-        }).catch(() => null);
-      }
-    }
-
-    // 5. If user still does not exist, auto-create a user record only for valid named placeholders (never for transient/dummy IDs)
-    if (!user && clean && !clean.startsWith('reg_') && !clean.startsWith('guest_') && !clean.startsWith('temp_') && !clean.startsWith('mock_') && !clean.includes('undefined')) {
-      try {
-        const parts = clean.split(/[\s-]+/).filter(Boolean);
-        const fName = parts[0] || 'Golfer';
-        const lName = parts.slice(1).join(' ') || 'Player';
-        const safeSlug = clean.toLowerCase().replace(/[^a-z0-9]/g, '');
-        const autoEmail = `${safeSlug || 'golfer_' + Date.now()}@openclub.app`;
-
-        user = await this.prisma.user.create({
-          data: {
-            email: autoEmail,
-            password: 'managed_system_account',
-            firstName: fName.charAt(0).toUpperCase() + fName.slice(1),
-            lastName: lName.charAt(0).toUpperCase() + lName.slice(1),
+            OR: orConditions,
             role: 'PLAYER',
-            status: 'ACTIVE',
+            clubId: { not: null },
           },
           include: { club: true },
-        }).catch(async () => {
-          return this.prisma.user.findFirst({
-            where: { email: autoEmail },
+          orderBy: { createdAt: 'desc' },
+        }).catch(() => null);
+
+        // Fallback: any PLAYER
+        if (!user) {
+          user = await this.prisma.user.findFirst({
+            where: {
+              OR: orConditions,
+              role: 'PLAYER',
+            },
             include: { club: true },
-          });
-        });
-      } catch (e) {
-        this.logger.warn(`Could not auto-create user for "${clean}": ${e}`);
+            orderBy: { createdAt: 'desc' },
+          }).catch(() => null);
+        }
+
+        // Fallback: any user matching criteria (preferring users with clubs)
+        if (!user) {
+          user = await this.prisma.user.findFirst({
+            where: {
+              OR: orConditions,
+            },
+            include: { club: true },
+            orderBy: [
+              { clubId: 'desc' },
+              { createdAt: 'desc' },
+            ],
+          }).catch(() => null);
+        }
       }
     }
 
+    // Strictly return user from database or null if not found (no mock/stale fallbacks)
     return user;
+  }
+
+  /**
+   * Public lookup returning user details strictly from the database (or null if not found)
+   */
+  async resolveUserPublic(query?: string) {
+    if (!query) return null;
+    const user = await this.resolveUser(query);
+    if (!user) return null;
+    return {
+      id: user.id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      name: [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email,
+      email: user.email,
+      club: user.club?.name,
+      clubId: user.clubId,
+      handicap: user.handicap,
+      profilePhoto: user.profilePhoto,
+      avatar: user.profilePhoto,
+      role: user.role,
+      status: user.status,
+    };
   }
 
   /**
    * Send or create a friend request
    */
-  async sendRequest(dto: { targetUserId?: string; receiverId?: string; senderId?: string }, reqUser?: any, xUserId?: string) {
-    const rawSenderId = reqUser?.id || xUserId || dto.senderId;
-    const rawTargetId = dto.targetUserId || dto.receiverId;
+  async sendRequest(dto: { targetUserId?: string; receiverId?: string; friendId?: string; targetId?: string; senderId?: string; autoAccept?: boolean }, reqUser?: any, xUserId?: string) {
+    if (dto.autoAccept) {
+      return this.qrConnect(dto, reqUser, xUserId);
+    }
+    const rawSenderId = xUserId || reqUser?.id || dto.senderId;
+    const rawTargetId = dto.targetUserId || dto.receiverId || dto.friendId || dto.targetId;
 
     if (!rawTargetId) {
       throw new BadRequestException('Target user ID is required');
@@ -129,7 +168,7 @@ export class FriendsService {
       throw new NotFoundException(`Sender user not found (${rawSenderId})`);
     }
     if (!target) {
-      throw new NotFoundException(`Target user not found (${rawTargetId})`);
+      throw new NotFoundException(`Golfer does not exist in the database (${rawTargetId})`);
     }
 
     if (sender.id === target.id) {
@@ -171,7 +210,7 @@ export class FriendsService {
               friendId: sender.id,
               name: senderName,
               email: sender.email,
-              club: sender.club?.name || 'OpenClub Golfer',
+              club: sender.club?.name,
               handicap: sender.handicap,
               profilePhoto: sender.profilePhoto,
               connectedAt: updated.updatedAt.toISOString(),
@@ -187,7 +226,7 @@ export class FriendsService {
               friendId: target.id,
               name: targetName,
               email: target.email,
-              club: target.club?.name || 'OpenClub Golfer',
+              club: target.club?.name,
               handicap: target.handicap,
               profilePhoto: target.profilePhoto,
               connectedAt: updated.updatedAt.toISOString(),
@@ -216,7 +255,7 @@ export class FriendsService {
         senderId: sender.id,
         senderName,
         senderEmail: sender.email,
-        senderClub: sender.club?.name || 'OpenClub Golfer',
+        senderClub: sender.club?.name,
         senderHcp: sender.handicap,
         senderAvatar: sender.profilePhoto,
         profilePhoto: sender.profilePhoto,
@@ -245,7 +284,7 @@ export class FriendsService {
       senderId: sender.id,
       senderName,
       senderEmail: sender.email,
-      senderClub: sender.club?.name || 'OpenClub Golfer',
+      senderClub: sender.club?.name,
       senderHcp: sender.handicap,
       senderAvatar: sender.profilePhoto,
       profilePhoto: sender.profilePhoto,
@@ -254,6 +293,145 @@ export class FriendsService {
 
     this.logger.log(`Friend request sent: ${sender.email} (${sender.id}) -> ${target.email} (${target.id})`);
     return { success: true, message: 'Friend request sent successfully', friendship };
+  }
+
+  /**
+   * Mutual instant connection established via in-person QR Code scan
+   */
+  async qrConnect(dto: { targetUserId?: string; receiverId?: string; friendId?: string; targetId?: string; senderId?: string }, reqUser?: any, xUserId?: string) {
+    const rawSenderId = xUserId || reqUser?.id || dto.senderId;
+    const rawTargetId = dto.targetUserId || dto.receiverId || dto.friendId || dto.targetId;
+
+    if (!rawTargetId) {
+      throw new BadRequestException('Target user ID is required');
+    }
+
+    const sender = await this.resolveUser(rawSenderId);
+    const target = await this.resolveUser(rawTargetId);
+
+    if (!sender) {
+      throw new NotFoundException(`Sender user not found (${rawSenderId})`);
+    }
+    if (!target) {
+      throw new NotFoundException(`Golfer does not exist in the database (${rawTargetId})`);
+    }
+
+    if (sender.id === target.id) {
+      return { success: true, message: 'Verified own QR code profile', isSelf: true };
+    }
+
+    const senderName = [sender.firstName, sender.lastName].filter(Boolean).join(' ') || sender.email || 'A golfer';
+    const targetName = [target.firstName, target.lastName].filter(Boolean).join(' ') || target.email || 'A golfer';
+
+    // Check if friendship already exists
+    const existing = await this.prisma.friendship.findFirst({
+      where: {
+        OR: [
+          { senderId: sender.id, receiverId: target.id },
+          { senderId: target.id, receiverId: sender.id },
+        ],
+      },
+    });
+
+    let friendship: any;
+    if (existing) {
+      friendship = await this.prisma.friendship.update({
+        where: { id: existing.id },
+        data: { status: FriendshipStatus.ACCEPTED },
+      });
+    } else {
+      friendship = await this.prisma.friendship.create({
+        data: {
+          senderId: sender.id,
+          receiverId: target.id,
+          status: FriendshipStatus.ACCEPTED,
+        },
+      });
+    }
+
+    // Real-time emit to BOTH users
+    this.friendsGateway.emitFriendRequestAccepted(target.id, {
+      friendshipId: friendship.id,
+      friend: {
+        friendshipId: friendship.id,
+        friendId: sender.id,
+        name: senderName,
+        email: sender.email,
+        club: sender.club?.name,
+        handicap: sender.handicap,
+        profilePhoto: sender.profilePhoto,
+        connectedAt: friendship.updatedAt.toISOString(),
+      },
+      byUserId: sender.id,
+      byUserName: senderName,
+    });
+
+    this.friendsGateway.emitFriendRequestAccepted(sender.id, {
+      friendshipId: friendship.id,
+      friend: {
+        friendshipId: friendship.id,
+        friendId: target.id,
+        name: targetName,
+        email: target.email,
+        club: target.club?.name,
+        handicap: target.handicap,
+        profilePhoto: target.profilePhoto,
+        connectedAt: friendship.updatedAt.toISOString(),
+      },
+      byUserId: sender.id,
+      byUserName: senderName,
+    });
+
+    // Create notifications for BOTH users in DB
+    try {
+      await this.prisma.notification.createMany({
+        data: [
+          {
+            userId: target.id,
+            title: 'New Golf Friend Connected',
+            body: `You and ${senderName} are now connected as golf friends via QR Code scan.`,
+            type: NotificationType.SYSTEM,
+            data: {
+              type: 'FRIEND_ACCEPTED',
+              userId: sender.id,
+              userName: senderName,
+              avatar: sender.profilePhoto,
+              club: sender.club?.name,
+            },
+          },
+          {
+            userId: sender.id,
+            title: 'New Golf Friend Connected',
+            body: `You and ${targetName} are now connected as golf friends via QR Code scan.`,
+            type: NotificationType.SYSTEM,
+            data: {
+              type: 'FRIEND_ACCEPTED',
+              userId: target.id,
+              userName: targetName,
+              avatar: target.profilePhoto,
+              club: target.club?.name,
+            },
+          },
+        ],
+      });
+    } catch (e: any) {
+      this.logger.warn(`Failed to create mutual QR notifications: ${e.message}`);
+    }
+
+    this.logger.log(`Mutual QR friend connection established: ${sender.email} (${sender.id}) <-> ${target.email} (${target.id})`);
+    return {
+      success: true,
+      message: `Connected with ${targetName} as golf friends!`,
+      friendship,
+      friend: {
+        id: target.id,
+        name: targetName,
+        email: target.email,
+        club: target.club?.name,
+        handicap: target.handicap,
+        profilePhoto: target.profilePhoto,
+      },
+    };
   }
 
   private async createFriendRequestNotification(sender: any, target: any) {
@@ -270,7 +448,7 @@ export class FriendsService {
             senderId: sender.id,
             senderName,
             senderEmail: sender.email,
-            senderClub: sender.club?.name || 'OpenClub Golfer',
+            senderClub: sender.club?.name,
             senderHcp: sender.handicap,
           },
         },
@@ -284,7 +462,7 @@ export class FriendsService {
    * Get pending incoming and outgoing friend requests
    */
   async getRequests(reqUser?: any, xUserId?: string) {
-    const rawUserId = reqUser?.id || xUserId;
+    const rawUserId = xUserId || reqUser?.id;
     const user = await this.resolveUser(rawUserId);
     if (!user) {
       return { incoming: [], outgoing: [] };
@@ -313,7 +491,7 @@ export class FriendsService {
         lastName: f.sender.lastName,
         email: f.sender.email,
         handicap: f.sender.handicap,
-        club: f.sender.club?.name || 'OpenClub Golfer',
+        club: f.sender.club?.name,
         profilePhoto: f.sender.profilePhoto,
         createdAt: f.createdAt,
       })),
@@ -326,7 +504,7 @@ export class FriendsService {
         lastName: f.receiver.lastName,
         email: f.receiver.email,
         handicap: f.receiver.handicap,
-        club: f.receiver.club?.name || 'OpenClub Golfer',
+        club: f.receiver.club?.name,
         profilePhoto: f.receiver.profilePhoto,
         createdAt: f.createdAt,
       })),
@@ -337,7 +515,7 @@ export class FriendsService {
    * Respond to friend request (accept or decline)
    */
   async respondToRequest(dto: { requestId?: string; accept?: boolean; userId?: string; senderId?: string }, reqUser?: any, xUserId?: string) {
-    const rawUserId = reqUser?.id || xUserId || dto.userId;
+    const rawUserId = xUserId || reqUser?.id || dto.userId;
     const user = await this.resolveUser(rawUserId);
     if (!user) {
       throw new NotFoundException('User not found');
@@ -407,7 +585,7 @@ export class FriendsService {
           friendId: user.id,
           name: accepterName,
           email: user.email,
-          club: user.club?.name || 'OpenClub Golfer',
+          club: user.club?.name,
           handicap: user.handicap,
           profilePhoto: user.profilePhoto,
           connectedAt: updated.updatedAt.toISOString(),
@@ -425,7 +603,7 @@ export class FriendsService {
             friendId: otherUser.id,
             name: otherUserName,
             email: otherUser.email,
-            club: otherUser.club?.name || 'OpenClub Golfer',
+            club: otherUser.club?.name,
             handicap: otherUser.handicap,
             profilePhoto: otherUser.profilePhoto,
             connectedAt: updated.updatedAt.toISOString(),
@@ -475,7 +653,7 @@ export class FriendsService {
    * Cancel outgoing request
    */
   async cancelRequest(targetId: string, reqUser?: any, xUserId?: string) {
-    const rawUserId = reqUser?.id || xUserId;
+    const rawUserId = xUserId || reqUser?.id;
     const user = await this.resolveUser(rawUserId);
     const target = await this.resolveUser(targetId);
 
@@ -504,7 +682,7 @@ export class FriendsService {
    * Remove friend / Unfriend
    */
   async removeFriend(targetId: string, reqUser?: any, xUserId?: string) {
-    const rawUserId = reqUser?.id || xUserId;
+    const rawUserId = xUserId || reqUser?.id;
     const user = await this.resolveUser(rawUserId);
     const target = await this.resolveUser(targetId);
 
@@ -522,10 +700,13 @@ export class FriendsService {
     });
 
     const userName = [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email;
+    const targetName = [target.firstName, target.lastName].filter(Boolean).join(' ') || target.email;
     this.friendsGateway.emitFriendRemoved(target.id, {
       friendId: user.id,
       friendName: userName,
       removedByUserId: user.id,
+      targetUserId: target.id,
+      targetName: targetName,
     });
 
     return { success: true, message: 'Friend removed successfully' };
@@ -535,7 +716,7 @@ export class FriendsService {
    * Get all accepted friends for user
    */
   async getFriends(reqUser?: any, xUserId?: string) {
-    const rawUserId = reqUser?.id || xUserId;
+    const rawUserId = xUserId || reqUser?.id;
     const user = await this.resolveUser(rawUserId);
     if (!user) {
       return [];
@@ -561,7 +742,7 @@ export class FriendsService {
         lastName: friend.lastName,
         email: friend.email,
         handicap: friend.handicap,
-        club: friend.club?.name || 'OpenClub Golfer',
+        club: friend.club?.name,
         profilePhoto: friend.profilePhoto,
         connectedAt: f.updatedAt,
       };
@@ -580,7 +761,7 @@ export class FriendsService {
    * Block a user
    */
   async blockUser(targetId: string, reqUser?: any, xUserId?: string) {
-    const rawUserId = reqUser?.id || xUserId;
+    const rawUserId = xUserId || reqUser?.id;
     const user = await this.resolveUser(rawUserId);
     const target = await this.resolveUser(targetId);
 
@@ -627,7 +808,7 @@ export class FriendsService {
    * Unblock a user
    */
   async unblockUser(targetId: string, reqUser?: any, xUserId?: string) {
-    const rawUserId = reqUser?.id || xUserId;
+    const rawUserId = xUserId || reqUser?.id;
     const user = await this.resolveUser(rawUserId);
     const target = await this.resolveUser(targetId);
 
@@ -654,7 +835,7 @@ export class FriendsService {
    * Get list of blocked users
    */
   async getBlockedUsers(reqUser?: any, xUserId?: string) {
-    const rawUserId = reqUser?.id || xUserId;
+    const rawUserId = xUserId || reqUser?.id;
     const user = await this.resolveUser(rawUserId);
     if (!user) {
       return [];
@@ -670,7 +851,7 @@ export class FriendsService {
       id: b.blocked.id,
       name: [b.blocked.firstName, b.blocked.lastName].filter(Boolean).join(' ') || b.blocked.email,
       email: b.blocked.email,
-      club: b.blocked.club?.name || 'OpenClub Golfer',
+      club: b.blocked.club?.name,
       blockedAt: b.createdAt,
     }));
   }
@@ -683,7 +864,7 @@ export class FriendsService {
     reqUser?: any,
     xUserId?: string,
   ) {
-    const rawSenderId = reqUser?.id || xUserId;
+    const rawSenderId = xUserId || reqUser?.id;
     const rawReceiverId = dto.receiverId || dto.targetUserId;
 
     if (!rawReceiverId) {
@@ -767,13 +948,25 @@ export class FriendsService {
     xUserId?: string,
     limit = 100,
   ) {
-    const rawUserId = reqUser?.id || xUserId;
+    const rawUserId = xUserId || reqUser?.id;
     const user = await this.resolveUser(rawUserId);
     const friend = await this.resolveUser(friendId);
 
     if (!user || !friend) {
       return [];
     }
+
+    // Mark any incoming unread messages from this friend as read in DB
+    await this.prisma.directMessage.updateMany({
+      where: {
+        senderId: friend.id,
+        receiverId: user.id,
+        status: { not: 'read' },
+      },
+      data: {
+        status: 'read',
+      },
+    }).catch(() => null);
 
     const messages = await this.prisma.directMessage.findMany({
       where: {
@@ -807,4 +1000,79 @@ export class FriendsService {
       };
     });
   }
+
+  /**
+   * Get unread direct messages count and latest incoming messages across all friends from DB
+   */
+  async getUnreadMessages(reqUser?: any, xUserId?: string) {
+    const rawUserId = xUserId || reqUser?.id;
+    const user = await this.resolveUser(rawUserId);
+    if (!user) {
+      return { unreadCount: 0, unreadBySender: {}, latestMessages: [] };
+    }
+
+    const unreadMessages = await this.prisma.directMessage.findMany({
+      where: {
+        receiverId: user.id,
+        status: { not: 'read' },
+      },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        sender: {
+          select: { id: true, firstName: true, lastName: true, profilePhoto: true, email: true },
+        },
+      },
+    });
+
+    const unreadBySender: Record<string, number> = {};
+    for (const m of unreadMessages) {
+      const sId = m.senderId;
+      const sEmail = (m.sender.email || '').toLowerCase().trim();
+      const sName = [m.sender.firstName, m.sender.lastName].filter(Boolean).join(' ').toLowerCase().trim();
+
+      if (sId) unreadBySender[sId] = (unreadBySender[sId] || 0) + 1;
+      if (sEmail) unreadBySender[sEmail] = (unreadBySender[sEmail] || 0) + 1;
+      if (sName) unreadBySender[sName] = (unreadBySender[sName] || 0) + 1;
+    }
+
+    return {
+      unreadCount: unreadMessages.length,
+      unreadBySender,
+      latestMessages: unreadMessages.slice(0, 10).map((m) => ({
+        id: m.id,
+        senderId: m.senderId,
+        senderName: [m.sender.firstName, m.sender.lastName].filter(Boolean).join(' ') || m.sender.email,
+        senderAvatar: m.sender.profilePhoto,
+        text: m.text,
+        createdAt: m.createdAt.toISOString(),
+        time: `${String(m.createdAt.getUTCHours()).padStart(2, '0')}:${String(m.createdAt.getUTCMinutes()).padStart(2, '0')}`,
+      })),
+    };
+  }
+
+  /**
+   * Explicitly mark direct messages from a specific sender as read in DB
+   */
+  async markMessagesRead(friendId: string, reqUser?: any, xUserId?: string) {
+    const rawUserId = xUserId || reqUser?.id;
+    const user = await this.resolveUser(rawUserId);
+    const friend = await this.resolveUser(friendId);
+    if (!user || !friend) {
+      return { success: false, updated: 0 };
+    }
+
+    const result = await this.prisma.directMessage.updateMany({
+      where: {
+        senderId: friend.id,
+        receiverId: user.id,
+        status: { not: 'read' },
+      },
+      data: {
+        status: 'read',
+      },
+    });
+
+    return { success: true, updated: result.count };
+  }
 }
+

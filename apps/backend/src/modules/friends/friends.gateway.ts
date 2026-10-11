@@ -250,10 +250,13 @@ export class FriendsGateway
    */
   emitFriendRemoved(
     targetUserId: string,
-    payload: { friendId: string; friendName?: string; removedByUserId: string },
+    payload: { friendId: string; friendName?: string; removedByUserId: string; targetUserId?: string; targetName?: string },
   ) {
     this.emitToUser(targetUserId, 'friend:removed', payload);
     this.emitToUser(payload.removedByUserId, 'friend:removed', payload);
+    if (this.server) {
+      this.server.emit('friend:removed', payload);
+    }
   }
 
   /**

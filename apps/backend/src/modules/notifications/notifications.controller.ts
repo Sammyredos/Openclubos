@@ -21,7 +21,7 @@ export class NotificationsController {
   @Get()
   @UseGuards(OptionalJwtAuthGuard)
   async getNotifications(@Request() req: any, @Query() query: any) {
-    const userId = req.user?.id || (req.headers ? req.headers['x-user-id'] : undefined);
+    const userId = (req.headers ? (req.headers['x-user-id'] as string) : undefined) || req.user?.id;
     return this.notificationsService.getUserNotifications(userId, query);
   }
 
@@ -34,21 +34,21 @@ export class NotificationsController {
   @Patch(':id/read')
   @UseGuards(OptionalJwtAuthGuard)
   async markAsRead(@Param('id') id: string, @Request() req: any) {
-    const userId = req.user?.id || (req.headers ? req.headers['x-user-id'] : undefined);
+    const userId = (req.headers ? (req.headers['x-user-id'] as string) : undefined) || req.user?.id;
     return this.notificationsService.markAsRead(id, userId);
   }
 
   @Post('mark-all-read')
   @UseGuards(OptionalJwtAuthGuard)
   async markAllAsRead(@Request() req: any) {
-    const userId = req.user?.id || (req.headers ? req.headers['x-user-id'] : undefined);
+    const userId = (req.headers ? (req.headers['x-user-id'] as string) : undefined) || req.user?.id;
     return this.notificationsService.markAllAsRead(userId);
   }
 
   @Post('device-token')
   @UseGuards(OptionalJwtAuthGuard)
   async saveDeviceToken(@Body() dto: any, @Request() req: any) {
-    const userId = req.user?.id || (req.headers ? req.headers['x-user-id'] : undefined);
+    const userId = (req.headers ? (req.headers['x-user-id'] as string) : undefined) || req.user?.id;
     return this.notificationsService.saveDeviceToken(dto, userId);
   }
 }
