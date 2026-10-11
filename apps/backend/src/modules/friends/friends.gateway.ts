@@ -55,6 +55,80 @@ export class FriendsGateway
   @WebSocketServer()
   server: Server;
 
+  private readonly userSockets: Map<string, Set<string>> = new Map();
+  private readonly socketUsers: Map<string, Set<string>> = new Map();
+
+  private registerUserSocket(client: Socket, rawUserId: string) {
+    if (!rawUserId || typeof rawUserId !== 'string' || !rawUserId.trim()) return;
+    const cleanId = rawUserId.trim().toLowerCase();
+
+    if (!this.socketUsers.has(client.id)) {
+      this.socketUsers.set(client.id, new Set());
+    }
+    this.socketUsers.get(client.id)!.add(cleanId);
+
+    const existingSockets = this.userSockets.get(cleanId);
+    const wasOnline = existingSockets && existingSockets.size > 0;
+    if (!existingSockets) {
+      this.userSockets.set(cleanId, new Set([client.id]));
+    } else {
+      existingSockets.add(client.id);
+    }
+
+    if (!wasOnline) {
+      this.logger.log(`User online: ${cleanId}`);
+      if (this.server) {
+        this.server.emit('user:online', { userId: cleanId, rawUserId: rawUserId.trim() });
+      }
+    }
+
+    client.emit('presence:sync', {
+      onlineUserIds: Array.from(this.userSockets.keys()),
+    });
+  }
+
+  private unregisterUserSocket(client: Socket, rawUserId: string) {
+    if (!rawUserId || typeof rawUserId !== 'string' || !rawUserId.trim()) return;
+    const cleanId = rawUserId.trim().toLowerCase();
+
+    const sockets = this.userSockets.get(cleanId);
+    if (sockets) {
+      sockets.delete(client.id);
+      if (sockets.size === 0) {
+        this.userSockets.delete(cleanId);
+        this.logger.log(`User offline: ${cleanId}`);
+        if (this.server) {
+          this.server.emit('user:offline', { userId: cleanId, rawUserId: rawUserId.trim() });
+        }
+      }
+    }
+
+    const userSet = this.socketUsers.get(client.id);
+    if (userSet) {
+      userSet.delete(cleanId);
+    }
+  }
+
+  private cleanupClientSockets(client: Socket) {
+    const userSet = this.socketUsers.get(client.id);
+    if (userSet) {
+      for (const cleanId of userSet) {
+        const sockets = this.userSockets.get(cleanId);
+        if (sockets) {
+          sockets.delete(client.id);
+          if (sockets.size === 0) {
+            this.userSockets.delete(cleanId);
+            this.logger.log(`User offline: ${cleanId}`);
+            if (this.server) {
+              this.server.emit('user:offline', { userId: cleanId });
+            }
+          }
+        }
+      }
+      this.socketUsers.delete(client.id);
+    }
+  }
+
   handleConnection(client: Socket) {
     // Client connected; wait for subscribe:user message or query param
     const userId = client.handshake.query?.userId as string | undefined;
@@ -62,11 +136,13 @@ export class FriendsGateway
       const room = `user:${userId.trim().toLowerCase()}`;
       client.join(room);
       client.join(`user:${userId.trim()}`);
+      this.registerUserSocket(client, userId);
       this.logger.debug(`Socket ${client.id} auto-joined room ${room}`);
     }
   }
 
   handleDisconnect(client: Socket) {
+    this.cleanupClientSockets(client);
     this.logger.debug(`Socket disconnected: ${client.id}`);
   }
 
@@ -81,6 +157,7 @@ export class FriendsGateway
     const room = `user:${cleanId.toLowerCase()}`;
     client.join(room);
     client.join(`user:${cleanId}`);
+    this.registerUserSocket(client, cleanId);
     this.logger.debug(`Socket ${client.id} subscribed to room ${room}`);
     return { status: 'subscribed', room };
   }
@@ -96,8 +173,18 @@ export class FriendsGateway
     const room = `user:${cleanId.toLowerCase()}`;
     client.leave(room);
     client.leave(`user:${cleanId}`);
+    this.unregisterUserSocket(client, cleanId);
     this.logger.debug(`Socket ${client.id} unsubscribed from room ${room}`);
     return { status: 'unsubscribed', room };
+  }
+
+  @SubscribeMessage('presence:get_online')
+  handleGetOnlineUsers(@ConnectedSocket() client: Socket) {
+    return { onlineUserIds: Array.from(this.userSockets.keys()) };
+  }
+
+  getOnlineUserIds(): string[] {
+    return Array.from(this.userSockets.keys());
   }
 
   /**

@@ -569,6 +569,14 @@ export class FriendsService {
   }
 
   /**
+   * Get online user IDs currently connected or active
+   */
+  async getOnlineUsers() {
+    const liveIds = this.friendsGateway.getOnlineUserIds();
+    return { onlineUserIds: liveIds };
+  }
+
+  /**
    * Block a user
    */
   async blockUser(targetId: string, reqUser?: any, xUserId?: string) {
@@ -724,7 +732,7 @@ export class FriendsService {
       imageUrl: message.imageUrl,
       status: message.status,
       createdAt: message.createdAt.toISOString(),
-      time: message.createdAt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }),
+      time: `${String(message.createdAt.getUTCHours()).padStart(2, '0')}:${String(message.createdAt.getUTCMinutes()).padStart(2, '0')}`,
       senderName: [sender.firstName, sender.lastName].filter(Boolean).join(' ') || sender.email,
       senderAvatar: sender.profilePhoto,
       receiverName: [receiver.firstName, receiver.lastName].filter(Boolean).join(' ') || receiver.email,
@@ -793,7 +801,7 @@ export class FriendsService {
         text: m.text,
         hasImage: m.hasImage,
         imageUrl: m.imageUrl,
-        time: m.createdAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        time: `${String(m.createdAt.getUTCHours()).padStart(2, '0')}:${String(m.createdAt.getUTCMinutes()).padStart(2, '0')}`,
         createdAt: m.createdAt.toISOString(),
         status: m.status,
       };

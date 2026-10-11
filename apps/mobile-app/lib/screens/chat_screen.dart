@@ -17,7 +17,7 @@ class ChatScreen extends StatefulWidget {
     this.friendId = '',
     this.friendName = 'Golfer',
     this.friendAvatar,
-    this.isOnline = true,
+    this.isOnline = false,
     this.onBack,
   });
 
@@ -48,6 +48,59 @@ class _ChatScreenState extends State<ChatScreen> {
         _conversationsByFriend[firstName] ??
         _conversationsByFriend[widget.friendName.toLowerCase().trim()] ??
         [];
+  }
+
+  String _format24HourTime(dynamic val, [dynamic createdAt]) {
+    final target = createdAt ?? val;
+    if (target != null && target.toString().trim().isNotEmpty) {
+      final str = target.toString().trim();
+      if (str.contains('T') || str.endsWith('Z') || (str.contains('-') && str.length > 10)) {
+        try {
+          final dt = DateTime.parse(str).toLocal();
+          final h = dt.hour.toString().padLeft(2, '0');
+          final m = dt.minute.toString().padLeft(2, '0');
+          return '$h:$m';
+        } catch (_) {}
+      }
+    }
+    if (val == null) return '';
+    final str = val.toString().trim();
+    final ampmRegex = RegExp(r'^(\d{1,2}):(\d{2})\s*(AM|PM)$', caseSensitive: false);
+    final match = ampmRegex.firstMatch(str);
+    if (match != null) {
+      int h = int.parse(match.group(1)!);
+      final m = match.group(2)!;
+      final period = match.group(3)!.toUpperCase();
+      if (period == 'PM' && h < 12) h += 12;
+      if (period == 'AM' && h == 12) h = 0;
+      return '${h.toString().padLeft(2, '0')}:$m';
+    }
+    final standardRegex = RegExp(r'^(\d{1,2}):(\d{2})');
+    final stdMatch = standardRegex.firstMatch(str);
+    if (stdMatch != null) {
+      final h = int.parse(stdMatch.group(1)!);
+      final m = stdMatch.group(2)!;
+      return '${h.toString().padLeft(2, '0')}:$m';
+    }
+    return str;
+  }
+
+  String _formatChatDateBadge(dynamic createdAt) {
+    if (createdAt == null || createdAt.toString().trim().isEmpty) return 'TODAY';
+    try {
+      final dt = DateTime.parse(createdAt.toString().trim()).toLocal();
+      final now = DateTime.now();
+      final isToday = dt.year == now.year && dt.month == now.month && dt.day == now.day;
+      if (isToday) return 'TODAY';
+      final yesterday = now.subtract(const Duration(days: 1));
+      final isYesterday = dt.year == yesterday.year && dt.month == yesterday.month && dt.day == yesterday.day;
+      if (isYesterday) return 'YESTERDAY';
+      const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+      final monthStr = months[dt.month - 1];
+      return dt.year == now.year ? '${dt.day} $monthStr' : '${dt.day} $monthStr ${dt.year}';
+    } catch (_) {
+      return 'TODAY';
+    }
   }
 
   @override
@@ -123,25 +176,15 @@ class _ChatScreenState extends State<ChatScreen> {
         final id = map['id']?.toString() ?? 'msg-${DateTime.now().millisecondsSinceEpoch}';
         final isIncoming = senderId == targetId || senderName == targetName || senderName == targetSlug;
 
-        String timeStr = map['time']?.toString() ?? '';
-        if (timeStr.isEmpty && map['createdAt'] != null) {
-          try {
-            final dt = DateTime.parse(map['createdAt'].toString());
-            final hour = dt.hour == 0 ? 12 : (dt.hour > 12 ? dt.hour - 12 : dt.hour);
-            final minute = dt.minute.toString().padLeft(2, '0');
-            final ampm = dt.hour >= 12 ? 'PM' : 'AM';
-            timeStr = '$hour:$minute $ampm';
-          } catch (_) {
-            timeStr = 'Just now';
-          }
-        }
-        if (timeStr.isEmpty) timeStr = 'Just now';
+        final createdAtIso = map['createdAt']?.toString() ?? DateTime.now().toUtc().toIso8601String();
+        final timeStr = _format24HourTime(map['time'], createdAtIso);
 
         final newMsg = {
           'id': id,
           'sender': isIncoming ? 'them' : 'me',
           'text': text,
           'time': timeStr,
+          'createdAt': createdAtIso,
           'status': map['status']?.toString() ?? 'read',
           'attachmentImage': map['imageUrl']?.toString(),
         };
@@ -185,11 +228,13 @@ class _ChatScreenState extends State<ChatScreen> {
         final List<dynamic> rawList = res.data;
         final formatted = rawList.map((m) {
           final map = Map<String, dynamic>.from(m as Map);
+          final createdAt = map['createdAt']?.toString();
           return {
             'id': map['id']?.toString() ?? 'msg-${DateTime.now().millisecondsSinceEpoch}',
             'sender': map['sender']?.toString() ?? 'them',
             'text': map['text']?.toString() ?? '',
-            'time': map['time']?.toString() ?? '',
+            'time': _format24HourTime(map['time'], createdAt),
+            'createdAt': createdAt,
             'status': map['status']?.toString() ?? 'read',
             'attachmentImage': map['imageUrl']?.toString(),
           };
@@ -244,18 +289,19 @@ class _ChatScreenState extends State<ChatScreen> {
     final trimmed = text.trim();
     if (trimmed.isEmpty) return;
 
-    final now = TimeOfDay.now();
-    final hour = now.hourOfPeriod == 0 ? 12 : now.hourOfPeriod;
+    final now = DateTime.now();
+    final hour = now.hour.toString().padLeft(2, '0');
     final minute = now.minute.toString().padLeft(2, '0');
-    final period = now.period == DayPeriod.am ? 'AM' : 'PM';
-    final timeStr = '${hour.toString().padLeft(2, '0')}:$minute $period';
+    final timeStr = '$hour:$minute';
+    final createdAtIso = now.toUtc().toIso8601String();
 
-    final tempId = 'msg-${DateTime.now().millisecondsSinceEpoch}';
+    final tempId = 'msg-${now.millisecondsSinceEpoch}';
     final newMsg = {
       'id': tempId,
       'sender': 'me',
       'text': trimmed,
       'time': timeStr,
+      'createdAt': createdAtIso,
       'status': 'sent',
     };
 
@@ -295,6 +341,9 @@ class _ChatScreenState extends State<ChatScreen> {
               _conversationsByFriend[key]![idx]['status'] = 'delivered';
               if (res.data is Map && res.data['id'] != null) {
                 _conversationsByFriend[key]![idx]['id'] = res.data['id'].toString();
+                if (res.data['createdAt'] != null) {
+                  _conversationsByFriend[key]![idx]['createdAt'] = res.data['createdAt'].toString();
+                }
               }
             }
           });
@@ -598,7 +647,10 @@ class _ChatScreenState extends State<ChatScreen> {
                       itemCount: _messages.length + 1,
                       itemBuilder: (context, index) {
                         if (index == 0) {
-                          // Date Pill
+                          // Date Pill for first message or today
+                          final dateLabel = _messages.isNotEmpty
+                              ? _formatChatDateBadge(_messages.first['createdAt'])
+                              : 'TODAY';
                           return Center(
                             child: Container(
                               margin: const EdgeInsets.symmetric(vertical: 8),
@@ -608,7 +660,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                 borderRadius: BorderRadius.circular(20),
                               ),
                               child: Text(
-                                'TODAY',
+                                dateLabel,
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w700,
@@ -621,11 +673,16 @@ class _ChatScreenState extends State<ChatScreen> {
                         }
 
                         // Message item (E2EE card removed once a text has started)
-                        final msg = _messages[index - 1];
+                        final msgIndex = index - 1;
+                        final msg = _messages[msgIndex];
                         final isIncoming = msg['sender'] == 'them';
+                        final dateLabel = _formatChatDateBadge(msg['createdAt']);
+                        final prevDateLabel = msgIndex > 0 ? _formatChatDateBadge(_messages[msgIndex - 1]['createdAt']) : null;
+                        final showDateHeader = msgIndex > 0 && dateLabel != prevDateLabel;
 
+                  Widget bubbleWidget;
                   if (isIncoming) {
-                    return Padding(
+                    bubbleWidget = Padding(
                       padding: const EdgeInsets.only(bottom: 12),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.end,
@@ -706,7 +763,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                 Padding(
                                   padding: const EdgeInsets.only(left: 4, top: 4),
                                   child: Text(
-                                    msg['time'] as String,
+                                    _format24HourTime(msg['time'], msg['createdAt']),
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 10.5,
                                       fontWeight: FontWeight.w500,
@@ -721,75 +778,104 @@ class _ChatScreenState extends State<ChatScreen> {
                         ],
                       ),
                     );
+                  } else {
+                    // Outgoing Message
+                    bubbleWidget = Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          const SizedBox(width: 48),
+                          Flexible(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFF009A60),
+                                    borderRadius: BorderRadius.only(
+                                      topLeft: Radius.circular(16),
+                                      topRight: Radius.circular(16),
+                                      bottomLeft: Radius.circular(16),
+                                      bottomRight: Radius.circular(4),
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Color(0x14009A60),
+                                        blurRadius: 4,
+                                        offset: Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Text(
+                                    msg['text'] as String,
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 13.5,
+                                      fontWeight: FontWeight.w400,
+                                      color: Colors.white,
+                                      height: 1.4,
+                                    ),
+                                  ),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.only(right: 4, top: 4),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        _format24HourTime(msg['time'], msg['createdAt']),
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 10.5,
+                                          fontWeight: FontWeight.w500,
+                                          color: const Color(0xFF94A3B8),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      const Icon(
+                                        Icons.done_all_rounded,
+                                        size: 13,
+                                        color: Color(0xFF009A60),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
                   }
 
-                  // Outgoing Message
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
+                  if (showDateHeader) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        const SizedBox(width: 48),
-                        Flexible(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: const BoxDecoration(
-                                  color: Color(0xFF009A60),
-                                  borderRadius: BorderRadius.only(
-                                    topLeft: Radius.circular(16),
-                                    topRight: Radius.circular(16),
-                                    bottomLeft: Radius.circular(16),
-                                    bottomRight: Radius.circular(4),
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Color(0x14009A60),
-                                      blurRadius: 4,
-                                      offset: Offset(0, 2),
-                                    ),
-                                  ],
-                                ),
-                                child: Text(
-                                  msg['text'] as String,
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 13.5,
-                                    fontWeight: FontWeight.w400,
-                                    color: Colors.white,
-                                    height: 1.4,
-                                  ),
-                                ),
+                        Center(
+                          child: Container(
+                            margin: const EdgeInsets.symmetric(vertical: 8),
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFE8EEE9),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              dateLabel,
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 1.2,
+                                color: const Color(0xFF5B6B7F),
                               ),
-                              Padding(
-                                padding: const EdgeInsets.only(right: 4, top: 4),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      msg['time'] as String,
-                                      style: GoogleFonts.plusJakartaSans(
-                                        fontSize: 10.5,
-                                        fontWeight: FontWeight.w500,
-                                        color: const Color(0xFF94A3B8),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 4),
-                                    const Icon(
-                                      Icons.done_all_rounded,
-                                      size: 13,
-                                      color: Color(0xFF009A60),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
+                            ),
                           ),
                         ),
+                        bubbleWidget,
                       ],
-                    ),
-                  );
+                    );
+                  }
+                  return bubbleWidget;
                 },
               ),
             ),

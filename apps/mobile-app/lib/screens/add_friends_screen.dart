@@ -506,7 +506,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                             friendId: player['id']?.toString() ?? '',
                             friendName: compName,
                             friendAvatar: resolvedPhoto,
-                            isOnline: true,
+                            isOnline: player['isOnline'] == true || player['online'] == true,
                           ),
                         ),
                       );
@@ -1989,7 +1989,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                       ),
                                       const SizedBox(height: 8),
                                       Text(
-                                        '✓ Real-time friend request dispatched directly to ${scannedResult!['name'] ?? 'player'}',
+                                        '✓ Instantly connected as mutual golf friends with ${scannedResult!['name'] ?? 'player'}',
                                         style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF009A60), fontWeight: FontWeight.w600),
                                         textAlign: TextAlign.center,
                                       ),
@@ -3199,7 +3199,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
                                               friendId: player['id']?.toString() ?? '',
                                               friendName: name,
                                               friendAvatar: player['avatar']?.toString() ?? player['profilePhoto']?.toString(),
-                                              isOnline: true,
+                                              isOnline: player['isOnline'] == true || player['online'] == true,
                                             ),
                                           ),
                                         );

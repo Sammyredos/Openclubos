@@ -1422,82 +1422,104 @@ export default function MobilePreviewPage() {
   }[]>([]);
   const [simulatedActiveFriendIds, setSimulatedActiveFriendIds] = useState<string[]>([]);
 
-  // --- Online Status Detection System ---
-  // Only detect players online by displaying the green dot. If not online, display ZERO color.
-  const [onlinePlayerIds, setOnlinePlayerIds] = useState<Set<string>>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const stored = localStorage.getItem("openclub_online_player_ids");
-        if (stored) return new Set(JSON.parse(stored));
-      } catch {}
-    }
-    return new Set<string>([
-      "usr_pusha",
-      "pusha lastman",
-      "usr_samuel_obadina",
-      "samuel obadina",
-      "p-101",
-      "p-102",
-      "samuel-adesola",
-    ]);
-  });
+  // --- Online Status Detection System (Loaded dynamically from database / API / socket) ---
+  const [onlinePlayerIds, setOnlinePlayerIds] = useState<Set<string>>(new Set());
 
-  const isPlayerOnline = useCallback((player: any): boolean => {
-    if (!player) return false;
-    if (player.isOnline === true) return true;
-    if (player.isOnline === false) return false;
-    const pId = String(player.id || "").toLowerCase().trim();
-    const pName = String(player.name || "").toLowerCase().trim();
-    const pEmail = String(player.email || "").toLowerCase().trim();
-    
-    // Explicit presence registry
-    if (onlinePlayerIds.has(pId) || onlinePlayerIds.has(pName) || (pEmail && onlinePlayerIds.has(pEmail))) return true;
-    
-    // Competitors currently active on golf course
-    if (friendsOnCourse.some((f) => f.id === player.id || f.name.toLowerCase().trim() === pName)) return true;
-    
-    // Connected friends in acceptedFriendIds
-    if (acceptedFriendIds.some((id) => {
-      const clean = String(id).toLowerCase().trim();
-      return clean === pId || clean === pName || (pEmail && clean === pEmail);
-    })) return true;
-
-    // Database accepted friends records
-    if (dbAcceptedFriends.some((f) => {
-      const fId = String(f.id || "").toLowerCase().trim();
-      const fName = String(f.name || [f.firstName, f.lastName].filter(Boolean).join(" ")).toLowerCase().trim();
-      const fEmail = String(f.email || "").toLowerCase().trim();
-      return fId === pId || fName === pName || (pEmail && fEmail === pEmail);
-    })) return true;
-
-    return false;
-  }, [onlinePlayerIds, friendsOnCourse, acceptedFriendIds, dbAcceptedFriends]);
-
-  // --- Direct Chat / Messaging Screen State ---
+  // --- Direct Chat / Messaging Screen State (Dynamically populated from database friends/competitors) ---
   const [activeChatFriend, setActiveChatFriend] = useState<{
     id: string;
     name: string;
     avatar?: string;
     club?: string;
     hcp?: string;
-    isOnline: boolean;
-  }>({
-    id: "samuel-obadina",
-    name: "Samuel Obadina",
-    avatar: undefined,
-    club: "Ikoyi Golf Club",
-    hcp: "20 HCP",
-    isOnline: true,
-  });
+    isOnline?: boolean;
+  } | null>(null);
 
   interface ChatMessageItem {
     id: string;
     sender: "them" | "me";
     text: string;
     time: string;
+    createdAt?: string;
     attachmentImage?: string;
     status?: "sent" | "delivered" | "read";
   }
+
+  /**
+   * Formats any timestamp (ISO-8601 string, Date, or legacy time string)
+   * into 24-hour "HH:mm" in the user's local device timezone.
+   * Ensures users in different timezones see the exact local time corresponding
+   * to the absolute UTC creation time.
+   */
+  const format24HourTime = (val?: string | Date | null, createdAt?: string | Date | null): string => {
+    const target = createdAt || val;
+    if (!target) return "";
+    if (target instanceof Date) {
+      const h = String(target.getHours()).padStart(2, "0");
+      const m = String(target.getMinutes()).padStart(2, "0");
+      return `${h}:${m}`;
+    }
+    const str = String(target).trim();
+    // If it's an ISO or parseable date-time string
+    if (str.includes("T") || str.endsWith("Z") || (str.includes("-") && str.length > 10)) {
+      const d = new Date(str);
+      if (!isNaN(d.getTime())) {
+        const h = String(d.getHours()).padStart(2, "0");
+        const m = String(d.getMinutes()).padStart(2, "0");
+        return `${h}:${m}`;
+      }
+    }
+    // If it's a 12-hour AM/PM string like "09:18 PM" or "9:18 am"
+    const ampmMatch = str.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+    if (ampmMatch) {
+      let hours = parseInt(ampmMatch[1], 10);
+      const minutes = ampmMatch[2];
+      const meridiem = ampmMatch[3].toUpperCase();
+      if (meridiem === "PM" && hours < 12) hours += 12;
+      if (meridiem === "AM" && hours === 12) hours = 0;
+      return `${String(hours).padStart(2, "0")}:${minutes}`;
+    }
+    // If already 24-hour string like "18:04"
+    const stdMatch = str.match(/^(\d{1,2}):(\d{2})/);
+    if (stdMatch) {
+      return `${String(parseInt(stdMatch[1], 10)).padStart(2, "0")}:${stdMatch[2]}`;
+    }
+    return str;
+  };
+
+  /**
+   * Formats date header pill badge ("TODAY", "YESTERDAY", or "DD MMM")
+   * relative to the user's local calendar day.
+   */
+  const formatChatDateBadge = (createdAt?: string | Date | null): string => {
+    if (!createdAt) return "TODAY";
+    try {
+      const d = createdAt instanceof Date ? createdAt : new Date(createdAt);
+      if (isNaN(d.getTime())) return "TODAY";
+      const now = new Date();
+      const isToday =
+        d.getDate() === now.getDate() &&
+        d.getMonth() === now.getMonth() &&
+        d.getFullYear() === now.getFullYear();
+      if (isToday) return "TODAY";
+
+      const yesterday = new Date(now);
+      yesterday.setDate(now.getDate() - 1);
+      const isYesterday =
+        d.getDate() === yesterday.getDate() &&
+        d.getMonth() === yesterday.getMonth() &&
+        d.getFullYear() === yesterday.getFullYear();
+      if (isYesterday) return "YESTERDAY";
+
+      return d.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: d.getFullYear() !== now.getFullYear() ? "numeric" : undefined,
+      }).toUpperCase();
+    } catch {
+      return "TODAY";
+    }
+  };
 
   // Real database-backed conversation storage keyed by recipient friend ID (No dummy seed data)
   const [conversationsByFriendId, setConversationsByFriendId] = useState<Record<string, ChatMessageItem[]>>({});
@@ -1742,7 +1764,8 @@ export default function MobilePreviewPage() {
             id: m.id || `msg-${Date.now()}`,
             sender: m.sender || "them",
             text: m.text || "",
-            time: m.time || "",
+            time: format24HourTime(m.time, m.createdAt),
+            createdAt: m.createdAt || undefined,
             status: m.status || "read",
             attachmentImage: m.imageUrl || undefined,
           }));
@@ -1774,12 +1797,10 @@ export default function MobilePreviewPage() {
     const friendFirst = rawFriendName.split(/\s+/)[0] || "";
 
     const now = new Date();
-    const hours = now.getHours();
-    const minutes = now.getMinutes();
-    const ampm = hours >= 12 ? "PM" : "AM";
-    const formattedHours = hours % 12 || 12;
-    const formattedMinutes = minutes < 10 ? `0${minutes}` : minutes;
-    const timeStr = `${formattedHours < 10 ? `0${formattedHours}` : formattedHours}:${formattedMinutes} ${ampm}`;
+    const createdAtIso = now.toISOString();
+    const hours = String(now.getHours()).padStart(2, "0");
+    const minutes = String(now.getMinutes()).padStart(2, "0");
+    const timeStr = `${hours}:${minutes}`;
 
     const textToSend = chatInputText.trim();
     const tempId = `msg-${Date.now()}`;
@@ -1788,6 +1809,7 @@ export default function MobilePreviewPage() {
       sender: "me",
       text: textToSend,
       time: timeStr,
+      createdAt: createdAtIso,
       status: "read",
     };
 
@@ -1835,7 +1857,7 @@ export default function MobilePreviewPage() {
             [friendKey, rawFriendId, rawFriendName, friendFirst].forEach((k) => {
               if (next[k]) {
                 next[k] = next[k].map((m) =>
-                  m.id === tempId ? { ...m, id: data.id, status: "sent" } : m
+                  m.id === tempId ? { ...m, id: data.id, createdAt: data.createdAt || m.createdAt, status: "sent" } : m
                 );
               }
             });
@@ -1855,12 +1877,10 @@ export default function MobilePreviewPage() {
     const friendFirst = rawFriendName.split(/\s+/)[0] || "";
 
     const now = new Date();
-    const hours = now.getHours();
-    const minutes = now.getMinutes();
-    const ampm = hours >= 12 ? "PM" : "AM";
-    const formattedHours = hours % 12 || 12;
-    const formattedMinutes = minutes < 10 ? `0${minutes}` : minutes;
-    const timeStr = `${formattedHours < 10 ? `0${formattedHours}` : formattedHours}:${formattedMinutes} ${ampm}`;
+    const createdAtIso = now.toISOString();
+    const hours = String(now.getHours()).padStart(2, "0");
+    const minutes = String(now.getMinutes()).padStart(2, "0");
+    const timeStr = `${hours}:${minutes}`;
 
     const textToSend = presetText.trim();
     const tempId = `msg-${Date.now()}`;
@@ -1869,6 +1889,7 @@ export default function MobilePreviewPage() {
       sender: "me",
       text: textToSend,
       time: timeStr,
+      createdAt: createdAtIso,
       status: "read",
     };
 
@@ -1915,7 +1936,7 @@ export default function MobilePreviewPage() {
             [friendKey, rawFriendId, rawFriendName, friendFirst].forEach((k) => {
               if (next[k]) {
                 next[k] = next[k].map((m) =>
-                  m.id === tempId ? { ...m, id: data.id, status: "sent" } : m
+                  m.id === tempId ? { ...m, id: data.id, createdAt: data.createdAt || m.createdAt, status: "sent" } : m
                 );
               }
             });
@@ -2010,11 +2031,9 @@ export default function MobilePreviewPage() {
         d.getMonth() === yesterday.getMonth() &&
         d.getFullYear() === yesterday.getFullYear();
 
-      const timeStr = d.toLocaleTimeString([], {
-        hour: "numeric",
-        minute: "2-digit",
-        hour12: true,
-      });
+      const hours = String(d.getHours()).padStart(2, "0");
+      const minutes = String(d.getMinutes()).padStart(2, "0");
+      const timeStr = `${hours}:${minutes}`;
 
       if (isToday) {
         if (diffHours < 4) return `${diffHours}h ago`;
@@ -2079,6 +2098,87 @@ export default function MobilePreviewPage() {
     },
     [authenticatedPlayer]
   );
+
+  const isPlayerOnline = useCallback((player: any): boolean => {
+    if (!player) return false;
+    // Explicit offline flag takes highest precedence
+    if (player.isOnline === false || player.online === false) return false;
+    // Explicit verified online flag
+    if (player.isOnline === true || player.online === true) return true;
+
+    const pId = String(player.id || player.userId || "").toLowerCase().trim();
+    const pName = String(player.name || [player.firstName, player.lastName].filter(Boolean).join(" ")).toLowerCase().trim();
+    const pEmail = String(player.email || "").toLowerCase().trim();
+
+    // Authenticated user themselves is always online in this active session
+    if (isAccountUser(player)) return true;
+
+    // Real-time verified presence registry
+    if (pId && onlinePlayerIds.has(pId)) return true;
+    if (pName && onlinePlayerIds.has(pName)) return true;
+    if (pEmail && onlinePlayerIds.has(pEmail)) return true;
+
+    return false;
+  }, [onlinePlayerIds, isAccountUser]);
+
+  // Fetch online presence authoritatively from backend database/API on mount and interval
+  useEffect(() => {
+    let isMounted = true;
+    const fetchOnlinePresence = async () => {
+      try {
+        const backendBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
+        const token = typeof window !== "undefined" ? (localStorage.getItem("openclub_access_token") || localStorage.getItem("openclub_mobile_token")) : null;
+        const headers: Record<string, string> = {};
+        if (token) headers["Authorization"] = `Bearer ${token}`;
+        if (authenticatedPlayer?.id) headers["x-user-id"] = authenticatedPlayer.id;
+
+        const res = await fetch(`${backendBase}/friends/online`, { headers }).catch(() => null);
+        if (res && res.ok) {
+          const data = await res.json().catch(() => null);
+          if (isMounted && Array.isArray(data?.onlineUserIds)) {
+            const serverOnline = new Set<string>(data.onlineUserIds.map((id: any) => String(id).toLowerCase().trim()));
+            if (authenticatedPlayer?.id) serverOnline.add(String(authenticatedPlayer.id).toLowerCase().trim());
+            setOnlinePlayerIds(serverOnline);
+          }
+        }
+      } catch {}
+    };
+
+    fetchOnlinePresence();
+    const interval = setInterval(fetchOnlinePresence, 30000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [authenticatedPlayer?.id]);
+
+  // Auto-bind activeChatFriend from authoritative database records if not yet selected
+  useEffect(() => {
+    if (!activeChatFriend) {
+      if (dbAcceptedFriends && dbAcceptedFriends.length > 0) {
+        const first = dbAcceptedFriends[0];
+        const fName = first.name || [first.firstName, first.lastName].filter(Boolean).join(" ") || "Friend";
+        setActiveChatFriend({
+          id: first.id,
+          name: fName,
+          avatar: first.profilePhoto || first.avatar,
+          club: first.club || "OpenClub Golfer",
+          hcp: String(first.handicap ?? "12.0"),
+          isOnline: isPlayerOnline(first),
+        });
+      } else if (golfCompetitors && golfCompetitors.length > 0) {
+        const first = golfCompetitors.find((c) => !isAccountUser(c)) || golfCompetitors[0];
+        setActiveChatFriend({
+          id: first.id,
+          name: first.name,
+          avatar: first.avatar || first.profilePhoto,
+          club: first.club || "OpenClub Golfer",
+          hcp: String(first.hcp ?? "12.0"),
+          isOnline: isPlayerOnline(first),
+        });
+      }
+    }
+  }, [activeChatFriend, dbAcceptedFriends, golfCompetitors, isAccountUser, isPlayerOnline]);
 
   const isCorruptedFlightNotifDate = useCallback((dateVal?: string | number | Date | null): boolean => {
     if (!dateVal) return true;
@@ -2329,37 +2429,16 @@ export default function MobilePreviewPage() {
     const otherPartyId = isOutgoing ? receiverId : senderId;
     const otherPartyName = isOutgoing ? (payload.receiverName || "") : (payload.senderName || "");
 
-    // Format display time consistently in 12-hour AM/PM format
-    let timeStr = "";
-    if (payload.createdAt) {
-      try {
-        const d = new Date(payload.createdAt);
-        const hours = d.getHours();
-        const minutes = d.getMinutes();
-        const ampm = hours >= 12 ? "PM" : "AM";
-        const formattedHours = hours % 12 || 12;
-        const formattedMinutes = minutes < 10 ? `0${minutes}` : minutes;
-        timeStr = `${formattedHours < 10 ? `0${formattedHours}` : formattedHours}:${formattedMinutes} ${ampm}`;
-      } catch {}
-    }
-    if (!timeStr && payload.time && payload.time.includes("M")) {
-      timeStr = payload.time;
-    }
-    if (!timeStr) {
-      const now = new Date();
-      const hours = now.getHours();
-      const minutes = now.getMinutes();
-      const ampm = hours >= 12 ? "PM" : "AM";
-      const formattedHours = hours % 12 || 12;
-      const formattedMinutes = minutes < 10 ? `0${minutes}` : minutes;
-      timeStr = `${formattedHours < 10 ? `0${formattedHours}` : formattedHours}:${formattedMinutes} ${ampm}`;
-    }
+    // Format display time consistently in 24-hour HH:mm format in viewer's local device timezone
+    const msgCreatedAt = payload.createdAt || new Date().toISOString();
+    const timeStr = format24HourTime(payload.time, msgCreatedAt);
 
     const newMsgItem: ChatMessageItem = {
       id: String(payload.id || `msg-${Date.now()}`),
       sender: isOutgoing ? "me" : "them",
       text: String(payload.text),
       time: timeStr,
+      createdAt: msgCreatedAt,
       status: (payload.status as any) || "read",
       attachmentImage: payload.imageUrl || payload.attachmentImage || undefined,
     };
@@ -2482,6 +2561,11 @@ export default function MobilePreviewPage() {
       if (authenticatedPlayer?.id) socket.emit("subscribe:user", { userId: authenticatedPlayer.id });
       if (authenticatedPlayer?.email) socket.emit("subscribe:user", { userId: authenticatedPlayer.email });
       if (authenticatedPlayer?.name) socket.emit("subscribe:user", { userId: authenticatedPlayer.name });
+      socket.emit("presence:get_online", {}, (res: any) => {
+        if (Array.isArray(res?.onlineUserIds)) {
+          setOnlinePlayerIds(new Set(res.onlineUserIds.map((id: string) => String(id).toLowerCase().trim())));
+        }
+      });
     });
 
     // 1. Live Friend Request Received
@@ -2758,6 +2842,42 @@ export default function MobilePreviewPage() {
 
     socket.on("chat:message", (payload: any) => {
       if (payload) handleIncomingChatMessage(payload);
+    });
+
+    // 10. Live User Presence Events
+    socket.on("user:online", (payload: any) => {
+      const uId = payload?.userId || payload?.id;
+      if (uId) {
+        setOnlinePlayerIds((prev) => {
+          const next = new Set(prev);
+          next.add(String(uId).toLowerCase().trim());
+          if (payload.rawUserId) next.add(String(payload.rawUserId).toLowerCase().trim());
+          return next;
+        });
+      }
+    });
+
+    socket.on("user:offline", (payload: any) => {
+      const uId = payload?.userId || payload?.id;
+      if (uId) {
+        setOnlinePlayerIds((prev) => {
+          const next = new Set(prev);
+          const clean = String(uId).toLowerCase().trim();
+          next.delete(clean);
+          if (payload.rawUserId) next.delete(String(payload.rawUserId).toLowerCase().trim());
+          return next;
+        });
+      }
+    });
+
+    socket.on("presence:sync", (payload: any) => {
+      if (Array.isArray(payload?.onlineUserIds)) {
+        setOnlinePlayerIds((prev) => {
+          const next = new Set<string>(payload.onlineUserIds.map((id: any) => String(id).toLowerCase().trim()));
+          if (authenticatedPlayer?.id) next.add(String(authenticatedPlayer.id).toLowerCase().trim());
+          return next;
+        });
+      }
     });
 
     // Multi-window / multi-tab live sync via BroadcastChannel
@@ -6931,7 +7051,7 @@ import 'package:google_fonts/google_fonts.dart';
 class ChatScreen extends StatelessWidget {
   final String friendName;
   final bool isOnline;
-  const ChatScreen({super.key, this.friendName = 'Victoria Chen', this.isOnline = true});
+  const ChatScreen({super.key, this.friendName = 'Victoria Chen', this.isOnline = false});
 
   @override
   Widget build(BuildContext context) {
@@ -17059,8 +17179,60 @@ class ChatScreen extends StatelessWidget {
 
                   {/* 13B. DIRECT MESSAGE / CHAT SCREEN (Pixel-Perfect Match to Reference Design) */}
                   {targetScreen === "chat" && (() => {
-                    const rawId = String(activeChatFriend.id || "").toLowerCase().trim();
-                    const rawName = String(activeChatFriend.name || "").toLowerCase().trim();
+                    const activeFriend = activeChatFriend || (dbAcceptedFriends.length > 0 ? {
+                      id: dbAcceptedFriends[0].id,
+                      name: dbAcceptedFriends[0].name,
+                      avatar: dbAcceptedFriends[0].avatar || "",
+                      club: dbAcceptedFriends[0].club || "Metropolitan Golf Club",
+                      hcp: dbAcceptedFriends[0].hcp || "12.4",
+                    } : golfCompetitors.length > 0 ? {
+                      id: golfCompetitors[0].id,
+                      name: golfCompetitors[0].name,
+                      avatar: golfCompetitors[0].avatar || "",
+                      club: golfCompetitors[0].club || "Metropolitan Golf Club",
+                      hcp: golfCompetitors[0].hcp || "12.4",
+                    } : null);
+
+                    if (!activeFriend) {
+                      return (
+                        <div className="flex-1 h-full flex flex-col bg-[#F4F6F3] relative overflow-hidden font-['Plus_Jakarta_Sans',sans-serif]">
+                          <div className="w-full shrink-0 z-20 bg-white border-b border-slate-200/60 shadow-2xs">
+                            <div className="w-full px-4 sm:px-6 pt-4 pb-3 flex items-center justify-between gap-3">
+                              <button
+                                type="button"
+                                onClick={() => switchScreen("my-friends")}
+                                className="h-10 w-10 rounded-full border border-slate-200 bg-white shadow-2xs flex items-center justify-center text-[#0F172A] hover:bg-slate-50 active:scale-95 transition-all cursor-pointer shrink-0"
+                                title="Back to Friends"
+                                aria-label="Back"
+                              >
+                                <ChevronLeft className="h-5 w-5 text-[#0F172A] stroke-[2.2]" />
+                              </button>
+                              <h3 className="text-[15.5px] font-bold text-[#0F172A]">Direct Messages</h3>
+                              <div className="w-10" />
+                            </div>
+                          </div>
+                          <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
+                            <div className="w-16 h-16 rounded-2xl bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center text-[#009A60] mb-4 shadow-2xs">
+                              <MessageSquare className="w-8 h-8 stroke-[2]" />
+                            </div>
+                            <h4 className="text-base font-bold text-[#0F172A] mb-1.5">No Conversation Selected</h4>
+                            <p className="text-xs text-[#64748B] max-w-xs mb-5">
+                              Select a friend from your friends list or members directory to start chatting.
+                            </p>
+                            <button
+                              type="button"
+                              onClick={() => switchScreen("my-friends")}
+                              className="px-5 py-2.5 rounded-xl bg-[#009A60] hover:bg-[#008251] text-white text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-98 capitalize"
+                            >
+                              View My Friends
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    const rawId = String(activeFriend.id || "").toLowerCase().trim();
+                    const rawName = String(activeFriend.name || "").toLowerCase().trim();
                     const firstName = rawName.split(/\s+/)[0] || "";
                     const slugName = rawName.replace(/\s+/g, "-");
                     const currentChatMessages = (rawId && conversationsByFriendId[rawId])
@@ -17089,10 +17261,10 @@ class ChatScreen extends StatelessWidget {
                               {/* Recipient Avatar with Online Indicator Dot */}
                               <div className="relative shrink-0">
                                 <div className="w-10 h-10 rounded-full overflow-hidden bg-[#EAF7EE] border border-slate-200 shadow-2xs flex items-center justify-center">
-                                  {activeChatFriend.avatar ? (
+                                  {activeFriend.avatar ? (
                                     <img
-                                      src={activeChatFriend.avatar}
-                                      alt={activeChatFriend.name}
+                                      src={activeFriend.avatar}
+                                      alt={activeFriend.name}
                                       className="w-full h-full object-cover"
                                       onError={(e) => {
                                         (e.currentTarget as HTMLElement).style.display = "none";
@@ -17101,14 +17273,14 @@ class ChatScreen extends StatelessWidget {
                                       }}
                                     />
                                   ) : null}
-                                  <div className={`chat-fallback w-full h-full items-center justify-center ${activeChatFriend.avatar ? "hidden" : "flex"}`}>
+                                  <div className={`chat-fallback w-full h-full items-center justify-center ${activeFriend.avatar ? "hidden" : "flex"}`}>
                                     <span className="text-xs font-bold text-[#009A60]">
-                                      {getTwoInitials(activeChatFriend.name)}
+                                      {getTwoInitials(activeFriend.name)}
                                     </span>
                                   </div>
                                 </div>
                                 {/* Online Indicator Green Dot (Only when online, zero color when offline) */}
-                                {activeChatFriend.isOnline && (
+                                {isPlayerOnline(activeFriend) && (
                                   <span className="w-3 h-3 rounded-full bg-[#009A60] border-2 border-white absolute -bottom-0.5 -right-0.5 shadow-2xs pointer-events-none" />
                                 )}
                               </div>
@@ -17116,10 +17288,10 @@ class ChatScreen extends StatelessWidget {
                               {/* Recipient Name & Status (Full Name Display, No E2EE Call Subtitle) */}
                               <div className="min-w-0 flex-1">
                                 <h3 className="text-[15.5px] font-bold text-[#0F172A] leading-tight break-words">
-                                  {activeChatFriend.name}
+                                  {activeFriend.name}
                                 </h3>
                                 <div className="flex items-center gap-1.5 mt-0.5">
-                                  {activeChatFriend.isOnline ? (
+                                  {isPlayerOnline(activeFriend) ? (
                                     <span className="text-[10px] font-bold text-[#009A60] tracking-wider uppercase">
                                       ONLINE
                                     </span>
@@ -17136,7 +17308,7 @@ class ChatScreen extends StatelessWidget {
                             <div className="flex items-center gap-2 shrink-0">
                               <button
                                 type="button"
-                                onClick={() => showToast(`Options for conversation with ${activeChatFriend.name}`, "alert", "CONVERSATION")}
+                                onClick={() => showToast(`Options for conversation with ${activeFriend.name}`, "alert", "CONVERSATION")}
                                 className="h-10 w-10 rounded-full bg-slate-50 hover:bg-slate-100 border border-slate-200/80 flex items-center justify-center text-[#0F172A] active:scale-95 transition-all cursor-pointer shadow-2xs shrink-0"
                                 title="More Options"
                                 aria-label="More Options"
@@ -17149,114 +17321,126 @@ class ChatScreen extends StatelessWidget {
 
                         {/* 2. SCROLLABLE MESSAGE STREAM */}
                         <div ref={chatScrollRef} className="flex-1 overflow-y-auto px-4 py-3 space-y-3.5 scrollbar-hide no-scrollbar">
-                          {/* Centered Date Badge */}
-                          <div className="flex justify-center my-1.5">
-                            <span className="px-3.5 py-1 rounded-full bg-[#E8EEE9] text-[10px] font-bold tracking-widest text-[#5B6B7F] uppercase shadow-2xs">
-                              TODAY
-                            </span>
-                          </div>
-
                           {/* Message List or Initial State */}
                           {currentChatMessages.length === 0 ? (
-                            <div className="py-2 space-y-3.5 animate-in fade-in duration-200">
-                              {/* Clean Image 2 End-to-End Encrypted Card (Compact, Non-Bulky Sizing) */}
-                              <div className="w-full max-w-sm mx-auto bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-4 sm:p-4.5 text-center">
-                                {/* Compact Squircle Shield Badge */}
-                                <div className="w-10 h-10 rounded-xl bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center mx-auto mb-2.5 shadow-2xs text-[#009A60]">
-                                  <ShieldCheck className="w-5 h-5 stroke-[2.2]" />
+                            <>
+                              <div className="flex justify-center my-1.5">
+                                <span className="px-3.5 py-1 rounded-full bg-[#E8EEE9] text-[10px] font-bold tracking-widest text-[#5B6B7F] uppercase shadow-2xs">
+                                  TODAY
+                                </span>
+                              </div>
+                              <div className="py-2 space-y-3.5 animate-in fade-in duration-200">
+                                {/* Clean Image 2 End-to-End Encrypted Card (Compact, Non-Bulky Sizing) */}
+                                <div className="w-full max-w-sm mx-auto bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-4 sm:p-4.5 text-center">
+                                  {/* Compact Squircle Shield Badge */}
+                                  <div className="w-10 h-10 rounded-xl bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center mx-auto mb-2.5 shadow-2xs text-[#009A60]">
+                                    <ShieldCheck className="w-5 h-5 stroke-[2.2]" />
+                                  </div>
+
+                                  <span className="text-[10px] font-bold tracking-[0.14em] text-[#009A60] uppercase block mb-1.5">
+                                    END-TO-END ENCRYPTED
+                                  </span>
+
+                                  <p className="text-[10.5px] font-medium text-[#64748B] leading-relaxed capitalize max-w-[260px] mx-auto mb-2.5">
+                                    Messages and calls stay between you and {activeFriend.name.split(" ")[0]}. Not even OpenclubOS can access them.
+                                  </p>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => setShowE2eeModal(true)}
+                                    className="text-[9.5px] font-bold text-[#009A60] tracking-wider capitalize underline underline-offset-2 hover:text-[#008251] transition-colors cursor-pointer inline-block"
+                                  >
+                                    Tap to verify identity
+                                  </button>
                                 </div>
 
-                                <span className="text-[10px] font-bold tracking-[0.14em] text-[#009A60] uppercase block mb-1.5">
-                                  END-TO-END ENCRYPTED
-                                </span>
-
-                                <p className="text-[10.5px] font-medium text-[#64748B] leading-relaxed capitalize max-w-[260px] mx-auto mb-2.5">
-                                  Messages and calls stay between you and {activeChatFriend.name.split(" ")[0]}. Not even OpenclubOS can access them.
-                                </p>
-
-                                <button
-                                  type="button"
-                                  onClick={() => setShowE2eeModal(true)}
-                                  className="text-[9.5px] font-bold text-[#009A60] tracking-wider capitalize underline underline-offset-2 hover:text-[#008251] transition-colors cursor-pointer inline-block"
-                                >
-                                  Tap to verify identity
-                                </button>
+                                {/* Quick Reply Templates (Image 4): Clean white bg, compact matching styling */}
+                                <div className="w-full max-w-sm mx-auto space-y-1.5 pt-0.5">
+                                  {[
+                                    "Ready For 18 Holes Tomorrow? ⛳",
+                                    "What Are The Pin Positions? 📍",
+                                    "Great Playing With You! 👋",
+                                  ].map((promptText) => (
+                                    <button
+                                      key={promptText}
+                                      type="button"
+                                      onClick={() => handleSendPreset(promptText)}
+                                      className="w-full bg-white hover:bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-2.5 shadow-2xs text-[11px] font-medium text-[#64748B] hover:text-[#0F172A] flex items-center justify-start text-left capitalize transition-all active:scale-[0.98] cursor-pointer"
+                                    >
+                                      <span>{promptText}</span>
+                                    </button>
+                                  ))}
+                                </div>
                               </div>
-
-                              {/* Quick Reply Templates (Image 4): Clean white bg, compact matching styling */}
-                              <div className="w-full max-w-sm mx-auto space-y-1.5 pt-0.5">
-                                {[
-                                  "Ready For 18 Holes Tomorrow? ⛳",
-                                  "What Are The Pin Positions? 📍",
-                                  "Great Playing With You! 👋",
-                                ].map((promptText) => (
-                                  <button
-                                    key={promptText}
-                                    type="button"
-                                    onClick={() => handleSendPreset(promptText)}
-                                    className="w-full bg-white hover:bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-2.5 shadow-2xs text-[11px] font-medium text-[#64748B] hover:text-[#0F172A] flex items-center justify-start text-left capitalize transition-all active:scale-[0.98] cursor-pointer"
-                                  >
-                                    <span>{promptText}</span>
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
+                            </>
                           ) : (
                             /* Once a text has started: NO E2EE CARD AT ALL, only the message bubbles! */
-                            currentChatMessages.map((msg) => {
+                            currentChatMessages.map((msg, idx) => {
                               const isIncoming = msg.sender === "them";
+                              const msgDateLabel = formatChatDateBadge(msg.createdAt);
+                              const prevMsg = idx > 0 ? currentChatMessages[idx - 1] : null;
+                              const prevDateLabel = prevMsg ? formatChatDateBadge(prevMsg.createdAt) : null;
+                              const showDatePill = idx === 0 || msgDateLabel !== prevDateLabel;
 
-                              if (isIncoming) {
-                                return (
-                                  <div key={msg.id} className="flex items-end gap-2.5 max-w-[85%]">
-                                    {/* Sender Avatar */}
-                                    <div className="w-7 h-7 rounded-full overflow-hidden bg-slate-200 shrink-0 mb-1 border border-slate-200/80 shadow-2xs">
-                                      {activeChatFriend.avatar ? (
-                                        <img
-                                          src={activeChatFriend.avatar}
-                                          alt={activeChatFriend.name}
-                                          className="w-full h-full object-cover"
-                                        />
-                                      ) : (
-                                        <div className="w-full h-full flex items-center justify-center text-[9px] font-bold text-[#009A60]">
-                                          {getTwoInitials(activeChatFriend.name)}
-                                        </div>
-                                      )}
+                              return (
+                                <React.Fragment key={msg.id || `msg-${idx}`}>
+                                  {showDatePill && (
+                                    <div className="flex justify-center my-1.5">
+                                      <span className="px-3.5 py-1 rounded-full bg-[#E8EEE9] text-[10px] font-bold tracking-widest text-[#5B6B7F] uppercase shadow-2xs">
+                                        {msgDateLabel}
+                                      </span>
                                     </div>
+                                  )}
 
-                                    {/* Incoming Bubble */}
-                                    <div className="flex flex-col items-start min-w-0">
-                                      <div className="bg-white text-[#0F172A] px-4 py-3 rounded-2xl rounded-bl-xs shadow-2xs border border-slate-200/70 text-[13.5px] leading-relaxed">
-                                        <p className="whitespace-pre-wrap">{msg.text}</p>
-                                        {msg.attachmentImage && (
-                                          <div className="mt-2.5 rounded-xl overflow-hidden border border-slate-200/90 shadow-2xs bg-slate-50">
-                                            <img
-                                              src={msg.attachmentImage}
-                                              alt="Pin Placement"
-                                              className="w-full max-h-60 object-cover"
-                                            />
+                                  {isIncoming ? (
+                                    <div className="flex items-end gap-2.5 max-w-[85%]">
+                                      {/* Sender Avatar */}
+                                      <div className="w-7 h-7 rounded-full overflow-hidden bg-slate-200 shrink-0 mb-1 border border-slate-200/80 shadow-2xs">
+                                        {activeFriend.avatar ? (
+                                          <img
+                                            src={activeFriend.avatar}
+                                            alt={activeFriend.name}
+                                            className="w-full h-full object-cover"
+                                          />
+                                        ) : (
+                                          <div className="w-full h-full flex items-center justify-center text-[9px] font-bold text-[#009A60]">
+                                            {getTwoInitials(activeFriend.name)}
                                           </div>
                                         )}
                                       </div>
-                                      <span className="text-[10px] text-slate-400 font-medium mt-1 ml-1">
-                                        {msg.time}
-                                      </span>
-                                    </div>
-                                  </div>
-                                );
-                              }
 
-                              // Outgoing Bubble (Current Player)
-                              return (
-                                <div key={msg.id} className="flex flex-col items-end max-w-[82%] ml-auto">
-                                  <div className="bg-[#009A60] text-white px-4 py-3 rounded-2xl rounded-br-xs shadow-2xs text-[13.5px] leading-relaxed font-normal">
-                                    <p className="whitespace-pre-wrap">{msg.text}</p>
-                                  </div>
-                                  <div className="flex items-center gap-1 text-[10px] text-slate-400 font-medium mt-1 mr-1">
-                                    <span>{msg.time}</span>
-                                    <CheckCheck className="w-3.5 h-3.5 text-[#009A60] stroke-[2.2]" />
-                                  </div>
-                                </div>
+                                      {/* Incoming Bubble */}
+                                      <div className="flex flex-col items-start min-w-0">
+                                        <div className="bg-white text-[#0F172A] px-4 py-3 rounded-2xl rounded-bl-xs shadow-2xs border border-slate-200/70 text-[13.5px] leading-relaxed">
+                                          <p className="whitespace-pre-wrap">{msg.text}</p>
+                                          {msg.attachmentImage && (
+                                            <div className="mt-2.5 rounded-xl overflow-hidden border border-slate-200/90 shadow-2xs bg-slate-50">
+                                              <img
+                                                src={msg.attachmentImage}
+                                                alt="Pin Placement"
+                                                className="w-full max-h-60 object-cover"
+                                              />
+                                            </div>
+                                          )}
+                                        </div>
+                                        <span className="text-[10px] text-slate-400 font-medium mt-1 ml-1">
+                                          {format24HourTime(msg.time, msg.createdAt)}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    /* Outgoing Bubble (Current Player) */
+                                    <div className="flex flex-col items-end max-w-[82%] ml-auto">
+                                      <div className="bg-[#009A60] text-white px-4 py-3 rounded-2xl rounded-br-xs shadow-2xs text-[13.5px] leading-relaxed font-normal">
+                                        <p className="whitespace-pre-wrap">{msg.text}</p>
+                                      </div>
+                                      <div className="flex items-center gap-1 text-[10px] text-slate-400 font-medium mt-1 mr-1">
+                                        <span>{format24HourTime(msg.time, msg.createdAt)}</span>
+                                        <CheckCheck className="w-3.5 h-3.5 text-[#009A60] stroke-[2.2]" />
+                                      </div>
+                                    </div>
+                                  )}
+                                </React.Fragment>
                               );
                             })
                           )}
@@ -19833,24 +20017,35 @@ class ChatScreen extends StatelessWidget {
                               </span>
                             </div>
 
-                            <p className="text-[11px] text-[#009A60] font-medium">
-                              ✓ Real-time friend request dispatched directly to {scannedFriendResult.name}
+                            <p className="text-[11px] text-[#009A60] font-medium text-center">
+                              ✓ Instantly connected as mutual golf friends with {scannedFriendResult.name}
                             </p>
 
                             <div className="flex gap-2 pt-1">
                               <button
                                 type="button"
-                                onClick={() => setScannedFriendResult(null)}
-                                className="flex-1 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all cursor-pointer"
+                                onClick={() => {
+                                  setActiveChatFriend({
+                                    id: scannedFriendResult.id,
+                                    name: scannedFriendResult.name,
+                                    avatar: scannedFriendResult.avatar || scannedFriendResult.profilePhoto || "",
+                                    club: scannedFriendResult.club || "OpenClub Golfer",
+                                    hcp: scannedFriendResult.hcp || "0.0",
+                                    isOnline: isPlayerOnline(scannedFriendResult),
+                                  });
+                                  setShowQrCodeModal(false);
+                                  switchScreen("chat");
+                                }}
+                                className="flex-1 py-2 rounded-xl bg-[#009A60] hover:bg-[#008251] text-white text-xs font-bold transition-all cursor-pointer capitalize shadow-xs"
                               >
-                                Scan Another
+                                Message {scannedFriendResult.name.split(" ")[0]}
                               </button>
                               <button
                                 type="button"
-                                onClick={() => setShowQrCodeModal(false)}
-                                className="flex-1 py-2 rounded-xl bg-[#009A60] hover:bg-[#008251] text-white text-xs font-bold transition-all cursor-pointer"
+                                onClick={() => setScannedFriendResult(null)}
+                                className="py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all cursor-pointer capitalize"
                               >
-                                Done
+                                Scan Another
                               </button>
                             </div>
                           </div>
@@ -21091,6 +21286,49 @@ class ChatScreen extends StatelessWidget {
                     }`}
                   >
                     Active ({friendsOnCourse.length > 0 ? friendsOnCourse.length : registeredPlayers.length > 0 ? Math.min(3, registeredPlayers.length) : 0})
+                  </button>
+                </div>
+              </div>
+
+              {/* Online Friends Simulator Control */}
+              <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between">
+                <span className="text-[11px] text-slate-400 font-medium">Online Presence:</span>
+                <div className="flex items-center bg-[#080D15] rounded-lg p-0.5 border border-slate-800 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOnlinePlayerIds(new Set());
+                      try {
+                        localStorage.removeItem("openclub_online_player_ids");
+                      } catch {}
+                      showToast("All other players set to offline.", "success", "ALL PLAYERS OFFLINE");
+                    }}
+                    className={`px-2 py-0.5 rounded-md text-[10px] transition-all cursor-pointer ${
+                      onlinePlayerIds.size === 0
+                        ? "bg-slate-800 text-emerald-400 font-bold shadow-xs"
+                        : "text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    All Offline
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const sampleFriend = acceptedFriendIds.length > 0 ? acceptedFriendIds[0] : (registeredPlayers[0]?.id || "p-101");
+                      const next = new Set([String(sampleFriend).toLowerCase().trim()]);
+                      setOnlinePlayerIds(next);
+                      try {
+                        localStorage.setItem("openclub_online_player_ids", JSON.stringify(Array.from(next)));
+                      } catch {}
+                      showToast("1 player set to online.", "success", "1 PLAYER ONLINE");
+                    }}
+                    className={`px-2 py-0.5 rounded-md text-[10px] transition-all cursor-pointer ${
+                      onlinePlayerIds.size === 1
+                        ? "bg-slate-800 text-emerald-400 font-bold shadow-xs"
+                        : "text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    1 Online
                   </button>
                 </div>
               </div>

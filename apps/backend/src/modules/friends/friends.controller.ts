@@ -123,6 +123,12 @@ export class FriendsController {
     return this.friendsService.removeFriend(targetId, req.user, xUserId);
   }
 
+  @Get('online')
+  @UseGuards(OptionalJwtAuthGuard)
+  async getOnlineUsers() {
+    return this.friendsService.getOnlineUsers();
+  }
+
   @Get()
   @UseGuards(OptionalJwtAuthGuard)
   async getFriends(@Request() req: any) {
