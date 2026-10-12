@@ -58,11 +58,12 @@ export default function RootLayout({
       >
         <Providers>{children}</Providers>
         <Toaster 
+          theme="light"
           richColors 
           position="top-right" 
           closeButton
           toastOptions={{
-            className: `font-sans text-[15px] font-normal leading-snug shadow-lg rounded-2xl border border-gray-100`,
+            className: `font-sans text-[15px] font-normal leading-snug shadow-lg rounded-2xl border border-gray-100 bg-white text-gray-900`,
             duration: 4000,
           }}
         />

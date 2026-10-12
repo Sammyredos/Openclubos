@@ -1231,7 +1231,6 @@ export default function MobilePreviewPage() {
   const [filterLocation, setFilterLocation] = useState("Ikoyi, Lagos");
   const [filterProximityKm, setFilterProximityKm] = useState(25);
   const [filterWhen, setFilterWhen] = useState<"Anytime" | "This Weekend" | "Next 7 Days" | "Next 30 Days">("Anytime");
-  const [filterEventType, setFilterEventType] = useState<"Major Event" | "Social Golf" | "Clinic / Lesson" | "Elite Cup">("Major Event");
   const [filterFeeMin, setFilterFeeMin] = useState(0);
   const [filterFeeMax, setFilterFeeMax] = useState(250000);
   const [filterHandicapRange, setFilterHandicapRange] = useState<"0 – 9" | "10 – 18" | "19 – 28+">("10 – 18");
@@ -8182,7 +8181,7 @@ class TournamentsView extends StatelessWidget {
     "tournament-filter": {
       path: "apps/mobile-app/lib/screens/tournament_filter_screen.dart",
       summary:
-        "Dedicated executive tournament filter screen featuring location proximity range slider, searchable host golf club selector with comprehensive club directory, event timeframes, 2x2 event type cards, format selection, dual entry fee slider, and handicap range tabs.",
+        "Dedicated executive tournament filter screen featuring location proximity range slider, searchable host golf club selector with comprehensive club directory, event timeframes, format selection, dual entry fee slider, and handicap range tabs.",
       snippet: `// Dart & Flutter: Tournament Filter Screen
 class TournamentFilterScreen extends StatefulWidget {
   const TournamentFilterScreen({super.key});
@@ -8195,7 +8194,6 @@ class _TournamentFilterScreenState extends State<TournamentFilterScreen> {
   double _proximityKm = 25;
   String _selectedClub = "All";
   String _selectedWhen = "Anytime";
-  String _selectedEventType = "Major Event";
   String _selectedFormat = "Stroke Play";
   double _maxFee = 250000;
   String _handicapRange = "10 – 18";
@@ -8220,7 +8218,6 @@ class _TournamentFilterScreenState extends State<TournamentFilterScreen> {
           // Location & Proximity Slider
           // Host Golf Club Searchable Dropdown
           // When Timeline Horizontal Pills
-          // 2x2 Event Type Cards (Major Event, Social Golf, Clinic, Elite Cup)
           // Game Format Pills (Stroke Play, Stableford, Match Play, Scramble, Four-Ball)
           // Entry Fee Range (MIN N0, MAX N250,000+)
           // Handicap Range Segmented Pills (0-9, 10-18, 19-28+)
@@ -10816,13 +10813,6 @@ class ChatScreen extends StatelessWidget {
                 return false;
               }
 
-              // 6. Event Type Filter
-              if (filterEventType === "Clinic / Lesson") {
-                if (!t.format.toLowerCase().includes("clinic") && !t.name.toLowerCase().includes("clinic") && !t.name.toLowerCase().includes("lesson")) return false;
-              } else if (filterEventType === "Elite Cup") {
-                if (!t.name.toLowerCase().includes("cup") && !t.name.toLowerCase().includes("elite") && t.category !== "Invitational") return false;
-              }
-
               return true;
             })
             .sort((a, b) => {
@@ -10832,14 +10822,12 @@ class ChatScreen extends StatelessWidget {
               return 0;
             });
 
-          // 2. Select All Featured Tournaments (isFeatured || Live || Major, excluding completed events)
+          // 2. Select All Featured Tournaments (Strict parity with Home Screen: all featured tournaments from database)
           const featuredTournaments = (() => {
-            const activeOnly = combinedTournaments.filter((t) => t.status !== "Closed" && t.status !== "Completed" && t.isOpen);
-            const explicit = activeOnly.filter((t) => t.isFeatured);
+            const explicit = combinedTournaments.filter((t) => t.isFeatured);
             if (explicit.length > 0) return explicit;
-            const liveOrMajor = activeOnly.filter((t) => t.status === "Live" || t.category === "Major");
-            if (liveOrMajor.length > 0) return liveOrMajor;
-            return activeOnly.slice(0, 3);
+            const activeOnly = combinedTournaments.filter((t) => t.status !== "Closed" && t.status !== "Completed" && t.isOpen);
+            return activeOnly.length > 0 ? activeOnly : combinedTournaments;
           })();
 
           const isCustomFilterActive = tournamentFilter !== "All" || tournamentFormatFilter !== "All" || tournamentFeeFilter !== "All" || tournamentClubFilter !== "All" || filterFeeMax < 250000 || filterProximityKm !== 25 || filterWhen !== "Anytime" || tournamentSortOrder !== "date";
@@ -12062,16 +12050,6 @@ class ChatScreen extends StatelessWidget {
             !hostClubSearchQuery.trim() || c.toLowerCase().includes(hostClubSearchQuery.toLowerCase())
           );
 
-          const eventTypes: Array<{
-            id: "Major Event" | "Social Golf" | "Clinic / Lesson" | "Elite Cup";
-            tag: string;
-          }> = [
-              { id: "Major Event", tag: "PROFESSIONAL" },
-              { id: "Social Golf", tag: "NETWORKING" },
-              { id: "Clinic / Lesson", tag: "LEARNING" },
-              { id: "Elite Cup", tag: "CURATED" },
-            ];
-
           const gameFormats = [
             "Stroke Play",
             "Stableford",
@@ -12115,7 +12093,6 @@ class ChatScreen extends StatelessWidget {
                       setFilterProximityKm(25);
                       setTournamentClubFilter("All");
                       setFilterWhen("Anytime");
-                      setFilterEventType("Major Event");
                       setTournamentFormatFilter("Stroke Play");
                       setFilterFeeMin(0);
                       setFilterFeeMax(250000);
@@ -12287,53 +12264,7 @@ class ChatScreen extends StatelessWidget {
                     </div>
                   </div>
 
-                  {/* 4. EVENT TYPE (2x2 GRID) */}
-                  <div>
-                    <span className="text-[11px] font-bold tracking-[0.14em] text-[#64748B] uppercase mb-3 block">
-                      EVENT TYPE
-                    </span>
-                    <div className="grid grid-cols-2 gap-3">
-                      {eventTypes.map((item) => {
-                        const isActive = filterEventType === item.id;
-                        return (
-                          <button
-                            key={item.id}
-                            type="button"
-                            onClick={() => setFilterEventType(item.id)}
-                            className={`rounded-xl p-3.5 relative overflow-hidden text-left cursor-pointer transition-all min-h-[96px] flex flex-col justify-between ${isActive
-                                ? "bg-[#e8f5ed] border-2 border-[#009A60] shadow-xs"
-                                : "bg-[#f5faf6] border border-[#e1efe5] hover:bg-[#e8f5ed]/40 shadow-2xs"
-                              }`}
-                          >
-                            <span
-                              className={`text-[9.5px] font-bold tracking-wider uppercase px-2 py-0.5 rounded-md inline-block self-start ${isActive
-                                  ? "text-[#009A60] bg-[#EAF7EE] border border-[#C6F0DB]"
-                                  : "text-[#5B6B7F] bg-[#f5faf6] border border-[#e1efe5]"
-                                }`}
-                            >
-                              {item.tag}
-                            </span>
-
-                            <div className="flex items-center justify-between gap-1 z-10 mt-2">
-                              <span
-                                className={`text-[13.5px] font-semibold ${isActive ? "text-[#009A60]" : "text-[#0F172A]"
-                                  }`}
-                              >
-                                {item.id}
-                              </span>
-                              {isActive && (
-                                <div className="h-4 w-4 rounded-full bg-[#009A60] flex items-center justify-center shrink-0 shadow-2xs">
-                                  <Check className="h-2.5 w-2.5 text-white stroke-[3]" />
-                                </div>
-                              )}
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* 5. GAME FORMAT */}
+                  {/* 4. GAME FORMAT */}
                   <div>
                     <span className="text-[11px] font-bold tracking-[0.14em] text-[#64748B] uppercase mb-3 block">
                       GAME FORMAT
@@ -12361,7 +12292,7 @@ class ChatScreen extends StatelessWidget {
                     </div>
                   </div>
 
-                  {/* 6. ENTRY FEE */}
+                  {/* 5. ENTRY FEE */}
                   <div>
                     <div className="flex items-center justify-between mb-3">
                       <span className="text-[11px] font-bold tracking-[0.14em] text-[#64748B] uppercase">
@@ -12448,7 +12379,7 @@ class ChatScreen extends StatelessWidget {
                     </div>
                   </div>
 
-                  {/* 7. YOUR HANDICAP RANGE */}
+                  {/* 6. YOUR HANDICAP RANGE */}
                   <div>
                     <span className="text-[11px] font-bold tracking-[0.14em] text-[#64748B] uppercase mb-3 block">
                       YOUR HANDICAP RANGE
@@ -22055,22 +21986,24 @@ class ChatScreen extends StatelessWidget {
                   </div>
                 )}
                 {mobileToast.type === "alert" && (
-                  <div className="w-full bg-[#111827] rounded-[26px] p-4 shadow-[0_24px_50px_rgba(0,0,0,0.65),0_10px_25px_rgba(0,0,0,0.4)] border border-slate-800 flex items-center gap-3.5 relative text-white">
-                    <div className="w-11 h-11 rounded-full bg-[#F59E0B] flex items-center justify-center shrink-0 shadow-xs">
-                      <AlertTriangle className="w-5 h-5 text-[#111827] fill-[#111827] stroke-none" />
+                  <div className="w-full bg-white rounded-[26px] p-4 shadow-[0_20px_50px_rgba(0,0,0,0.14),0_8px_16px_rgba(0,0,0,0.05)] border border-amber-200/80 flex items-center gap-3.5 relative text-[#111827]">
+                    <div className="w-11 h-11 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center shrink-0 shadow-2xs">
+                      <div className="w-6 h-6 rounded-full bg-amber-500 flex items-center justify-center shadow-xs">
+                        <AlertTriangle className="w-3.5 h-3.5 text-white stroke-[2.5]" />
+                      </div>
                     </div>
                     <div className="flex-1 min-w-0 pr-2">
-                      <h4 className="text-[13.5px] font-bold uppercase tracking-wider text-white leading-none mb-1">
+                      <h4 className="text-[13.5px] font-bold uppercase tracking-wider text-[#111827] leading-none mb-1">
                         {mobileToast.title || "ALERT"}
                       </h4>
-                      <p className="text-[12.5px] text-[#94A3B8] leading-snug font-normal line-clamp-2">
+                      <p className="text-[12.5px] text-[#5B6B7F] leading-snug font-normal line-clamp-2">
                         {mobileToast.message}
                       </p>
                     </div>
                     <button
                       type="button"
                       onClick={dismissToast}
-                      className="text-slate-400 hover:text-white p-1.5 rounded-full transition-colors cursor-pointer shrink-0 self-center -mr-1"
+                      className="text-slate-300 hover:text-slate-500 p-1.5 rounded-full transition-colors cursor-pointer shrink-0 self-center -mr-1"
                       aria-label="Dismiss toast"
                     >
                       <X className="w-4 h-4" />
