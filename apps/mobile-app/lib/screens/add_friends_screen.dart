@@ -1400,8 +1400,6 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
   }
 
   Widget _buildShareInviteLinkCard(BuildContext context, [List<Map<String, dynamic>>? allRealCompetitors]) {
-    final inviteUrl = '${UniqueQrCodePainter.appBaseUrl}/invite/$_userInviteCode';
-
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -1426,164 +1424,81 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
           child: Column(
-        children: [
-          // Centered Squircle Badge with tap to open QR Code
-          GestureDetector(
-            onTap: () => _showMyQrCodeDialog(context, allRealCompetitors ?? widget.competitors ?? []),
-            child: Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: const Color(0xFFEAF7EE),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFC6F0DB)),
-              ),
-              child: const Center(
-                child: Icon(Icons.link_rounded, size: 24, color: Color(0xFF009A60)),
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-
-          // Centered Title
-          Text(
-            'Share Invitation Link',
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              color: const Color(0xFF0F172A),
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 4),
-
-          // Centered Subtitle
-          Text(
-            'Invite friends who aren\'t on the platform yet',
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: const Color(0xFF64748B),
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 14),
-
-          // URL Input Pill Container with Elevated White Copy Button
-          Container(
-            padding: const EdgeInsets.fromLTRB(14, 6, 6, 6),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF5FAF6),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFE1EFE5)),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    inviteUrl,
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: const Color(0xFF0F172A),
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                GestureDetector(
-                  onTap: () {
-                    Clipboard.setData(ClipboardData(text: inviteUrl));
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Invite link copied to clipboard!'),
-                        backgroundColor: Color(0xFF009A60),
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.04),
-                          blurRadius: 2,
-                          offset: const Offset(0, 1),
-                        ),
-                      ],
-                    ),
-                    child: Text(
-                      'Copy',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: const Color(0xFF0F172A),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-
-          // Subtle "— or —" Divider
-          Row(
             children: [
-              Expanded(child: Container(height: 1, color: const Color(0xFFE2E8F0))),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                child: Text(
-                  'or',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: const Color(0xFF8CA0BA),
+              // Centered Squircle Badge with tap to open QR Code
+              GestureDetector(
+                onTap: () => _showMyQrCodeDialog(context, allRealCompetitors ?? widget.competitors ?? []),
+                child: Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEAF7EE),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFFC6F0DB)),
+                  ),
+                  child: const Center(
+                    child: Icon(Icons.qr_code_2_rounded, size: 24, color: Color(0xFF009A60)),
                   ),
                 ),
               ),
-              Expanded(child: Container(height: 1, color: const Color(0xFFE2E8F0))),
+              const SizedBox(height: 12),
+
+              // Centered Title
+              Text(
+                'Connect via QR Code',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF0F172A),
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 4),
+
+              // Centered Subtitle
+              Text(
+                'Scan or share your unique golfer QR code to connect instantly on the course',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: const Color(0xFF64748B),
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+
+              // Dedicated QR Code Button
+              GestureDetector(
+                onTap: () => _showMyQrCodeDialog(context, allRealCompetitors ?? widget.competitors ?? []),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF009A60),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.qr_code_rounded, size: 16, color: Colors.white),
+                      const SizedBox(width: 8),
+                      Text(
+                        'My QR Code & Scanner',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ],
           ),
-          const SizedBox(height: 12),
-
-          // Dedicated QR Code Button on New Line
-          GestureDetector(
-            onTap: () => _showMyQrCodeDialog(context, allRealCompetitors ?? widget.competitors ?? []),
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              decoration: BoxDecoration(
-                color: const Color(0xFFEAF7EE),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFC6F0DB)),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.qr_code_rounded, size: 16, color: Color(0xFF009A60)),
-                  const SizedBox(width: 6),
-                  Text(
-                    'Share via QR Code',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFF009A60),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
-    ),
-  ),
-);
+    );
   }
 
   void _showMyQrCodeDialog(BuildContext context, List<Map<String, dynamic>> allRealCompetitors) {
@@ -2850,7 +2765,7 @@ class _AddFriendsScreenState extends State<AddFriendsScreen> {
             if (_localSentIds.contains(id) || widget.sentRequestIds.contains(id)) return false;
             if (_localAcceptedIds.contains(id) || widget.acceptedFriendIds.contains(id) || _localAcceptedIds.contains(name)) return false;
             return true;
-          }).take(2).toList()
+          }).take(3).toList()
         : allRealCompetitors.where((c) {
             final name = (c['name'] as String? ?? '').toLowerCase();
             final email = (c['email'] as String? ?? '').toLowerCase();

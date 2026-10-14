@@ -8401,26 +8401,8 @@ class ChatScreen extends StatelessWidget {
         </div>
       </div>
 
-      {/* 3. Playing Now Active Round Card */}
-      <div className="w-full px-4 pt-6 pb-2">
-        <div className="w-full h-[145px] rounded-2xl bg-[#052417] border border-[#0D3826] p-4 shadow-2xs flex flex-col justify-between">
-          <div className="flex items-start gap-3">
-            <div className="w-14 h-[68px] rounded-xl bg-[#0B3523] border border-[#16603E]" />
-            <div className="space-y-2 flex-1">
-              <div className="h-3 w-20 rounded-md bg-[#16603E]" />
-              <div className="h-4 w-44 rounded-md bg-[#16603E]" />
-              <div className="h-3 w-28 rounded-md bg-[#16603E]" />
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="flex-[7] h-9 rounded-xl bg-[#009A60]/40" />
-            <div className="flex-[3] h-9 rounded-xl bg-[#0C241B]" />
-          </div>
-        </div>
-      </div>
-
       {/* 4. Friends Playing Now Avatar Row */}
-      <div className="w-full px-4 pt-4">
+      <div className="w-full px-4 pt-6">
         <div className="h-4 w-36 rounded-md bg-slate-200/90 mb-3" />
         <div className="flex items-center gap-3">
           {[0, 1, 2, 3].map((i) => (
@@ -9699,223 +9681,6 @@ class ChatScreen extends StatelessWidget {
 
             {/* --- 2.5 PLAYING NOW SECTION (ENHANCED VERTICAL SPACING & EMPTY STATE) --- */}
             <div className="w-full px-4 pt-6 pb-4">
-              {/* --- ACTIVE IN-PROGRESS ROUND CARD (DISPLAYED WHEN PLAYER HAS NOT YET FINISHED ROUND) --- */}
-              {activeRound && (
-                <div className="mb-4.5 w-full rounded-[22px] bg-[#052417] text-white p-4.5 sm:p-5 border border-[#0D3826] shadow-[0_10px_28px_rgba(0,0,0,0.22)] select-none relative overflow-hidden group">
-                  {/* Fitted Background Pattern: Golf Course Topographic Elevation Contours & Green Complex Plateau */}
-                  <svg
-                    className="absolute inset-0 w-full h-full pointer-events-none opacity-28 transition-opacity duration-300 group-hover:opacity-40"
-                    viewBox="0 0 360 170"
-                    fill="none"
-                    preserveAspectRatio="none"
-                  >
-                    <defs>
-                      <radialGradient id="activeRoundGlow1" cx="18%" cy="32%" r="65%">
-                        <stop offset="0%" stopColor="#10B981" stopOpacity="0.28" />
-                        <stop offset="100%" stopColor="#10B981" stopOpacity="0" />
-                      </radialGradient>
-                      <radialGradient id="activeRoundGlow2" cx="88%" cy="70%" r="55%">
-                        <stop offset="0%" stopColor="#059669" stopOpacity="0.18" />
-                        <stop offset="100%" stopColor="#059669" stopOpacity="0" />
-                      </radialGradient>
-                    </defs>
-                    <rect width="100%" height="100%" fill="url(#activeRoundGlow1)" />
-                    <rect width="100%" height="100%" fill="url(#activeRoundGlow2)" />
-
-                    {/* Organic Course Topographic Elevation Contours */}
-                    <path d="M-20 32 C 60 8, 130 52, 210 20 C 275 -6, 320 38, 385 16" stroke="#10B981" strokeWidth="1.3" fill="none" opacity="0.65" />
-                    <path d="M-15 62 C 55 35, 145 82, 235 48 C 295 24, 340 58, 395 40" stroke="#10B981" strokeWidth="1.1" fill="none" opacity="0.5" />
-                    <path d="M-25 94 C 50 68, 125 110, 210 76 C 275 52, 330 90, 385 72" stroke="#10B981" strokeWidth="0.9" strokeDasharray="4 4" fill="none" opacity="0.4" />
-                    <path d="M-10 126 C 75 102, 160 142, 250 112 C 310 94, 355 120, 395 106" stroke="#10B981" strokeWidth="1.0" fill="none" opacity="0.45" />
-                    <path d="M-20 155 C 65 132, 150 166, 240 140 C 305 122, 360 148, 390 136" stroke="#10B981" strokeWidth="0.8" fill="none" opacity="0.3" />
-
-                    {/* Putting Green Complex Plateau Elevation Rings around Hole squircle */}
-                    <circle cx="54" cy="54" r="34" stroke="#10B981" strokeWidth="1.1" strokeDasharray="3 3" opacity="0.6" fill="none" />
-                    <circle cx="54" cy="54" r="58" stroke="#10B981" strokeWidth="0.9" opacity="0.45" fill="none" />
-                    <circle cx="54" cy="54" r="84" stroke="#10B981" strokeWidth="0.75" strokeDasharray="2 3" opacity="0.3" fill="none" />
-                    <circle cx="54" cy="54" r="115" stroke="#10B981" strokeWidth="0.6" opacity="0.2" fill="none" />
-
-                    {/* Course Telemetry Directional Ray */}
-                    <line x1="54" y1="54" x2="330" y2="38" stroke="#10B981" strokeWidth="0.7" strokeDasharray="3 4" opacity="0.25" />
-                    <line x1="54" y1="54" x2="310" y2="105" stroke="#10B981" strokeWidth="0.6" strokeDasharray="2 5" opacity="0.18" />
-                  </svg>
-
-                  <div className="relative z-10">
-                    {/* Top Row: Hole Squircle Badge + Live Info */}
-                    <div className="flex items-start gap-3.5">
-                      {/* Hole Squircle Badge */}
-                      <div className="w-[66px] h-[86px] rounded-[18px] bg-[#0B3523] border border-[#16603E]/70 flex flex-col items-center justify-center shrink-0">
-                        <span className="text-[9.5px] font-bold text-[#10B981]/90 uppercase tracking-widest leading-none">
-                          HOLE
-                        </span>
-                        <span className="text-[28px] font-bold text-[#10B981] leading-none mt-1.5 tracking-tight">
-                          {activeRound.holeNumber}
-                        </span>
-                      </div>
-
-                      {/* Right Column Details */}
-                      <div className="flex-1 min-w-0 flex flex-col justify-center">
-                        {/* Row 1: LIVE Badge + Day Info + Relocated Leaderboard Link */}
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-2 min-w-0">
-                            {activeRound.isLive ? (
-                              <span className="px-2 py-0.5 rounded-[5px] bg-[#EF4444] text-white text-[9px] font-bold tracking-wider uppercase leading-none shrink-0 animate-pulse">
-                                LIVE
-                              </span>
-                            ) : (
-                              <span className="px-2 py-0.5 rounded-[5px] bg-[#10B981]/20 text-[#10B981] border border-[#10B981]/30 text-[9px] font-bold tracking-wider uppercase leading-none shrink-0">
-                                {activeTournament?.status === "REGISTRATION_OPEN" ? "REG OPEN" : "UPCOMING"}
-                              </span>
-                            )}
-                            <span className="text-[11px] font-bold text-[#8FAEA2] tracking-wider uppercase shrink-0">
-                              {activeRound.dayText || "ROUND 1"}
-                            </span>
-                          </div>
-
-                          {/* Leaderboard Icon Button (not full text) */}
-                          <button
-                            type="button"
-                            onClick={() => switchScreen("leaderboard")}
-                            className="w-7 h-7 rounded-full bg-[#0B3523] border border-[#16603E] text-[#10B981] hover:text-white hover:bg-[#10B981]/20 active:scale-95 flex items-center justify-center cursor-pointer transition-all shrink-0 ml-auto shadow-2xs group/lb"
-                            title="View Leaderboard"
-                            aria-label="View Leaderboard"
-                          >
-                            <Trophy className="w-3.5 h-3.5 group-hover/lb:scale-110 transition-transform" />
-                          </button>
-                        </div>
-
-                        {/* Row 2: Full Display of Tournament Title */}
-                        <h3 className="text-[16px] font-bold text-white tracking-tight leading-tight truncate mt-1">
-                          {formatTitleCase(activeRound.tournamentName)}
-                        </h3>
-
-                        {/* Row 3: Course Name (Pushed to the top of Par 4, 345 yds) */}
-                        {(activeRound.courseName || activeRound.clubName) && (
-                          <p className="text-[12px] font-semibold text-[#10B981] leading-tight truncate mt-0.5" title={activeRound.courseName || activeRound.clubName}>
-                            {activeRound.courseName || activeRound.clubName}
-                          </p>
-                        )}
-
-                        {/* Row 4: Hole Information (Par & Distance) */}
-                        <div className="flex items-center mt-1">
-                          <p className="text-[11.5px] font-medium text-[#8FAEA2] leading-none" title={activeRound.holeInfo}>
-                            {activeRound.holeInfo?.replace("yards", "yds") || "Par 4 • 345 yds"}
-                          </p>
-                        </div>
-
-                      </div>
-                    </div>
-
-                    {/* Horizontal line divider */}
-                    <div className="border-t border-[#16603E]/60 my-3" />
-
-                    {/* Flight and Tee-Off Time Row & Action Buttons */}
-                    {(() => {
-                      const { teeLabel, isTeeTimeReached } = parseTeeTimeStatus(
-                        activeRound.teeTime,
-                        activeTournament?.startDate,
-                        (activeTournament as any)?.teeStartTime,
-                        activeRound.flightText
-                      );
-
-                      const flightDisplay = activeRound.flightText
-                        ? activeRound.flightText.replace(/\s*•\s*Players in Flight/gi, "").replace(/Players in Flight/gi, "").trim() || "Flight 1"
-                        : "Flight 1";
-
-                      return (
-                        <>
-                          <div className="flex items-center justify-between mb-3 gap-2">
-                            <div className="flex items-center gap-1.5 min-w-0">
-                              <Clock className="w-3.5 h-3.5 text-[#10B981]/80 shrink-0" />
-                              <span className="text-[12px] font-bold text-[#D1F2DE] tracking-tight whitespace-nowrap">
-                                {flightDisplay}
-                              </span>
-                              {hasInactivityWarning && isTeeTimeReached && (
-                                <span className="text-[9.5px] font-bold text-[#F59E0B] tracking-wider uppercase leading-none ml-1 whitespace-nowrap shrink-0">
-                                  • INACTIVE ({activeRoundMinutesElapsed && activeRoundMinutesElapsed >= 30 ? activeRoundMinutesElapsed : 30}m)
-                                </span>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
-                              <span className={`text-[12px] font-bold tracking-tight whitespace-nowrap ${isTeeTimeReached ? "text-[#10B981]" : "text-[#F59E0B]"
-                                }`}>
-                                {teeLabel}
-                              </span>
-                              {!isTeeTimeReached && (
-                                <span className="px-1.5 py-0.5 rounded-[4px] bg-[#F59E0B]/15 border border-[#F59E0B]/30 text-[9px] font-bold text-[#F59E0B] uppercase tracking-wider leading-none whitespace-nowrap">
-                                  Not Started
-                                </span>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Bottom Row: Resume Play & Forfeit Buttons */}
-                          <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              aria-disabled={!isTeeTimeReached}
-                              onClick={() => {
-                                if (!isTeeTimeReached) {
-                                  showToast(
-                                    `Score entry is locked until your flight tees off at ${teeLabel}.`,
-                                    "error",
-                                    "TEE TIME NOT REACHED"
-                                  );
-                                  return;
-                                }
-                                if (typeof window !== "undefined") {
-                                  try {
-                                    localStorage.setItem("openclub_active_round_started_at", String(Date.now()));
-                                    sessionStorage.removeItem("openclub_inactivity_notified");
-                                    const existingRaw = localStorage.getItem("openclub_live_admin_notifications");
-                                    if (existingRaw) {
-                                      const existingList = JSON.parse(existingRaw);
-                                      const updated = Array.isArray(existingList) ? existingList.filter((n: any) => n.id !== "inact-alert-samuel-14") : [];
-                                      localStorage.setItem("openclub_live_admin_notifications", JSON.stringify(updated));
-                                    }
-                                  } catch { }
-                                }
-                                broadcastAdminEvent("tournament-inactivity-resolved", { id: "inact-alert-samuel-14" });
-                                setHasInactivityWarning(false);
-                                setActiveRoundMinutesElapsed(0);
-                                showToast(`Resuming score entry for ${activeRound.tournamentName} (Hole ${activeRound.holeNumber})... Inactivity timer reset.`, "success", "RESUME PLAY");
-                                setTimeout(() => switchScreen("scoring"), 250);
-                              }}
-                              className={`flex-[7] h-[40px] rounded-xl font-semibold text-[13px] flex items-center justify-center gap-1.5 shadow-sm transition-all ${isTeeTimeReached
-                                  ? "bg-[#009A60] hover:bg-[#008753] active:scale-[0.98] text-white cursor-pointer"
-                                  : "bg-[#0B3523] border border-[#16603E]/60 text-[#8FAEA2] cursor-not-allowed opacity-75 hover:border-[#F59E0B]/50"
-                                }`}
-                              title={!isTeeTimeReached ? `Score entry locked until ${teeLabel}` : undefined}
-                            >
-                              {!isTeeTimeReached ? (
-                                <>
-                                  <Clock className="w-4 h-4 text-[#F59E0B]" />
-                                  <span>Tee Off at {teeLabel}</span>
-                                </>
-                              ) : (
-                                <>
-                                  <span>Resume Play</span>
-                                  <ChevronRight className="w-4 h-4" />
-                                </>
-                              )}
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => setShowForfeitModal(true)}
-                              className="flex-[3] h-[40px] rounded-xl bg-[#0C241B] hover:bg-[#133327] active:scale-[0.98] border border-[#1A3F30] text-[#FB7185] hover:text-rose-300 font-semibold text-[13px] flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer"
-                            >
-                              <span>Forfeit</span>
-                            </button>
-                          </div>
-                        </>
-                      );
-                    })()}
-
-                  </div>
-                </div>
-              )}
-
               <div className="flex items-center justify-between mb-1.5 mt-0.5">
                 <h3 className="text-[15px] font-bold text-[#0F172A] tracking-tight">
                   Friends Playing Now
@@ -16735,7 +16500,7 @@ class ChatScreen extends StatelessWidget {
           const hasMoreResults = q && allMatchedGolfers.length > friendsDisplayLimit;
 
           const connectedGolfers = realGolfersPool.filter((p) => (p as any)._isConnected);
-          const suggestedGolfers = realGolfersPool.filter((p) => !(p as any)._isIncoming && !(p as any)._isConnected && !sentFriendRequests.includes(p.id)).slice(0, 2);
+          const suggestedGolfers = realGolfersPool.filter((p) => !(p as any)._isIncoming && !(p as any)._isConnected && !sentFriendRequests.includes(p.id)).slice(0, 3);
 
           const cq = contactsSearchQuery.trim().toLowerCase();
           const displayedContacts = phoneAddressBookContacts.filter((c) => {
@@ -17128,85 +16893,44 @@ class ChatScreen extends StatelessWidget {
                           </div>
                         </div>
 
-                        {/* Share Invitation Link Card (Displayed After Player Suggestions) */}
-                        {(() => {
-                          const myInviteCode = getUserInviteCode(authenticatedPlayer);
-                          const fullInviteUrl = `${getAppOrigin()}/invite/${myInviteCode}`;
-                          return (
-                            <div className="w-full bg-white rounded-2xl border-2 border-dashed border-[#009A60] hover:border-[#008251] shadow-2xs p-5 text-center transition-all">
-                              {/* Centered Link Squircle Badge with QR Code Trigger */}
-                              <div
-                                onClick={() => {
-                                  setQrModalTab("display");
-                                  setShowQrCodeModal(true);
-                                }}
-                                className="w-12 h-12 rounded-2xl bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center mx-auto mb-3 text-[#009A60] shadow-xs cursor-pointer hover:scale-105 active:scale-95 transition-all group"
-                                title="View QR Code"
-                              >
-                                <Link2 className="w-5 h-5 text-[#009A60] group-hover:rotate-12 transition-transform" />
-                              </div>
+                        {/* Connect via QR Code Card (Replaced Invite Key Link) */}
+                        <div className="w-full bg-white rounded-2xl border-2 border-dashed border-[#009A60] hover:border-[#008251] shadow-2xs p-5 text-center transition-all">
+                          {/* Centered QR Squircle Badge with Trigger */}
+                          <div
+                            onClick={() => {
+                              setQrModalTab("display");
+                              setShowQrCodeModal(true);
+                            }}
+                            className="w-12 h-12 rounded-2xl bg-[#EAF7EE] border border-[#C6F0DB] flex items-center justify-center mx-auto mb-3 text-[#009A60] shadow-xs cursor-pointer hover:scale-105 active:scale-95 transition-all group"
+                            title="My QR Code & Scanner"
+                          >
+                            <QrCode className="w-6 h-6 text-[#009A60] group-hover:scale-110 transition-transform" />
+                          </div>
 
-                              {/* Centered Heading */}
-                              <h4 className="text-[15px] font-bold text-[#0F172A] leading-tight mb-1">
-                                Share Invitation Link
-                              </h4>
+                          {/* Centered Heading */}
+                          <h4 className="text-[15px] font-bold text-[#0F172A] leading-tight mb-1">
+                            Connect via QR Code
+                          </h4>
 
-                              {/* Centered Subtitle */}
-                              <p className="text-[12px] text-[#64748B] leading-snug mb-3.5">
-                                Invite friends who aren&apos;t on the platform yet
-                              </p>
+                          {/* Centered Subtitle */}
+                          <p className="text-[12px] text-[#64748B] leading-snug mb-4 max-w-[280px] mx-auto">
+                            Scan or share your unique golfer QR code to connect instantly on the course
+                          </p>
 
-                              {/* URL Pill Container with Elevated White Copy Button */}
-                              <div className="flex items-center gap-2 bg-[#f5faf6] border border-[#e1efe5] rounded-xl p-1.5 pl-3.5">
-                                <input
-                                  type="text"
-                                  readOnly
-                                  value={fullInviteUrl}
-                                  onClick={(e) => (e.target as HTMLInputElement).select()}
-                                  className="font-sans font-medium text-xs text-[#0F172A] bg-transparent outline-none border-none flex-1 min-w-0 truncate select-all cursor-text"
-                                  style={{ fontFamily: "var(--font-plus-jakarta-sans), 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif" }}
-                                />
-                                <button
-                                  type="button"
-                                  onClick={async () => {
-                                    if (typeof navigator !== "undefined" && navigator.clipboard) {
-                                      await navigator.clipboard.writeText(fullInviteUrl).catch(() => { });
-                                    }
-                                    showToast("Invite link copied to clipboard!", "success", "LINK COPIED");
-                                  }}
-                                  className="px-4 py-2 rounded-lg bg-white hover:bg-slate-50 border border-slate-200/80 text-[#0F172A] text-xs font-bold transition-all shadow-2xs active:scale-95 shrink-0 flex items-center gap-1.5 cursor-pointer capitalize"
-                                  title="Copy invite link"
-                                >
-                                  <Copy className="w-3.5 h-3.5 text-[#64748B]" />
-                                  <span>Copy</span>
-                                </button>
-                              </div>
-
-                              {/* Subtle "— or —" Divider */}
-                              <div className="flex items-center my-3.5 gap-3">
-                                <div className="flex-1 h-px bg-slate-200/80" />
-                                <span className="text-[11px] font-bold text-[#8CA0BA] uppercase tracking-wider">
-                                  or
-                                </span>
-                                <div className="flex-1 h-px bg-slate-200/80" />
-                              </div>
-
-                              {/* Dedicated QR Code Button on New Line */}
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setQrModalTab("display");
-                                  setShowQrCodeModal(true);
-                                }}
-                                className="w-full py-2.5 px-4 rounded-xl bg-[#EAF7EE] hover:bg-[#daf3e4] border border-[#C6F0DB] text-[#009A60] text-xs font-bold transition-all shadow-2xs active:scale-98 flex items-center justify-center gap-2 cursor-pointer capitalize"
-                                title="Share via QR Code"
-                              >
-                                <QrCode className="w-4 h-4 text-[#009A60]" />
-                                <span>Share via QR Code</span>
-                              </button>
-                            </div>
-                          );
-                        })()}
+                          {/* Dedicated QR Code Button */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setQrModalTab("display");
+                              setShowQrCodeModal(true);
+                            }}
+                            className="w-full py-2.5 px-4 rounded-xl bg-[#009A60] hover:bg-[#008251] active:scale-[0.98] text-white text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer capitalize"
+                            title="Open My QR Code & Scanner"
+                          >
+                            <QrCode className="w-4 h-4 text-white" />
+                            <span>My QR Code & Scanner</span>
+                          </button>
+                        </div>
                       </div>
                     );
                   })()}
