@@ -11,6 +11,7 @@ import 'screens/verify_email_screen.dart';
 import 'screens/competitor_home_screen.dart';
 import 'features/tournaments/screens/tournament_list_screen.dart';
 import 'features/tournaments/screens/leaderboard_screen.dart';
+import 'screens/set_new_password_screen.dart';
 import 'services/notification_service.dart';
 
 void main() async {
@@ -80,6 +81,19 @@ class OpenclubApp extends StatelessWidget {
             builder: (context) => LeaderboardScreen(tournamentId: tournamentId),
           );
         }
+
+        // Deep link and route resolution for Reset Password
+        final routeUri = Uri.tryParse(settings.name ?? '');
+        if (routeUri != null &&
+            (routeUri.path == '/reset-password' ||
+                routeUri.host == 'reset-password' ||
+                routeUri.scheme == 'openclub')) {
+          final token = routeUri.queryParameters['token'] ?? (settings.arguments as String?);
+          return MaterialPageRoute(
+            builder: (context) => SetNewPasswordScreen(resetToken: token),
+          );
+        }
+
         return null;
       },
       routes: {
@@ -89,6 +103,7 @@ class OpenclubApp extends StatelessWidget {
         '/login': (context) => const LoginScreen(),
         '/register': (context) => const RegistrationScreen(),
         '/verify': (context) => const VerifyEmailScreen(),
+        '/reset-password': (context) => const SetNewPasswordScreen(),
         '/super-admin/dashboard': (context) => const DashboardScreen(title: 'Super Admin Dashboard'),
         '/admin/dashboard': (context) => const DashboardScreen(title: 'Club Admin Dashboard'),
         '/staff/dashboard': (context) => const DashboardScreen(title: 'Staff Dashboard'),

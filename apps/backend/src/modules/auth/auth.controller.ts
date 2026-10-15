@@ -281,7 +281,7 @@ export class AuthController {
     @Headers('x-platform') headerPlatform?: string,
     @Headers('x-client-platform') clientPlatform?: string,
   ) {
-    const platform = body.platform || headerPlatform || clientPlatform;
+    const platform = body.platform || headerPlatform || clientPlatform || 'web';
     try {
       await this.authService.initiatePasswordReset(body.email, platform);
     } catch (err) {
@@ -296,6 +296,15 @@ export class AuthController {
   }
 
   /**
+   * GET /api/auth/reset-password/validate/:token
+   * Public endpoint to validate a reset token and inspect account role.
+   */
+  @Get('reset-password/validate/:token')
+  async validateResetToken(@Param('token') token: string) {
+    return this.authService.validateResetToken(token);
+  }
+
+  /**
    * POST /api/auth/reset-password
    * Body: { token: string, newPassword: string, platform?: string }
    * Verifies the cryptographic reset token and updates the user's password.
@@ -307,7 +316,7 @@ export class AuthController {
     @Headers('x-platform') headerPlatform?: string,
     @Headers('x-client-platform') clientPlatform?: string,
   ) {
-    const platform = body.platform || headerPlatform || clientPlatform;
+    const platform = body.platform || headerPlatform || clientPlatform || 'web';
     return this.authService.resetPassword(body.token, body.newPassword, platform);
   }
 

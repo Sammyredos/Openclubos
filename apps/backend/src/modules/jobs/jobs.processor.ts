@@ -173,6 +173,12 @@ export class JobsProcessor extends WorkerHost {
           to,
           data.resetToken || '',
           data.resetUrl || '',
+          {
+            platform: data.platform,
+            isMobile: data.isMobile,
+            deepLink: data.deepLink,
+            bridgeUrl: data.bridgeUrl,
+          },
         );
 
       case 'REGISTRATION':

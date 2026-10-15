@@ -23,6 +23,8 @@ export function middleware(request: NextRequest) {
     pathname === '/login' ||
     pathname === '/forgot-password' ||
     pathname.startsWith('/reset-password') ||
+    pathname.startsWith('/app-redirect') ||
+    pathname.startsWith('/invite') ||
     pathname.startsWith('/verify-email') ||
     pathname.startsWith('/accept-invite') ||
     (pathname.startsWith('/tournaments/') && !pathname.includes('/register')) ||

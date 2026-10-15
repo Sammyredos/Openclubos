@@ -389,23 +389,57 @@ export class EmailService {
     to: string,
     resetToken: string,
     resetUrl: string,
+    options?: {
+      platform?: string;
+      isMobile?: boolean;
+      deepLink?: string;
+      bridgeUrl?: string;
+    },
   ): Promise<EmailResult> {
+    const isMobile =
+      options?.isMobile ??
+      (options?.platform === 'mobile' || options?.platform === 'flutter');
+
+    if (isMobile) {
+      // Mobile App Password Reset (Emerald Theme, App Redirection)
+      const actionUrl = options?.bridgeUrl || options?.deepLink || resetUrl;
+      const html = this.wrap(
+        'Reset Your Password',
+        `
+        ${this.p('Hello,')}
+        ${this.p('We received a request to reset the password associated with your <strong>OpenClubOS Mobile</strong> competitor account. Tap the button below on your mobile device to open the OpenClubOS app and establish your new password.')}
+        ${this.button('Open in OpenClubOS App', actionUrl, '#009A60')}
+        ${this.p('For security purposes, this link will expire in 5 minutes and can only be used once.')}
+        ${this.p(`<span style="color: #64748B; font-size: 13px;">Opening on a computer or browser? You can also reset via our web simulator: <a href="${resetUrl}" style="color: #009A60; text-decoration: underline; font-weight: 600;">Open Web Simulator</a></span>`)}
+        ${this.infoBox('<strong>Security Notice:</strong> If you did not request a password reset, you can safely ignore this email. Your golfer account remains secure.', '#fef2f2', '#fecaca', '#991b1b')}
+      `,
+        '#007A4D, #009A60',
+      );
+      return this.send(
+        to,
+        'Reset Your Password — OpenClubOS Mobile App',
+        html,
+        `Password reset email sent to ${to} (Mobile App)`,
+      );
+    }
+
+    // Web Admin Portal Password Reset (Blue Admin Theme, Browser Reset Link)
     const html = this.wrap(
       'Password Reset Request',
       `
       ${this.p('Hello,')}
-      ${this.p('We received a request to reset the password associated with your OpenClubOS account. If you made this request, please proceed by clicking the button below to establish a new password.')}
+      ${this.p('We received a request to reset the password associated with your <strong>OpenClubOS Administrative</strong> account. Please proceed by clicking the button below to set a new password on the web portal.')}
       ${this.button('Reset My Password', resetUrl, '#2563eb')}
-      ${this.p('For security purposes, this link will expire in 5 minutes.')}
-      ${this.infoBox('<strong>Security Notice:</strong> If you did not request a password reset, you can safely ignore this email. Your password will remain unchanged and your account is secure.', '#fef2f2', '#fecaca', '#991b1b')}
+      ${this.p('For security purposes, this link will expire in 5 minutes and can only be used once.')}
+      ${this.infoBox('<strong>Security Notice:</strong> If you did not request a password reset, you can safely ignore this email. Your administrative account will remain unchanged and secure.', '#fef2f2', '#fecaca', '#991b1b')}
     `,
       '#1e40af, #2563eb',
     );
     return this.send(
       to,
-      'Password Reset Request — OpenClubOS',
+      'Password Reset Request — OpenClubOS Admin Portal',
       html,
-      `Password reset email sent to ${to}`,
+      `Password reset email sent to ${to} (Web Admin)`,
     );
   }
 

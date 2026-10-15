@@ -3005,7 +3005,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                       padding: EdgeInsets.zero,
                                       constraints: const BoxConstraints(),
                                       icon: const Icon(
-                                        Icons.person_add_alt_1_outlined,
+                                        Icons.person_add_rounded,
                                         color: Colors.white,
                                         size: 21,
                                       ),
@@ -3026,7 +3026,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                         clipBehavior: Clip.none,
                                         children: [
                                           const Icon(
-                                            Icons.notifications_none_rounded,
+                                            Icons.notifications_rounded,
                                             color: Colors.white,
                                             size: 21,
                                           ),
@@ -3094,7 +3094,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                           padding: EdgeInsets.zero,
                                           constraints: const BoxConstraints(),
                                           icon: const Icon(
-                                            Icons.chat_bubble_outline_rounded,
+                                            Icons.chat_bubble_rounded,
                                             color: Colors.white,
                                             size: 21,
                                           ),
@@ -3359,8 +3359,8 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                             ),
                                             maxLines: 1,
                                           ),
-                                          const SizedBox(width: 10),
-                                          // Compact Faded White QR Code Action Button: 16px player card radius, icon-only display
+                                          const SizedBox(width: 16),
+                                          // Compact Faded White QR Code Action Button: 16px player card radius, icon-only display with extra left spacing
                                           GestureDetector(
                                             onTap: () {
                                               ScaffoldMessenger.of(context).showSnackBar(
@@ -3391,7 +3391,7 @@ class _CompetitorHomeScreenState extends State<CompetitorHomeScreen> {
                                               child: const Center(
                                                 child: Icon(
                                                   Icons.qr_code_rounded,
-                                                  size: 18,
+                                                  size: 19,
                                                   color: Colors.white,
                                                 ),
                                               ),

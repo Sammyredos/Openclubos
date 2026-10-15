@@ -975,7 +975,7 @@ export class AuthService implements OnModuleInit {
     }
   }
 
-  async initiatePasswordReset(email: string, platform?: string): Promise<{ success: boolean; resetToken?: string; resetUrl?: string }> {
+  async initiatePasswordReset(email: string, platform?: string): Promise<{ success: boolean; resetToken?: string; resetUrl?: string; deepLink?: string; bridgeUrl?: string }> {
     // Silently look up user — do NOT throw if not found (prevents email enumeration)
     const normalizedEmail = email?.trim().toLowerCase();
     if (!normalizedEmail) return { success: true };
@@ -1011,18 +1011,20 @@ export class AuthService implements OnModuleInit {
 
     if (!user) return { success: true };
 
-    const isMobile = platform === 'mobile' || platform === 'flutter';
-    const isAdmin = platform === 'admin';
-    if (isMobile) {
-      if (user.role !== UserRole.PLAYER) {
+    const isPlayerRole = user.role === UserRole.PLAYER || user.role === UserRole.MARKER;
+    const isMobileReq = platform === 'mobile' || platform === 'flutter' || platform === 'app';
+    const isAdminReq = platform === 'admin';
+
+    // Enforce role-platform isolation when initiated by end-users
+    if (!isAdminReq) {
+      if (isMobileReq && !isPlayerRole) {
         throw new ForbiddenException(
           'Access restricted: This application is designated for player accounts only. Please sign in with an authorized player account.',
         );
       }
-    } else if (!isAdmin) {
-      if (user.role === UserRole.PLAYER) {
+      if (!isMobileReq && isPlayerRole) {
         throw new ForbiddenException(
-          'Access restricted: This portal is designated for administrative accounts only.',
+          'Access restricted: This portal is designated for administrative accounts only. Player accounts must reset their password in the OpenClubOS mobile app.',
         );
       }
     }
@@ -1044,13 +1046,23 @@ export class AuthService implements OnModuleInit {
       },
     });
 
-    // Build reset URL — if requested from mobile or if user is PLAYER, route to mobile screen / preview
+    // Build reset URLs strictly distinguished by user account role:
+    // Players/Competitors redirect back to the mobile app (deep link + app redirect bridge)
+    // Organizers/Administrators use the web admin portal
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-    const isPlayer = user.role === UserRole.PLAYER;
-    const resetUrl = (isMobile || isPlayer)
-      ? `${frontendUrl}/mobile-preview?screen=reset-password&token=${resetToken}`
-      : `${frontendUrl}/reset-password?token=${resetToken}`;
-    const deepLink = `openclub://reset-password?token=${resetToken}`;
+    let resetUrl: string;
+    let deepLink: string | undefined;
+    let bridgeUrl: string | undefined;
+
+    if (isPlayerRole) {
+      // Mobile App Flow: App redirect bridge + native deep link + web simulator fallback
+      deepLink = `openclub://reset-password?token=${resetToken}`;
+      bridgeUrl = `${frontendUrl}/app-redirect?action=reset-password&token=${resetToken}`;
+      resetUrl = `${frontendUrl}/mobile-preview?screen=reset-password&token=${resetToken}`;
+    } else {
+      // Web Admin Flow: Pure browser reset link on the web admin page
+      resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`;
+    }
 
     // Queue password reset email (fire-and-forget)
     this.jobsService
@@ -1058,7 +1070,9 @@ export class AuthService implements OnModuleInit {
         resetToken,
         resetUrl,
         deepLink,
-        isMobile,
+        bridgeUrl,
+        isMobile: isPlayerRole,
+        platform: isPlayerRole ? 'mobile' : 'web',
       })
       .catch((err) => {
         console.error('Failed to queue password reset email:', err);
@@ -1068,6 +1082,47 @@ export class AuthService implements OnModuleInit {
       success: true,
       resetToken,
       resetUrl,
+      deepLink,
+      bridgeUrl,
+    };
+  }
+
+  async validateResetToken(token: string): Promise<{
+    valid: boolean;
+    role?: UserRole;
+    isPlayer?: boolean;
+    isOrganizer?: boolean;
+    email?: string;
+    message?: string;
+  }> {
+    if (!token || typeof token !== 'string') {
+      return { valid: false, message: 'Invalid or missing reset token.' };
+    }
+
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+
+    const user = await this.prisma.user.findFirst({
+      where: { passwordResetToken: tokenHash, deletedAt: null },
+      select: { id: true, email: true, role: true, passwordResetExpires: true },
+    });
+
+    if (!user) {
+      return { valid: false, message: 'Invalid or expired reset token.' };
+    }
+
+    if (user.passwordResetExpires && user.passwordResetExpires < new Date()) {
+      return { valid: false, message: 'Reset token has expired. Please request a new link.' };
+    }
+
+    const isPlayer = user.role === UserRole.PLAYER || user.role === UserRole.MARKER;
+    const isOrganizer = !isPlayer;
+
+    return {
+      valid: true,
+      role: user.role,
+      isPlayer,
+      isOrganizer,
+      email: user.email,
     };
   }
 
@@ -1092,20 +1147,20 @@ export class AuthService implements OnModuleInit {
       throw new UnauthorizedException('Reset token has expired');
     }
 
-    const isMobile = platform === 'mobile' || platform === 'flutter';
-    const isAdmin = platform === 'admin';
-    if (isMobile) {
-      if (user.role !== UserRole.PLAYER) {
-        throw new ForbiddenException(
-          'Access restricted: This application is designated for player accounts only. Please sign in with an authorized player account.',
-        );
-      }
-    } else if (platform && !isAdmin) {
-      if (user.role === UserRole.PLAYER) {
-        throw new ForbiddenException(
-          'Access restricted: This portal is designated for administrative accounts only.',
-        );
-      }
+    const isPlayer = user.role === UserRole.PLAYER || user.role === UserRole.MARKER;
+    const isMobileClient = platform === 'mobile' || platform === 'flutter' || platform === 'app';
+
+    // Enforce role isolation: players must reset in mobile app, organizers must reset in web admin portal
+    if (isPlayer && !isMobileClient) {
+      throw new ForbiddenException(
+        'Access restricted: Player accounts must reset their password in the OpenClubOS mobile app.',
+      );
+    }
+
+    if (!isPlayer && isMobileClient) {
+      throw new ForbiddenException(
+        'Access restricted: Organizer and administrative accounts must reset their password on the Web Admin Portal.',
+      );
     }
 
     // Hash new password and clear the reset token

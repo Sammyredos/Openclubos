@@ -103,11 +103,16 @@ export async function loginRequest(payload: LoginPayload): Promise<LoginResponse
   return res.json();
 }
 
-export async function forgotPasswordRequest(email: string, platform?: string): Promise<{ message: string }> {
+export async function forgotPasswordRequest(email: string, platform: string = 'web'): Promise<{ message: string }> {
+  const resolvedPlatform = platform || 'web';
   const res = await fetch(`${API_BASE}/auth/forgot-password`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, platform }),
+    headers: {
+      'Content-Type': 'application/json',
+      'x-platform': resolvedPlatform,
+      'x-client-platform': resolvedPlatform,
+    },
+    body: JSON.stringify({ email, platform: resolvedPlatform }),
   });
 
   if (!res.ok) {
@@ -118,11 +123,46 @@ export async function forgotPasswordRequest(email: string, platform?: string): P
   return res.json();
 }
 
-export async function resetPasswordRequest(token: string, newPassword: string): Promise<{ success: boolean; message: string }> {
+export async function validateResetTokenRequest(token: string): Promise<{
+  valid: boolean;
+  role?: string;
+  isPlayer?: boolean;
+  isOrganizer?: boolean;
+  email?: string;
+  message?: string;
+}> {
+  try {
+    const res = await fetch(`${API_BASE}/auth/reset-password/validate/${encodeURIComponent(token)}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      cache: 'no-store',
+    });
+
+    if (!res.ok) {
+      const error = await res.json().catch(() => ({}));
+      return { valid: false, message: error.message || 'Invalid or expired reset token.' };
+    }
+
+    return res.json();
+  } catch {
+    return { valid: false, message: 'Unable to connect to authentication server.' };
+  }
+}
+
+export async function resetPasswordRequest(
+  token: string,
+  newPassword: string,
+  platform: string = 'web',
+): Promise<{ success: boolean; message: string }> {
+  const resolvedPlatform = platform || 'web';
   const res = await fetch(`${API_BASE}/auth/reset-password`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ token, newPassword }),
+    headers: {
+      'Content-Type': 'application/json',
+      'x-platform': resolvedPlatform,
+      'x-client-platform': resolvedPlatform,
+    },
+    body: JSON.stringify({ token, newPassword, platform: resolvedPlatform }),
   });
 
   if (!res.ok) {

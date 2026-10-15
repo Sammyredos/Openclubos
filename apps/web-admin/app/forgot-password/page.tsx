@@ -32,11 +32,21 @@ export default function ForgotPasswordPage() {
   const handleResend = async () => {
     if (countdown > 0) return
     try {
-      await forgotPasswordRequest(sentEmail)
+      await forgotPasswordRequest(sentEmail, "web")
       setCountdown(60)
       toast.success("Password reset email sent again.")
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Something went wrong.")
+      const msg = err instanceof Error ? err.message : "Something went wrong."
+      const isRoleRestricted = msg.toLowerCase().includes("administrative") || msg.toLowerCase().includes("restricted") || msg.toLowerCase().includes("player")
+      if (isRoleRestricted) {
+        toast.error("ACCESS DENIED (ROLE RESTRICTED)", {
+          description: msg,
+        })
+      } else {
+        toast.error("REQUEST FAILED", {
+          description: msg,
+        })
+      }
     }
   }
 
@@ -48,11 +58,21 @@ export default function ForgotPasswordPage() {
   async function onSubmit(data: FormValues) {
     setPageState("loading")
     try {
-      await forgotPasswordRequest(data.email)
+      await forgotPasswordRequest(data.email, "web")
       setSentEmail(data.email)
       setPageState("sent")
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Something went wrong. Please try again.")
+      const msg = err instanceof Error ? err.message : "Something went wrong. Please try again."
+      const isRoleRestricted = msg.toLowerCase().includes("administrative") || msg.toLowerCase().includes("restricted") || msg.toLowerCase().includes("player")
+      if (isRoleRestricted) {
+        toast.error("ACCESS DENIED (ROLE RESTRICTED)", {
+          description: msg,
+        })
+      } else {
+        toast.error("REQUEST FAILED", {
+          description: msg,
+        })
+      }
       setPageState("idle")
     }
   }

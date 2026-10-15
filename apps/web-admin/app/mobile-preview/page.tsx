@@ -97,6 +97,13 @@ import {
   Mic,
   MoreVertical,
 } from "lucide-react";
+import {
+  UserPlusIcon as SolidUserPlus,
+  BellIcon as SolidBell,
+  ChatBubbleLeftIcon as SolidChatBubble,
+  Bars3Icon as SolidBars3,
+  QrCodeIcon as SolidQrCode,
+} from "@heroicons/react/24/solid";
 import { formatNumber, formatTitleCase, subscribeAdminEvents, broadcastAdminEvent, getCurrencySymbol, formatTournamentFee, formatWithOrdinal, formatShortDate, formatDateRange } from "@/lib/utils";
 import { forfeitTournamentRound } from "@/lib/api/scores";
 import { getGroupings, type GroupingData } from "@/lib/api/tournaments";
@@ -9450,7 +9457,7 @@ class ChatScreen extends StatelessWidget {
                     title="Add Friends"
                     aria-label="Add Friends"
                   >
-                    <UserPlus className="h-[19px] w-[19px] sm:h-5 sm:w-5 text-white stroke-[1.9]" />
+                    <SolidUserPlus className="h-[19px] w-[19px] sm:h-5 sm:w-5 text-white" />
                   </button>
 
                   {/* Notification Bell with Badge */}
@@ -9461,7 +9468,7 @@ class ChatScreen extends StatelessWidget {
                     title="Notifications"
                     aria-label="Notifications"
                   >
-                    <Bell className="h-[19px] w-[19px] sm:h-5 sm:w-5 text-white stroke-[1.9]" />
+                    <SolidBell className="h-[19px] w-[19px] sm:h-5 sm:w-5 text-white" />
                     {incomingFriendRequests.length > 0 ? (
                       <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full bg-[#EF4444] border-2 border-white text-white text-[10px] font-bold flex items-center justify-center px-1 shadow-xs leading-none">
                         {incomingFriendRequests.length}
@@ -9479,7 +9486,7 @@ class ChatScreen extends StatelessWidget {
                     title="Direct Messages"
                     aria-label="Direct Messages"
                   >
-                    <MessageSquare className="h-[19px] w-[19px] sm:h-5 sm:w-5 text-white stroke-[1.9]" />
+                    <SolidChatBubble className="h-[19px] w-[19px] sm:h-5 sm:w-5 text-white" />
                     {unreadMessagesCount > 0 && (
                       <span className="absolute -top-1 -right-1 min-w-[17px] h-[17px] rounded-full bg-[#009A60] border-2 border-white text-white text-[9.5px] font-bold flex items-center justify-center px-1 shadow-xs leading-none">
                         {unreadMessagesCount}
@@ -9495,7 +9502,7 @@ class ChatScreen extends StatelessWidget {
                     title="Menu"
                     aria-label="Menu"
                   >
-                    <Menu className="h-5 w-5 sm:h-[22px] sm:w-[22px] text-white stroke-[1.9]" />
+                    <SolidBars3 className="h-5 w-5 sm:h-[22px] sm:w-[22px] text-white" />
                   </button>
                 </div>
 
@@ -9558,18 +9565,18 @@ class ChatScreen extends StatelessWidget {
                         {currentFirstName}
                       </h2>
 
-                      {/* Compact Faded White QR Code Action Button: Player card radius (rounded-2xl), icon-only display */}
+                      {/* Compact Faded White QR Code Action Button: Player card radius (rounded-2xl), icon-only display with extra left padding/spacing */}
                       <button
                         type="button"
                         onClick={() => {
                           setQrModalTab("display");
                           setShowQrCodeModal(true);
                         }}
-                        className="w-9 h-9 sm:w-[38px] sm:h-[38px] rounded-2xl bg-white/20 hover:bg-white/30 active:scale-95 border border-white/25 shadow-xs backdrop-blur-xs flex items-center justify-center text-white transition-all cursor-pointer shrink-0 group"
+                        className="ml-3 sm:ml-4 w-9 h-9 sm:w-[38px] sm:h-[38px] rounded-2xl bg-white/20 hover:bg-white/30 active:scale-95 border border-white/25 shadow-xs backdrop-blur-xs flex items-center justify-center text-white transition-all cursor-pointer shrink-0 group"
                         title="My QR Code & Scanner"
                         aria-label="My QR Code & Scanner"
                       >
-                        <QrCode className="h-[18px] w-[18px] sm:h-5 sm:w-5 text-white group-hover:scale-105 transition-transform shrink-0 stroke-[2]" />
+                        <SolidQrCode className="h-[18px] w-[18px] sm:h-5 sm:w-5 text-white group-hover:scale-105 transition-transform shrink-0" />
                       </button>
                     </div>
                   </div>

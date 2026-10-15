@@ -5,8 +5,8 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { Icons } from "@/components/ui/icons"
-import { Eye, EyeOff, CheckCircle2, AlertCircle } from "lucide-react"
-import { resetPasswordRequest } from "@/lib/api/auth"
+import { Eye, EyeOff, CheckCircle2, AlertCircle, Smartphone, ArrowRight } from "lucide-react"
+import { resetPasswordRequest, validateResetTokenRequest } from "@/lib/api/auth"
 import { toast } from "sonner"
 import { useSearchParams } from "next/navigation"
 import Link from "next/link"
@@ -36,6 +36,9 @@ function ResetPasswordPageInner() {
   const [pageState, setPageState] = React.useState<PageState>("idle")
   const [showPassword, setShowPassword] = React.useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = React.useState(false)
+  const [errorMessage, setErrorMessage] = React.useState<string>("")
+  const [isPlayerAccount, setIsPlayerAccount] = React.useState(false)
+  const [isValidating, setIsValidating] = React.useState(true)
 
   const searchParams = useSearchParams()
   const token = searchParams.get("token")
@@ -48,7 +51,43 @@ function ResetPasswordPageInner() {
   React.useEffect(() => {
     if (!token) {
       setPageState("error")
-      toast.error("Invalid or missing reset token. Please request a new password reset link.")
+      setErrorMessage("Invalid or missing reset token. Please request a new password reset link.")
+      setIsValidating(false)
+      return
+    }
+
+    let isMounted = true
+    validateResetTokenRequest(token)
+      .then((res) => {
+        if (!isMounted) return
+        setIsValidating(false)
+        if (!res.valid) {
+          setPageState("error")
+          setErrorMessage(res.message || "The password reset link is invalid or has expired.")
+          return
+        }
+
+        if (res.isPlayer) {
+          setIsPlayerAccount(true)
+          const isMobileDevice = typeof navigator !== "undefined" && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+          const targetUrl = isMobileDevice
+            ? `openclub://reset-password?token=${encodeURIComponent(token)}`
+            : `/mobile-preview?screen=reset-password&token=${encodeURIComponent(token)}`
+          window.location.replace(targetUrl)
+          return
+        }
+
+        // Organizer accounts proceed with web portal reset
+        setPageState("idle")
+      })
+      .catch(() => {
+        if (!isMounted) return
+        setIsValidating(false)
+        setPageState("idle")
+      })
+
+    return () => {
+      isMounted = false
     }
   }, [token])
 
@@ -56,13 +95,54 @@ function ResetPasswordPageInner() {
     if (!token) return
     setPageState("loading")
     try {
-      await resetPasswordRequest(token, data.newPassword)
+      await resetPasswordRequest(token, data.newPassword, "web")
       setPageState("success")
       toast.success("Password has been reset successfully.")
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Something went wrong. Please try again.")
+      const msg = err instanceof Error ? err.message : "Something went wrong. Please try again."
+      const isRoleRestricted = msg.toLowerCase().includes("player") || msg.toLowerCase().includes("restricted")
+      if (isRoleRestricted) {
+        toast.error("ACCESS DENIED (ROLE RESTRICTED)", {
+          description: msg,
+        })
+      } else {
+        toast.error("PASSWORD RESET FAILED", {
+          description: msg,
+        })
+      }
       setPageState("idle")
     }
+  }
+
+  if (isValidating || isPlayerAccount) {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center bg-zinc-50 font-sans text-zinc-900">
+        <div className="w-full max-w-[1440px] mx-auto flex justify-center relative">
+          <div className="w-full flex flex-col items-center justify-center p-2 md:p-8 lg:p-16 relative">
+            <div className="w-full max-w-[480px] md:max-w-[420px] lg:max-w-[730px] flex flex-col justify-center bg-white rounded-3xl p-6 md:p-10 lg:p-16 border border-zinc-100 shadow-xs relative z-10">
+              {/* Header skeleton */}
+              <div className="text-center w-full mb-8 flex flex-col items-center">
+                <div className="h-8 w-48 bg-zinc-200/80 rounded-lg animate-pulse mb-3" />
+                <div className="h-4 w-60 bg-zinc-100 rounded-md animate-pulse" />
+              </div>
+
+              {/* Form Fields skeleton */}
+              <div className="space-y-6 w-full">
+                <div>
+                  <div className="h-4 w-28 bg-zinc-200/80 rounded animate-pulse mb-2.5" />
+                  <div className="h-12 w-full bg-[#f5faf6] border border-[#e1efe5] rounded-xl animate-pulse" />
+                </div>
+                <div>
+                  <div className="h-4 w-32 bg-zinc-200/80 rounded animate-pulse mb-2.5" />
+                  <div className="h-12 w-full bg-[#f5faf6] border border-[#e1efe5] rounded-xl animate-pulse" />
+                </div>
+                <div className="h-12 w-full bg-emerald-600/30 rounded-xl animate-pulse mt-2" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -103,7 +183,7 @@ function ResetPasswordPageInner() {
 
                 <h2 className="text-[28px] font-bold tracking-tight text-zinc-900 mb-3">Invalid Link</h2>
                 <p className="text-zinc-500 text-[15px] mb-8 leading-relaxed">
-                  The password reset link is invalid or has expired.
+                  {errorMessage || "The password reset link is invalid or has expired."}
                 </p>
 
                 <Link href="/forgot-password" className="w-full mb-4 block">
